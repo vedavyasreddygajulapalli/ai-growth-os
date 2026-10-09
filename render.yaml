@@ -1,0 +1,44 @@
+# M1 acceptance deployment. Atlas is external; no database secrets belong here.
+services:
+  - type: web
+    name: ai-growth-os-api
+    runtime: node
+    plan: free
+    region: singapore
+    branch: main
+    autoDeployTrigger: "off"
+    buildCommand: npm ci --prefix backend --include=dev && npm run build --prefix backend
+    startCommand: npm run db:migrate --prefix backend && npm start --prefix backend
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false
+      - key: APP_ORIGINS
+        sync: false
+      - key: PUBLIC_APP_URL
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+  - type: web
+    name: ai-growth-os-web
+    runtime: node
+    plan: free
+    region: singapore
+    branch: main
+    autoDeployTrigger: "off"
+    buildCommand: npm ci --prefix web --include=dev && npm run sync-ui --prefix web && npm run build --prefix web
+    startCommand: npm start --prefix web -- --hostname 0.0.0.0
+    healthCheckPath: /
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      - key: API_INTERNAL_URL
+        sync: false
