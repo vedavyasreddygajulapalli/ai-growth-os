@@ -1,0 +1,35 @@
+{
+  "name": "ai-growth-os-api",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/main.js",
+    "dev": "tsx watch src/main.ts",
+    "test": "tsc -p tsconfig.test.json && node --test .test-build/test/*.test.js",
+    "test:unit": "tsc -p tsconfig.test.json && node --test .test-build/test/contracts.test.js .test-build/test/ui.test.js",
+    "test:integration": "tsc -p tsconfig.test.json && node --test .test-build/test/foundation.test.js"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.1.6",
+    "@nestjs/core": "^11.1.6",
+    "@nestjs/platform-express": "^11.1.6",
+    "@nestjs/throttler": "^6.4.0",
+    "cookie-parser": "^1.4.7",
+    "helmet": "^8.1.0",
+    "mongoose": "^8.19.1",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@types/cookie-parser": "^1.4.9",
+    "@types/express": "^5.0.3",
+    "@types/jsdom": "^30.0.0",
+    "@types/node": "^24.7.1",
+    "jsdom": "^30.1.2",
+    "mongodb-memory-server": "^10.2.1",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  }
+}

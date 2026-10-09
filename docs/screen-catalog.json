@@ -1,0 +1,2666 @@
+[
+  {
+    "id": "S001",
+    "module": "Overview",
+    "screen": "Executive Dashboard",
+    "phase": "V1",
+    "fields": [
+      "period",
+      "websiteId",
+      "comparison"
+    ],
+    "columns": [
+      "organicSessions",
+      "qualifiedLeads",
+      "wonValue",
+      "health",
+      "sourceFreshness"
+    ],
+    "actions": [
+      "Refresh",
+      "open metric",
+      "export"
+    ],
+    "api": "GET dashboard",
+    "acceptance": "Analytics ingested;missing sources show unavailable, never sample metrics"
+  },
+  {
+    "id": "S002",
+    "module": "Overview",
+    "screen": "Growth Inbox",
+    "phase": "V1",
+    "fields": [
+      "type",
+      "priority",
+      "assignee",
+      "status"
+    ],
+    "columns": [
+      "title",
+      "entityLink",
+      "priority",
+      "owner",
+      "dueAt",
+      "status"
+    ],
+    "actions": [
+      "Acknowledge",
+      "snooze",
+      "open linked entity"
+    ],
+    "api": "GET inbox;PATCH inbox/:id",
+    "acceptance": "Acknowledgement audited;role filter removes inaccessible entities"
+  },
+  {
+    "id": "S003",
+    "module": "Overview",
+    "screen": "Decision Center",
+    "phase": "V1",
+    "fields": [
+      "actionId",
+      "version",
+      "decision",
+      "reason"
+    ],
+    "columns": [
+      "rationale",
+      "impact",
+      "cost",
+      "affectedIds",
+      "requiredPermission"
+    ],
+    "actions": [
+      "Approve",
+      "reject",
+      "request changes"
+    ],
+    "api": "GET decisions;POST decisions/:id/decision",
+    "acceptance": "Approval binds action input hash;changed inputs invalidate approval"
+  },
+  {
+    "id": "S004",
+    "module": "Overview",
+    "screen": "AI Activity",
+    "phase": "V1",
+    "fields": [
+      "agent",
+      "status",
+      "from",
+      "to"
+    ],
+    "columns": [
+      "runId",
+      "agent",
+      "status",
+      "cost",
+      "startedAt",
+      "finishedAt",
+      "error"
+    ],
+    "actions": [
+      "Inspect",
+      "cancel",
+      "retry failed"
+    ],
+    "api": "GET agent-runs;POST agent-runs/:id/retry",
+    "acceptance": "Retry creates linked attempt;completed action cannot run twice"
+  },
+  {
+    "id": "S005",
+    "module": "Overview",
+    "screen": "Goals & Progress",
+    "phase": "V1",
+    "fields": [
+      "metric",
+      "target",
+      "baseline",
+      "startAt",
+      "endAt",
+      "ownerId"
+    ],
+    "columns": [
+      "metric",
+      "baseline",
+      "target",
+      "actual",
+      "progress",
+      "coverage"
+    ],
+    "actions": [
+      "Create",
+      "edit",
+      "close goal"
+    ],
+    "api": "GET/POST goals;PATCH goals/:id",
+    "acceptance": "Metric denominator and baseline fixed;zero baseline has no fabricated percentage"
+  },
+  {
+    "id": "S006",
+    "module": "Overview",
+    "screen": "Change Analysis",
+    "phase": "V2",
+    "fields": [
+      "metric",
+      "period",
+      "segments"
+    ],
+    "columns": [
+      "delta",
+      "contributingSegments",
+      "evidence",
+      "confidence"
+    ],
+    "actions": [
+      "Compare",
+      "create recommendation"
+    ],
+    "api": "GET change-analysis",
+    "acceptance": "Insufficient data produces explicit unknown attribution"
+  },
+  {
+    "id": "S007",
+    "module": "Brand & Knowledge",
+    "screen": "Business Profile",
+    "phase": "V1",
+    "fields": [
+      "name",
+      "legalName",
+      "industry",
+      "description",
+      "locations[]",
+      "websiteId"
+    ],
+    "columns": [
+      "name",
+      "industry",
+      "completeness",
+      "updatedBy",
+      "updatedAt"
+    ],
+    "actions": [
+      "Edit",
+      "save",
+      "view history"
+    ],
+    "api": "GET/PUT brand-profile",
+    "acceptance": "Name required 2\u2013120;website belongs to workspace"
+  },
+  {
+    "id": "S008",
+    "module": "Brand & Knowledge",
+    "screen": "Products",
+    "phase": "V1",
+    "fields": [
+      "name",
+      "description",
+      "sku",
+      "priceMinor",
+      "currency",
+      "benefits[]",
+      "evidenceIds[]"
+    ],
+    "columns": [
+      "name",
+      "sku",
+      "status",
+      "updatedAt"
+    ],
+    "actions": [
+      "Create",
+      "edit",
+      "archive"
+    ],
+    "api": "GET/POST products;PATCH products/:id",
+    "acceptance": "SKU unique per workspace;money stored integer minor units"
+  },
+  {
+    "id": "S009",
+    "module": "Brand & Knowledge",
+    "screen": "Services",
+    "phase": "V1",
+    "fields": [
+      "name",
+      "description",
+      "locations[]",
+      "benefits[]",
+      "faq[]",
+      "evidenceIds[]"
+    ],
+    "columns": [
+      "name",
+      "coverage",
+      "status"
+    ],
+    "actions": [
+      "Create",
+      "edit",
+      "archive"
+    ],
+    "api": "GET/POST services;PATCH services/:id",
+    "acceptance": "Used services archive only;linked content remains resolvable"
+  },
+  {
+    "id": "S010",
+    "module": "Brand & Knowledge",
+    "screen": "Audiences",
+    "phase": "V1",
+    "fields": [
+      "name",
+      "roles[]",
+      "industries[]",
+      "problems[]",
+      "goals[]",
+      "objections[]",
+      "stage"
+    ],
+    "columns": [
+      "name",
+      "stage",
+      "linkedContentCount"
+    ],
+    "actions": [
+      "Create",
+      "edit",
+      "archive"
+    ],
+    "api": "GET/POST audiences;PATCH audiences/:id",
+    "acceptance": "Invalid buying stage rejected;references scoped to organization"
+  },
+  {
+    "id": "S011",
+    "module": "Brand & Knowledge",
+    "screen": "Competitors",
+    "phase": "V1",
+    "fields": [
+      "name",
+      "domain",
+      "notes",
+      "approved"
+    ],
+    "columns": [
+      "name",
+      "domain",
+      "coverage",
+      "approved"
+    ],
+    "actions": [
+      "Add",
+      "edit",
+      "archive"
+    ],
+    "api": "GET/POST competitors;PATCH competitors/:id",
+    "acceptance": "Normalized domain unique per website;no private-network fetch"
+  },
+  {
+    "id": "S012",
+    "module": "Brand & Knowledge",
+    "screen": "Brand Voice",
+    "phase": "V1",
+    "fields": [
+      "tone[]",
+      "preferredTerms[]",
+      "forbiddenTerms[]",
+      "examples[]",
+      "language"
+    ],
+    "columns": [
+      "version",
+      "updatedAt",
+      "updatedBy"
+    ],
+    "actions": [
+      "Edit",
+      "preview",
+      "save"
+    ],
+    "api": "GET/PUT brand-voice",
+    "acceptance": "Version conflict preserves input;new version is used only by subsequent jobs"
+  },
+  {
+    "id": "S013",
+    "module": "Brand & Knowledge",
+    "screen": "Claims & Evidence",
+    "phase": "V1",
+    "fields": [
+      "claim",
+      "evidenceIds[]",
+      "validUntil",
+      "status",
+      "restrictionReason"
+    ],
+    "columns": [
+      "claim",
+      "status",
+      "evidenceCount",
+      "expiresAt"
+    ],
+    "actions": [
+      "Submit",
+      "verify",
+      "restrict",
+      "expire"
+    ],
+    "api": "GET/POST claims;POST claims/:id/transition",
+    "acceptance": "Writer cannot verify own claim;restricted or expired facts excluded from AI"
+  },
+  {
+    "id": "S014",
+    "module": "Brand & Knowledge",
+    "screen": "Proof Library",
+    "phase": "V1",
+    "fields": [
+      "title",
+      "type",
+      "sourceId",
+      "mediaId",
+      "consentNote",
+      "validUntil"
+    ],
+    "columns": [
+      "title",
+      "type",
+      "status",
+      "usageCount"
+    ],
+    "actions": [
+      "Add",
+      "edit",
+      "archive",
+      "inspect usage"
+    ],
+    "api": "GET/POST proofs;PATCH proofs/:id",
+    "acceptance": "Customer proof requires permission record before verified use"
+  },
+  {
+    "id": "S015",
+    "module": "Brand & Knowledge",
+    "screen": "Knowledge Sources",
+    "phase": "V1",
+    "fields": [
+      "title",
+      "type",
+      "url",
+      "fileId",
+      "manualText",
+      "visibility"
+    ],
+    "columns": [
+      "title",
+      "type",
+      "status",
+      "lastProcessedAt",
+      "error"
+    ],
+    "actions": [
+      "Upload",
+      "import",
+      "review facts",
+      "reprocess",
+      "archive"
+    ],
+    "api": "GET/POST knowledge-sources;POST knowledge-sources/:id/process",
+    "acceptance": "Untrusted source cannot override system rules;archive shows downstream usage"
+  },
+  {
+    "id": "S016",
+    "module": "Brand & Knowledge",
+    "screen": "Memory Health",
+    "phase": "V1",
+    "fields": [
+      "websiteId",
+      "category",
+      "status"
+    ],
+    "columns": [
+      "coverage",
+      "staleFacts",
+      "missingEvidence",
+      "sourceAge"
+    ],
+    "actions": [
+      "Review gap",
+      "create task"
+    ],
+    "api": "GET memory-health",
+    "acceptance": "Health rule version shown;unmeasured categories excluded"
+  },
+  {
+    "id": "S017",
+    "module": "Brand & Knowledge",
+    "screen": "Media Library",
+    "phase": "V1",
+    "fields": [
+      "file",
+      "altText",
+      "tags[]",
+      "rightsType",
+      "licenseReference",
+      "entityIds[]"
+    ],
+    "columns": [
+      "thumbnail",
+      "name",
+      "mime",
+      "size",
+      "rights",
+      "usageCount"
+    ],
+    "actions": [
+      "Upload",
+      "tag",
+      "replace",
+      "archive"
+    ],
+    "api": "GET media;POST media/upload-intent;POST media/:id/complete",
+    "acceptance": "MIME/signature and byte limits enforced;in-use media cannot hard-delete"
+  },
+  {
+    "id": "S018",
+    "module": "Brand & Knowledge",
+    "screen": "Design Profile",
+    "phase": "V1",
+    "fields": [
+      "colors",
+      "fonts",
+      "spacing",
+      "radii",
+      "componentMappings",
+      "approvalVersion"
+    ],
+    "columns": [
+      "website",
+      "version",
+      "status",
+      "approvedBy"
+    ],
+    "actions": [
+      "Detect proposal",
+      "edit",
+      "approve"
+    ],
+    "api": "GET/PUT design-profile;POST design-profile/approve",
+    "acceptance": "Discovery never marks inferred tokens approved;website-specific tokens remain distinct"
+  },
+  {
+    "id": "S019",
+    "module": "Research",
+    "screen": "Research Overview",
+    "phase": "V1",
+    "fields": [
+      "websiteId",
+      "period"
+    ],
+    "columns": [
+      "keywordCount",
+      "opportunityCount",
+      "providerFreshness",
+      "coverage"
+    ],
+    "actions": [
+      "Run research",
+      "open opportunity"
+    ],
+    "api": "GET research/summary;POST research-runs",
+    "acceptance": "Missing paid provider data stays null, never estimated as measured"
+  },
+  {
+    "id": "S020",
+    "module": "Research",
+    "screen": "Opportunities",
+    "phase": "V1",
+    "fields": [
+      "title",
+      "keywordIds[]",
+      "intent",
+      "relevance",
+      "effort",
+      "status"
+    ],
+    "columns": [
+      "title",
+      "intent",
+      "demand",
+      "difficulty",
+      "score",
+      "status"
+    ],
+    "actions": [
+      "Review",
+      "accept",
+      "reject",
+      "watch",
+      "send to Strategy"
+    ],
+    "api": "GET/POST opportunities;POST opportunities/:id/plan",
+    "acceptance": "Plan conversion idempotent;Marketing/Admin/Owner only"
+  },
+  {
+    "id": "S021",
+    "module": "Research",
+    "screen": "Keywords",
+    "phase": "V1",
+    "fields": [
+      "query",
+      "locale",
+      "country",
+      "device",
+      "intent"
+    ],
+    "columns": [
+      "query",
+      "volume",
+      "difficulty",
+      "position",
+      "provider",
+      "measuredAt"
+    ],
+    "actions": [
+      "Import",
+      "add",
+      "tag",
+      "track",
+      "archive"
+    ],
+    "api": "GET/POST keywords;PATCH keywords/:id",
+    "acceptance": "Uniqueness includes locale/country/device;missing volume not zero"
+  },
+  {
+    "id": "S022",
+    "module": "Research",
+    "screen": "Topic Clusters",
+    "phase": "V1",
+    "fields": [
+      "name",
+      "keywordIds[]",
+      "pillarContentId"
+    ],
+    "columns": [
+      "name",
+      "keywords",
+      "demand",
+      "coverage"
+    ],
+    "actions": [
+      "Create",
+      "merge",
+      "assign pillar"
+    ],
+    "api": "GET/POST topic-clusters;PATCH topic-clusters/:id",
+    "acceptance": "Merge retains source IDs and avoids double-counting demand"
+  },
+  {
+    "id": "S023",
+    "module": "Research",
+    "screen": "Competitor Intelligence",
+    "phase": "V1",
+    "fields": [
+      "competitorId",
+      "period"
+    ],
+    "columns": [
+      "domain",
+      "pages",
+      "keywordOverlap",
+      "observedAt"
+    ],
+    "actions": [
+      "Compare",
+      "refresh",
+      "open page"
+    ],
+    "api": "GET competitor-intelligence",
+    "acceptance": "Evidence source and timestamp shown for every metric"
+  },
+  {
+    "id": "S024",
+    "module": "Research",
+    "screen": "Content Gaps",
+    "phase": "V1",
+    "fields": [
+      "competitorIds[]",
+      "intent",
+      "minRelevance"
+    ],
+    "columns": [
+      "topic",
+      "competitorCoverage",
+      "ownCoverage",
+      "evidence"
+    ],
+    "actions": [
+      "Create opportunity",
+      "dismiss"
+    ],
+    "api": "GET content-gaps;POST opportunities",
+    "acceptance": "Gap links to observed competing URLs"
+  },
+  {
+    "id": "S025",
+    "module": "Research",
+    "screen": "Trend Radar",
+    "phase": "V2",
+    "fields": [
+      "topics[]",
+      "country",
+      "period"
+    ],
+    "columns": [
+      "topic",
+      "delta",
+      "confidence",
+      "source"
+    ],
+    "actions": [
+      "Watch",
+      "open evidence"
+    ],
+    "api": "GET trends",
+    "acceptance": "Low sample sizes suppress trend significance"
+  },
+  {
+    "id": "S026",
+    "module": "Research",
+    "screen": "Research Projects",
+    "phase": "V1",
+    "fields": [
+      "name",
+      "objective",
+      "scope",
+      "providerBudget"
+    ],
+    "columns": [
+      "name",
+      "status",
+      "owner",
+      "cost",
+      "startedAt"
+    ],
+    "actions": [
+      "Create",
+      "run",
+      "cancel",
+      "retry"
+    ],
+    "api": "GET/POST research-runs;POST research-runs/:id/cancel",
+    "acceptance": "Budget reserved before jobs;failed run retains evidence"
+  },
+  {
+    "id": "S027",
+    "module": "Strategy & Planning",
+    "screen": "Goals",
+    "phase": "V1",
+    "fields": [
+      "metric",
+      "target",
+      "baseline",
+      "startAt",
+      "endAt",
+      "ownerId"
+    ],
+    "columns": [
+      "name",
+      "target",
+      "actual",
+      "owner",
+      "dueAt"
+    ],
+    "actions": [
+      "Create",
+      "edit",
+      "close"
+    ],
+    "api": "GET/POST goals;PATCH goals/:id",
+    "acceptance": "Start before end;targets nonnegative;owner is active member"
+  },
+  {
+    "id": "S028",
+    "module": "Strategy & Planning",
+    "screen": "Growth Plan",
+    "phase": "V1",
+    "fields": [
+      "name",
+      "goalIds[]",
+      "opportunityIds[]",
+      "assumptions",
+      "budget"
+    ],
+    "columns": [
+      "name",
+      "status",
+      "impact",
+      "effort",
+      "approvedBy"
+    ],
+    "actions": [
+      "Draft",
+      "propose",
+      "approve",
+      "activate",
+      "cancel"
+    ],
+    "api": "GET/POST strategies;POST strategies/:id/transition",
+    "acceptance": "Only approved plan creates executable task batch"
+  },
+  {
+    "id": "S029",
+    "module": "Strategy & Planning",
+    "screen": "Recommendations",
+    "phase": "V1",
+    "fields": [
+      "title",
+      "rationale",
+      "evidenceIds[]",
+      "impact",
+      "effort",
+      "dependencies[]"
+    ],
+    "columns": [
+      "title",
+      "priority",
+      "status",
+      "effort",
+      "owner"
+    ],
+    "actions": [
+      "Accept",
+      "reject",
+      "create task"
+    ],
+    "api": "GET recommendations;POST recommendations/:id/accept",
+    "acceptance": "Accept is idempotent and stores created task ID"
+  },
+  {
+    "id": "S030",
+    "module": "Strategy & Planning",
+    "screen": "Roadmap",
+    "phase": "V1",
+    "fields": [
+      "startAt",
+      "endAt",
+      "taskIds[]",
+      "milestone"
+    ],
+    "columns": [
+      "milestone",
+      "dates",
+      "dependencies",
+      "progress"
+    ],
+    "actions": [
+      "Move",
+      "reschedule",
+      "inspect dependency"
+    ],
+    "api": "GET roadmap;PATCH tasks/:id",
+    "acceptance": "Dependency cycle rejected;completed task dates preserve history"
+  },
+  {
+    "id": "S031",
+    "module": "Strategy & Planning",
+    "screen": "Tasks",
+    "phase": "V1",
+    "fields": [
+      "title",
+      "description",
+      "ownerId",
+      "dueAt",
+      "priority",
+      "status",
+      "linkedEntity"
+    ],
+    "columns": [
+      "title",
+      "type",
+      "status",
+      "owner",
+      "dueAt"
+    ],
+    "actions": [
+      "Create",
+      "assign",
+      "transition",
+      "comment"
+    ],
+    "api": "GET/POST tasks;PATCH tasks/:id",
+    "acceptance": "Assignee scoped;blocked requires reason;done has completedAt"
+  },
+  {
+    "id": "S032",
+    "module": "Strategy & Planning",
+    "screen": "Calendar",
+    "phase": "V1",
+    "fields": [
+      "startAt",
+      "endAt",
+      "type",
+      "ownerId",
+      "entityId"
+    ],
+    "columns": [
+      "date",
+      "title",
+      "type",
+      "status",
+      "owner"
+    ],
+    "actions": [
+      "Open",
+      "reschedule",
+      "filter"
+    ],
+    "api": "GET calendar;PATCH calendar/:id",
+    "acceptance": "Store UTC, display organization timezone;DST ambiguous times require offset"
+  },
+  {
+    "id": "S033",
+    "module": "Strategy & Planning",
+    "screen": "Scenarios",
+    "phase": "Later",
+    "fields": [
+      "assumptions",
+      "resourceBudget",
+      "variant"
+    ],
+    "columns": [
+      "variant",
+      "estimatedImpact",
+      "range",
+      "confidence"
+    ],
+    "actions": [
+      "Compare",
+      "save scenario"
+    ],
+    "api": "GET/POST scenarios",
+    "acceptance": "Predictions clearly hypothetical;never represent guaranteed outcomes"
+  },
+  {
+    "id": "S034",
+    "module": "Strategy & Planning",
+    "screen": "Playbooks",
+    "phase": "V2",
+    "fields": [
+      "name",
+      "steps[]",
+      "dependencies[]",
+      "version"
+    ],
+    "columns": [
+      "name",
+      "steps",
+      "version",
+      "usage"
+    ],
+    "actions": [
+      "Create",
+      "duplicate",
+      "apply"
+    ],
+    "api": "GET/POST playbooks;POST playbooks/:id/apply",
+    "acceptance": "Applying creates snapshot;future edits do not mutate active tasks"
+  },
+  {
+    "id": "S035",
+    "module": "Content & AI CMS",
+    "screen": "All Content",
+    "phase": "V1",
+    "fields": [
+      "type",
+      "status",
+      "ownerId",
+      "query",
+      "websiteId"
+    ],
+    "columns": [
+      "title",
+      "type",
+      "status",
+      "quality",
+      "owner",
+      "updatedAt",
+      "publishAt"
+    ],
+    "actions": [
+      "Create",
+      "open",
+      "filter",
+      "archive"
+    ],
+    "api": "GET/POST content-items;PATCH content-items/:id",
+    "acceptance": "Stable cursor pagination and tenant/website filters enforced"
+  },
+  {
+    "id": "S036",
+    "module": "Content & AI CMS",
+    "screen": "Create Content",
+    "phase": "V1",
+    "fields": [
+      "title",
+      "type",
+      "slug",
+      "briefId",
+      "audienceId",
+      "keywordIds[]",
+      "templateId"
+    ],
+    "columns": [
+      "title",
+      "type",
+      "slug",
+      "status"
+    ],
+    "actions": [
+      "Create draft",
+      "cancel"
+    ],
+    "api": "POST content-items",
+    "acceptance": "Slug unique per website;create request deduplicated by idempotency key"
+  },
+  {
+    "id": "S037",
+    "module": "Content & AI CMS",
+    "screen": "Briefs",
+    "phase": "V1",
+    "fields": [
+      "objective",
+      "intent",
+      "audienceId",
+      "outline[]",
+      "claims[]",
+      "cta",
+      "keywordIds[]",
+      "mediaSlots[]"
+    ],
+    "columns": [
+      "title",
+      "status",
+      "owner",
+      "sourceOpportunity"
+    ],
+    "actions": [
+      "Create",
+      "edit",
+      "request draft"
+    ],
+    "api": "GET/POST briefs;POST briefs/:id/generate",
+    "acceptance": "AI references verified fact IDs;unsupported claims flagged"
+  },
+  {
+    "id": "S038",
+    "module": "Content & AI CMS",
+    "screen": "Editor",
+    "phase": "V1",
+    "fields": [
+      "title",
+      "slug",
+      "blocks[]",
+      "seoTitle",
+      "metaDescription",
+      "schema",
+      "mediaIds[]",
+      "version"
+    ],
+    "columns": [
+      "wordCount",
+      "quality",
+      "claims",
+      "status",
+      "saveState"
+    ],
+    "actions": [
+      "Save",
+      "preview",
+      "rewrite",
+      "submit review"
+    ],
+    "api": "GET content-items/:id;PUT content-items/:id;POST content-items/:id/submit",
+    "acceptance": "Sanitize rendered HTML;If-Match conflict never overwrites another editor"
+  },
+  {
+    "id": "S039",
+    "module": "Content & AI CMS",
+    "screen": "Approvals",
+    "phase": "V1",
+    "fields": [
+      "contentId",
+      "version",
+      "decision",
+      "reason"
+    ],
+    "columns": [
+      "title",
+      "version",
+      "checks",
+      "reviewer",
+      "status"
+    ],
+    "actions": [
+      "Approve",
+      "request changes",
+      "reject"
+    ],
+    "api": "GET content-approvals;POST content-items/:id/decision",
+    "acceptance": "Approval bound to immutable version;post-approval edit resets review"
+  },
+  {
+    "id": "S040",
+    "module": "Content & AI CMS",
+    "screen": "Scheduled",
+    "phase": "V1",
+    "fields": [
+      "publishAt",
+      "timezone",
+      "approvedVersion"
+    ],
+    "columns": [
+      "title",
+      "publishAt",
+      "zone",
+      "status"
+    ],
+    "actions": [
+      "Schedule",
+      "reschedule",
+      "cancel"
+    ],
+    "api": "POST content-items/:id/schedule",
+    "acceptance": "Past time rejected;worker rechecks membership/approval/connector before execution"
+  },
+  {
+    "id": "S041",
+    "module": "Content & AI CMS",
+    "screen": "Published",
+    "phase": "V1",
+    "fields": [
+      "websiteId",
+      "type",
+      "period"
+    ],
+    "columns": [
+      "title",
+      "remoteId",
+      "liveUrl",
+      "publishedAt",
+      "syncState"
+    ],
+    "actions": [
+      "View live",
+      "create update draft",
+      "inspect sync"
+    ],
+    "api": "GET content-items?status=Published;POST content-items/:id/update-draft",
+    "acceptance": "Existing remote ID used for updates;remote conflict requires resolution"
+  },
+  {
+    "id": "S042",
+    "module": "Content & AI CMS",
+    "screen": "Refresh",
+    "phase": "V1",
+    "fields": [
+      "contentId",
+      "trigger",
+      "evidence",
+      "threshold"
+    ],
+    "columns": [
+      "title",
+      "decayEvidence",
+      "status",
+      "lastRefresh"
+    ],
+    "actions": [
+      "Create refresh draft",
+      "dismiss"
+    ],
+    "api": "GET refresh-candidates;POST content-items/:id/refresh",
+    "acceptance": "Manual refresh V1;predictive decay V2;published version preserved"
+  },
+  {
+    "id": "S043",
+    "module": "Content & AI CMS",
+    "screen": "Internal Links",
+    "phase": "V1",
+    "fields": [
+      "sourceContentId",
+      "targetContentId",
+      "anchor",
+      "blockId"
+    ],
+    "columns": [
+      "source",
+      "target",
+      "anchor",
+      "status"
+    ],
+    "actions": [
+      "Accept",
+      "reject",
+      "apply to draft"
+    ],
+    "api": "GET internal-links;POST internal-links/:id/apply",
+    "acceptance": "Target must belong to website;no auto-change to approved/live content"
+  },
+  {
+    "id": "S044",
+    "module": "Content & AI CMS",
+    "screen": "Version History",
+    "phase": "V1",
+    "fields": [
+      "contentId",
+      "version",
+      "compareVersion"
+    ],
+    "columns": [
+      "version",
+      "author",
+      "reason",
+      "createdAt",
+      "diff"
+    ],
+    "actions": [
+      "Compare",
+      "restore as draft"
+    ],
+    "api": "GET content-items/:id/versions;POST content-items/:id/restore",
+    "acceptance": "Restore creates new version and invalidates prior approval"
+  },
+  {
+    "id": "S045",
+    "module": "Content & AI CMS",
+    "screen": "Templates & Composer",
+    "phase": "V1",
+    "fields": [
+      "name",
+      "contentType",
+      "blocks[]",
+      "variants",
+      "mappings",
+      "designVersion"
+    ],
+    "columns": [
+      "name",
+      "type",
+      "status",
+      "version"
+    ],
+    "actions": [
+      "Edit",
+      "reorder",
+      "preview",
+      "approve"
+    ],
+    "api": "GET/POST templates;POST templates/:id/approve",
+    "acceptance": "WordPress V1 supports approved Gutenberg/basic HTML mapping only"
+  },
+  {
+    "id": "S046",
+    "module": "Content & AI CMS",
+    "screen": "Publishing & Sync Logs",
+    "phase": "V1",
+    "fields": [
+      "jobId",
+      "attempt",
+      "status"
+    ],
+    "columns": [
+      "step",
+      "status",
+      "remoteId",
+      "error",
+      "retryAt"
+    ],
+    "actions": [
+      "Inspect",
+      "retry",
+      "resolve conflict"
+    ],
+    "api": "GET publish-jobs;POST publish-jobs/:id/retry",
+    "acceptance": "Ambiguous remote timeout reconciles external ID before retrying create"
+  },
+  {
+    "id": "S047",
+    "module": "SEO & AI Visibility",
+    "screen": "SEO Overview",
+    "phase": "V1",
+    "fields": [
+      "websiteId",
+      "period"
+    ],
+    "columns": [
+      "health",
+      "indexCoverage",
+      "criticalIssues",
+      "crawlFreshness"
+    ],
+    "actions": [
+      "Run audit",
+      "open issues"
+    ],
+    "api": "GET seo/summary;POST website-crawls",
+    "acceptance": "No crawl yields no score;display audited URL denominator"
+  },
+  {
+    "id": "S048",
+    "module": "SEO & AI Visibility",
+    "screen": "Site Audit",
+    "phase": "V1",
+    "fields": [
+      "crawlId",
+      "scope",
+      "maxUrls"
+    ],
+    "columns": [
+      "crawl",
+      "status",
+      "checkedUrls",
+      "issueCount",
+      "startedAt"
+    ],
+    "actions": [
+      "Start",
+      "cancel",
+      "compare"
+    ],
+    "api": "GET website-crawls;POST website-crawls",
+    "acceptance": "Verified domains only;robots,rate and URL budgets enforced"
+  },
+  {
+    "id": "S049",
+    "module": "SEO & AI Visibility",
+    "screen": "Issues",
+    "phase": "V1",
+    "fields": [
+      "type",
+      "severity",
+      "status",
+      "assignee"
+    ],
+    "columns": [
+      "url",
+      "type",
+      "severity",
+      "status",
+      "evidence",
+      "lastSeenAt"
+    ],
+    "actions": [
+      "Assign",
+      "apply safe fix",
+      "ignore",
+      "recheck"
+    ],
+    "api": "GET seo-issues;POST seo-issues/:id/transition",
+    "acceptance": "Fix applied differs from resolved;resolve only after recheck evidence"
+  },
+  {
+    "id": "S050",
+    "module": "SEO & AI Visibility",
+    "screen": "Indexing",
+    "phase": "V1",
+    "fields": [
+      "status",
+      "source",
+      "priority",
+      "checkedBefore"
+    ],
+    "columns": [
+      "url",
+      "indexability",
+      "engineState",
+      "source",
+      "checkedAt",
+      "reason"
+    ],
+    "actions": [
+      "Inspect",
+      "recheck",
+      "create task"
+    ],
+    "api": "GET index-status;POST website-urls/:id/inspect",
+    "acceptance": "Local indexability never labelled Google Indexed;unknown/stale states explicit"
+  },
+  {
+    "id": "S051",
+    "module": "SEO & AI Visibility",
+    "screen": "Sitemaps",
+    "phase": "V1",
+    "fields": [
+      "url",
+      "type",
+      "refreshInterval"
+    ],
+    "columns": [
+      "url",
+      "status",
+      "urlCount",
+      "lastFetchedAt",
+      "error"
+    ],
+    "actions": [
+      "Add",
+      "fetch",
+      "validate"
+    ],
+    "api": "GET/POST sitemaps;POST sitemaps/:id/refresh",
+    "acceptance": "Host scoped;XML entity expansion disabled;canonical indexable URLs only"
+  },
+  {
+    "id": "S052",
+    "module": "SEO & AI Visibility",
+    "screen": "Rankings",
+    "phase": "V1",
+    "fields": [
+      "keywordId",
+      "country",
+      "device",
+      "dateRange"
+    ],
+    "columns": [
+      "query",
+      "url",
+      "rank",
+      "delta",
+      "provider",
+      "checkedAt"
+    ],
+    "actions": [
+      "Track",
+      "pause",
+      "export"
+    ],
+    "api": "GET rankings;POST ranking-tracks",
+    "acceptance": "No provider means disconnected;location/device preserved in comparisons"
+  },
+  {
+    "id": "S053",
+    "module": "SEO & AI Visibility",
+    "screen": "Search Console",
+    "phase": "V1",
+    "fields": [
+      "propertyId",
+      "query",
+      "page",
+      "device",
+      "country",
+      "dateRange"
+    ],
+    "columns": [
+      "clicks",
+      "impressions",
+      "ctr",
+      "position",
+      "freshThrough"
+    ],
+    "actions": [
+      "Connect",
+      "refresh",
+      "filter",
+      "export"
+    ],
+    "api": "GET search-console;POST integrations/:id/sync",
+    "acceptance": "Access checked for selected property;partial dates labelled"
+  },
+  {
+    "id": "S054",
+    "module": "SEO & AI Visibility",
+    "screen": "Internal Links Audit",
+    "phase": "V1",
+    "fields": [
+      "source",
+      "target",
+      "status"
+    ],
+    "columns": [
+      "source",
+      "target",
+      "httpStatus",
+      "anchor",
+      "issue"
+    ],
+    "actions": [
+      "Create task",
+      "recheck"
+    ],
+    "api": "GET internal-link-audit",
+    "acceptance": "Crawl evidence distinguishes broken from redirected link"
+  },
+  {
+    "id": "S055",
+    "module": "SEO & AI Visibility",
+    "screen": "AI Visibility",
+    "phase": "V2",
+    "fields": [
+      "promptSet",
+      "provider",
+      "locale",
+      "runDate"
+    ],
+    "columns": [
+      "prompt",
+      "brandMention",
+      "citation",
+      "competitors",
+      "sampleCount"
+    ],
+    "actions": [
+      "Run approved prompt set",
+      "compare"
+    ],
+    "api": "GET ai-visibility;POST visibility-runs",
+    "acceptance": "Sampled observations labelled;no universal AI ranking claim"
+  },
+  {
+    "id": "S056",
+    "module": "SEO & AI Visibility",
+    "screen": "AI Citations",
+    "phase": "V2",
+    "fields": [
+      "provider",
+      "prompt",
+      "url"
+    ],
+    "columns": [
+      "citation",
+      "answerExcerpt",
+      "source",
+      "observedAt"
+    ],
+    "actions": [
+      "Inspect",
+      "create authority task"
+    ],
+    "api": "GET ai-citations",
+    "acceptance": "Store permitted evidence;absent citation is not proof of global absence"
+  },
+  {
+    "id": "S057",
+    "module": "SEO & AI Visibility",
+    "screen": "Schema",
+    "phase": "V1",
+    "fields": [
+      "contentId",
+      "type",
+      "jsonLd",
+      "version"
+    ],
+    "columns": [
+      "url",
+      "type",
+      "validation",
+      "status"
+    ],
+    "actions": [
+      "Validate",
+      "save draft",
+      "request approval"
+    ],
+    "api": "GET/PUT schema;POST schema/validate",
+    "acceptance": "No rich-result guarantee;invalid schema cannot publish"
+  },
+  {
+    "id": "S058",
+    "module": "Authority & PR",
+    "screen": "Authority Overview",
+    "phase": "V2",
+    "fields": [
+      "websiteId",
+      "dateRange"
+    ],
+    "columns": [
+      "referringDomains",
+      "newLinks",
+      "lostLinks",
+      "providerFreshness"
+    ],
+    "actions": [
+      "Open gap",
+      "create campaign"
+    ],
+    "api": "GET authority/summary",
+    "acceptance": "Unavailable provider data not presented as zero"
+  },
+  {
+    "id": "S059",
+    "module": "Authority & PR",
+    "screen": "Backlinks",
+    "phase": "V2",
+    "fields": [
+      "domain",
+      "follow",
+      "status"
+    ],
+    "columns": [
+      "source",
+      "target",
+      "anchor",
+      "follow",
+      "firstSeen",
+      "lastSeen",
+      "status"
+    ],
+    "actions": [
+      "Import",
+      "verify",
+      "monitor"
+    ],
+    "api": "GET/POST backlinks",
+    "acceptance": "Imported metrics keep source/date;verification does not imply endorsement"
+  },
+  {
+    "id": "S060",
+    "module": "Authority & PR",
+    "screen": "Link Gap",
+    "phase": "V2",
+    "fields": [
+      "competitorIds[]",
+      "relevance"
+    ],
+    "columns": [
+      "domain",
+      "competitorLinks",
+      "ownLinks",
+      "relevance"
+    ],
+    "actions": [
+      "Qualify prospect"
+    ],
+    "api": "GET link-gaps;POST authority-opportunities",
+    "acceptance": "Same prospect deduplicated by normalized domain and campaign"
+  },
+  {
+    "id": "S061",
+    "module": "Authority & PR",
+    "screen": "Prospects",
+    "phase": "V2",
+    "fields": [
+      "name",
+      "domain",
+      "contactId",
+      "country",
+      "relevance",
+      "notes"
+    ],
+    "columns": [
+      "domain",
+      "contact",
+      "relevance",
+      "owner",
+      "status"
+    ],
+    "actions": [
+      "Add",
+      "qualify",
+      "reject",
+      "assign"
+    ],
+    "api": "GET/POST authority-opportunities;PATCH authority-opportunities/:id",
+    "acceptance": "Personal contact access scoped;no automated message on creation"
+  },
+  {
+    "id": "S062",
+    "module": "Authority & PR",
+    "screen": "Outreach",
+    "phase": "V2",
+    "fields": [
+      "prospectId",
+      "subject",
+      "body",
+      "channel",
+      "approvedVersion"
+    ],
+    "columns": [
+      "recipient",
+      "status",
+      "owner",
+      "lastContactAt"
+    ],
+    "actions": [
+      "Draft",
+      "approve",
+      "send",
+      "record reply"
+    ],
+    "api": "GET/POST outreach-records;POST outreach-records/:id/send",
+    "acceptance": "Explicit send permission, suppression list,approval and quota checked"
+  },
+  {
+    "id": "S063",
+    "module": "Authority & PR",
+    "screen": "Citations",
+    "phase": "V2",
+    "fields": [
+      "directory",
+      "url",
+      "businessName",
+      "address",
+      "phone",
+      "status"
+    ],
+    "columns": [
+      "source",
+      "consistency",
+      "status",
+      "lastVerifiedAt"
+    ],
+    "actions": [
+      "Add",
+      "verify",
+      "request correction"
+    ],
+    "api": "GET/POST citations",
+    "acceptance": "Observed and expected business details shown separately"
+  },
+  {
+    "id": "S064",
+    "module": "Authority & PR",
+    "screen": "Digital PR",
+    "phase": "V2",
+    "fields": [
+      "campaign",
+      "title",
+      "assetIds[]",
+      "pitch",
+      "targets[]",
+      "budget"
+    ],
+    "columns": [
+      "campaign",
+      "status",
+      "owner",
+      "deadline"
+    ],
+    "actions": [
+      "Create",
+      "draft pitch",
+      "review"
+    ],
+    "api": "GET/POST pr-campaigns",
+    "acceptance": "Campaign creation cannot send outreach"
+  },
+  {
+    "id": "S065",
+    "module": "Authority & PR",
+    "screen": "Authority Score",
+    "phase": "V2",
+    "fields": [
+      "websiteId",
+      "period"
+    ],
+    "columns": [
+      "relevance",
+      "diversity",
+      "coverage",
+      "score",
+      "ruleVersion"
+    ],
+    "actions": [
+      "Inspect methodology",
+      "export"
+    ],
+    "api": "GET authority/score",
+    "acceptance": "Exclude missing inputs and show coverage;no third-party DA equivalence"
+  },
+  {
+    "id": "S066",
+    "module": "Leads & CRM",
+    "screen": "Lead Inbox",
+    "phase": "V1",
+    "fields": [
+      "query",
+      "status",
+      "ownerId",
+      "source",
+      "from",
+      "to"
+    ],
+    "columns": [
+      "name",
+      "company",
+      "status",
+      "score",
+      "owner",
+      "source",
+      "createdAt"
+    ],
+    "actions": [
+      "Add",
+      "assign",
+      "qualify",
+      "mark spam"
+    ],
+    "api": "GET/POST leads;PATCH leads/:id",
+    "acceptance": "Sales sees assigned records;public capture deduplicates submission ID"
+  },
+  {
+    "id": "S067",
+    "module": "Leads & CRM",
+    "screen": "Pipeline",
+    "phase": "V1",
+    "fields": [
+      "pipelineId",
+      "ownerId",
+      "currency"
+    ],
+    "columns": [
+      "stage",
+      "leadCount",
+      "dealValue",
+      "owner"
+    ],
+    "actions": [
+      "Move stage",
+      "open lead",
+      "close deal"
+    ],
+    "api": "GET pipelines;POST leads/:id/transition",
+    "acceptance": "Won requires deal value/currency;lost requires reason;currency never summed across units"
+  },
+  {
+    "id": "S068",
+    "module": "Leads & CRM",
+    "screen": "Contacts",
+    "phase": "V1",
+    "fields": [
+      "name",
+      "email",
+      "phone",
+      "companyId",
+      "consent"
+    ],
+    "columns": [
+      "name",
+      "email",
+      "company",
+      "leadCount"
+    ],
+    "actions": [
+      "Create",
+      "edit",
+      "merge"
+    ],
+    "api": "GET/POST contacts;POST contacts/:id/merge",
+    "acceptance": "Merge retains source IDs and activities;repeat enquiry creates separate lead"
+  },
+  {
+    "id": "S069",
+    "module": "Leads & CRM",
+    "screen": "Companies",
+    "phase": "V1",
+    "fields": [
+      "name",
+      "domain",
+      "industry",
+      "size",
+      "ownerId"
+    ],
+    "columns": [
+      "name",
+      "domain",
+      "contacts",
+      "openDeals"
+    ],
+    "actions": [
+      "Create",
+      "edit",
+      "merge"
+    ],
+    "api": "GET/POST companies;PATCH companies/:id",
+    "acceptance": "Company dedupe by normalized domain per org;private notes not public"
+  },
+  {
+    "id": "S070",
+    "module": "Leads & CRM",
+    "screen": "Lead Detail",
+    "phase": "V1",
+    "fields": [
+      "contactId",
+      "companyId",
+      "interest",
+      "ownerId",
+      "status",
+      "valueMinor",
+      "currency",
+      "lostReason"
+    ],
+    "columns": [
+      "identity",
+      "scoreBreakdown",
+      "source",
+      "stage",
+      "activity"
+    ],
+    "actions": [
+      "Edit",
+      "assign",
+      "transition",
+      "add note",
+      "reopen"
+    ],
+    "api": "GET leads/:id;PATCH leads/:id;POST leads/:id/activities",
+    "acceptance": "All status changes immutable in activity history;reopen keeps prior outcome"
+  },
+  {
+    "id": "S071",
+    "module": "Leads & CRM",
+    "screen": "Activities",
+    "phase": "V1",
+    "fields": [
+      "leadId",
+      "type",
+      "body",
+      "occurredAt"
+    ],
+    "columns": [
+      "type",
+      "actor",
+      "body",
+      "occurredAt"
+    ],
+    "actions": [
+      "Add note",
+      "log call/meeting",
+      "view"
+    ],
+    "api": "GET/POST lead-activities",
+    "acceptance": "PII access follows lead;recording a call does not place one"
+  },
+  {
+    "id": "S072",
+    "module": "Leads & CRM",
+    "screen": "Follow-ups",
+    "phase": "V1",
+    "fields": [
+      "leadId",
+      "ownerId",
+      "dueAt",
+      "nextAction",
+      "status"
+    ],
+    "columns": [
+      "lead",
+      "dueAt",
+      "owner",
+      "status"
+    ],
+    "actions": [
+      "Schedule",
+      "complete",
+      "snooze"
+    ],
+    "api": "GET/POST follow-ups;PATCH follow-ups/:id",
+    "acceptance": "Overdue computed in org zone;completion saves actor and time"
+  },
+  {
+    "id": "S073",
+    "module": "Leads & CRM",
+    "screen": "Forms",
+    "phase": "V1",
+    "fields": [
+      "name",
+      "fields[]",
+      "allowedOrigins[]",
+      "consentText",
+      "assignmentRule"
+    ],
+    "columns": [
+      "name",
+      "submissions",
+      "status"
+    ],
+    "actions": [
+      "Create",
+      "preview",
+      "publish",
+      "disable"
+    ],
+    "api": "GET/POST forms;POST public/forms/:key/submissions",
+    "acceptance": "Rate limit,origin validation,honeypot and schema validation;no API secrets in embed"
+  },
+  {
+    "id": "S074",
+    "module": "Leads & CRM",
+    "screen": "Lead Analytics",
+    "phase": "V1",
+    "fields": [
+      "period",
+      "source",
+      "ownerId"
+    ],
+    "columns": [
+      "volume",
+      "qualificationRate",
+      "winRate",
+      "responseTime",
+      "coverage"
+    ],
+    "actions": [
+      "Filter",
+      "export"
+    ],
+    "api": "GET lead-analytics",
+    "acceptance": "Denominators and cohort dates visible;Sales own-scope aggregation"
+  },
+  {
+    "id": "S075",
+    "module": "Analytics & Reports",
+    "screen": "Analytics Overview",
+    "phase": "V1",
+    "fields": [
+      "dateRange",
+      "websiteId",
+      "compare"
+    ],
+    "columns": [
+      "sessions",
+      "leads",
+      "qualified",
+      "wonValue",
+      "freshness"
+    ],
+    "actions": [
+      "Filter",
+      "drill down",
+      "export"
+    ],
+    "api": "GET analytics/overview",
+    "acceptance": "Provider gaps shown;no synthetic interpolation"
+  },
+  {
+    "id": "S076",
+    "module": "Analytics & Reports",
+    "screen": "Traffic",
+    "phase": "V1",
+    "fields": [
+      "dateRange",
+      "country",
+      "device"
+    ],
+    "columns": [
+      "users",
+      "sessions",
+      "pageviews",
+      "engagement",
+      "source"
+    ],
+    "actions": [
+      "Filter",
+      "export"
+    ],
+    "api": "GET analytics/traffic",
+    "acceptance": "GA4 consent and threshold restrictions surfaced"
+  },
+  {
+    "id": "S077",
+    "module": "Analytics & Reports",
+    "screen": "Acquisition",
+    "phase": "V1",
+    "fields": [
+      "dateRange",
+      "channel",
+      "campaign"
+    ],
+    "columns": [
+      "channel",
+      "sessions",
+      "leads",
+      "conversions"
+    ],
+    "actions": [
+      "Drill down",
+      "export"
+    ],
+    "api": "GET analytics/acquisition",
+    "acceptance": "Unknown channel remains unknown;UTM preserved"
+  },
+  {
+    "id": "S078",
+    "module": "Analytics & Reports",
+    "screen": "Content Performance",
+    "phase": "V1",
+    "fields": [
+      "contentId",
+      "type",
+      "dateRange"
+    ],
+    "columns": [
+      "page",
+      "views",
+      "leads",
+      "rate",
+      "assistedValue"
+    ],
+    "actions": [
+      "Open page",
+      "create refresh"
+    ],
+    "api": "GET analytics/content",
+    "acceptance": "URL mapping versioned;pageviews not used as sessions denominator"
+  },
+  {
+    "id": "S079",
+    "module": "Analytics & Reports",
+    "screen": "SEO Analytics",
+    "phase": "V1",
+    "fields": [
+      "dateRange",
+      "query",
+      "country",
+      "device"
+    ],
+    "columns": [
+      "clicks",
+      "impressions",
+      "ctr",
+      "position",
+      "top3",
+      "top10",
+      "top20"
+    ],
+    "actions": [
+      "Filter",
+      "export"
+    ],
+    "api": "GET analytics/seo",
+    "acceptance": "CTR clicks/impressions;position impression-weighted"
+  },
+  {
+    "id": "S080",
+    "module": "Analytics & Reports",
+    "screen": "AI Analytics",
+    "phase": "V2",
+    "fields": [
+      "provider",
+      "promptSet",
+      "dateRange"
+    ],
+    "columns": [
+      "mentions",
+      "citations",
+      "referrals",
+      "coverage"
+    ],
+    "actions": [
+      "Filter",
+      "inspect evidence"
+    ],
+    "api": "GET analytics/ai",
+    "acceptance": "AI referral attribution separate from sampled answer visibility"
+  },
+  {
+    "id": "S081",
+    "module": "Analytics & Reports",
+    "screen": "Leads Analytics",
+    "phase": "V1",
+    "fields": [
+      "dateRange",
+      "cohort",
+      "source"
+    ],
+    "columns": [
+      "leads",
+      "qualified",
+      "won",
+      "lost",
+      "responseTime"
+    ],
+    "actions": [
+      "Filter",
+      "open cohort"
+    ],
+    "api": "GET analytics/leads",
+    "acceptance": "Lead creation cohort clearly distinct from outcome event period"
+  },
+  {
+    "id": "S082",
+    "module": "Analytics & Reports",
+    "screen": "Conversions",
+    "phase": "V1",
+    "fields": [
+      "event",
+      "period",
+      "contentId"
+    ],
+    "columns": [
+      "event",
+      "count",
+      "uniqueSessions",
+      "rate"
+    ],
+    "actions": [
+      "Define event",
+      "filter",
+      "export"
+    ],
+    "api": "GET conversion-events;POST conversion-definitions",
+    "acceptance": "Event ID unique per website;duplicates do not inflate count"
+  },
+  {
+    "id": "S083",
+    "module": "Analytics & Reports",
+    "screen": "Attribution",
+    "phase": "V1",
+    "fields": [
+      "model",
+      "lookbackDays",
+      "dateRange"
+    ],
+    "columns": [
+      "source",
+      "page",
+      "lead",
+      "creditedValue",
+      "coverage"
+    ],
+    "actions": [
+      "Compare first/last touch",
+      "inspect journey"
+    ],
+    "api": "GET analytics/attribution",
+    "acceptance": "30-day V1 window;unconsented sessions not identity-linked;linear V2"
+  },
+  {
+    "id": "S084",
+    "module": "Analytics & Reports",
+    "screen": "Revenue",
+    "phase": "V1",
+    "fields": [
+      "dateRange",
+      "currency",
+      "ownerId"
+    ],
+    "columns": [
+      "wonValue",
+      "pipelineValue",
+      "refunds",
+      "coverage"
+    ],
+    "actions": [
+      "Filter",
+      "export"
+    ],
+    "api": "GET analytics/revenue",
+    "acceptance": "Owner/Admin only by default;integer money and separate currencies"
+  },
+  {
+    "id": "S085",
+    "module": "Analytics & Reports",
+    "screen": "Reports",
+    "phase": "V1",
+    "fields": [
+      "name",
+      "sections[]",
+      "period",
+      "timezone",
+      "format"
+    ],
+    "columns": [
+      "name",
+      "status",
+      "createdAt",
+      "owner"
+    ],
+    "actions": [
+      "Generate",
+      "download",
+      "retry"
+    ],
+    "api": "GET/POST reports;POST reports/:id/generate",
+    "acceptance": "Downloads permission-checked;scheduled outbound delivery requires configured recipient consent"
+  },
+  {
+    "id": "S086",
+    "module": "Integrations & Settings",
+    "screen": "Organization",
+    "phase": "V1",
+    "fields": [
+      "name",
+      "timezone",
+      "currency",
+      "version"
+    ],
+    "columns": [
+      "name",
+      "timezone",
+      "currency",
+      "role",
+      "updatedAt"
+    ],
+    "actions": [
+      "Create",
+      "switch",
+      "update"
+    ],
+    "api": "GET/POST organizations;PATCH organizations/:orgId",
+    "acceptance": "Organization equals workspace V1;switch clears previous data/query cache"
+  },
+  {
+    "id": "S087",
+    "module": "Integrations & Settings",
+    "screen": "Websites",
+    "phase": "V1",
+    "fields": [
+      "name",
+      "domain",
+      "cmsType",
+      "version"
+    ],
+    "columns": [
+      "name",
+      "domain",
+      "cmsType",
+      "verificationStatus",
+      "status"
+    ],
+    "actions": [
+      "Add",
+      "edit",
+      "archive",
+      "request verification",
+      "verify DNS"
+    ],
+    "api": "GET/POST websites;PATCH websites/:id;POST websites/:id/verify",
+    "acceptance": "Domain canonicalized;unique per org;verification token required before crawling"
+  },
+  {
+    "id": "S088",
+    "module": "Integrations & Settings",
+    "screen": "Website Detail & URL Inventory",
+    "phase": "V1",
+    "fields": [
+      "websiteId",
+      "query",
+      "status",
+      "source"
+    ],
+    "columns": [
+      "url",
+      "httpStatus",
+      "canonical",
+      "indexability",
+      "lastCrawledAt"
+    ],
+    "actions": [
+      "Filter",
+      "inspect",
+      "crawl"
+    ],
+    "api": "GET websites/:id;GET website-urls;POST website-crawls",
+    "acceptance": "Archived website blocks jobs;inventory belongs to selected website"
+  },
+  {
+    "id": "S089",
+    "module": "Integrations & Settings",
+    "screen": "Integrations",
+    "phase": "V1",
+    "fields": [
+      "provider",
+      "websiteId",
+      "propertyId",
+      "permissions"
+    ],
+    "columns": [
+      "provider",
+      "status",
+      "lastSyncAt",
+      "error"
+    ],
+    "actions": [
+      "Connect",
+      "test",
+      "disconnect",
+      "reconnect"
+    ],
+    "api": "GET integrations;POST integrations/:provider/connect;DELETE integrations/:id",
+    "acceptance": "Credentials encrypted;OAuth state single-use/org-bound;WordPress first"
+  },
+  {
+    "id": "S090",
+    "module": "Integrations & Settings",
+    "screen": "Team",
+    "phase": "V1",
+    "fields": [
+      "email",
+      "role",
+      "invitationToken"
+    ],
+    "columns": [
+      "name",
+      "email",
+      "role",
+      "status",
+      "joinedAt"
+    ],
+    "actions": [
+      "Invite",
+      "copy invite link",
+      "revoke invite",
+      "accept",
+      "remove"
+    ],
+    "api": "GET memberships;POST invitations;POST invitations/accept;DELETE memberships/:id",
+    "acceptance": "Admin cannot grant Owner/Admin or edit Owner;single Owner transfer atomic"
+  },
+  {
+    "id": "S091",
+    "module": "Integrations & Settings",
+    "screen": "Roles",
+    "phase": "V1",
+    "fields": [
+      "memberId",
+      "role",
+      "version"
+    ],
+    "columns": [
+      "role",
+      "permissions",
+      "memberCount"
+    ],
+    "actions": [
+      "View matrix",
+      "assign role",
+      "transfer ownership"
+    ],
+    "api": "PATCH memberships/:id;POST organizations/:id/transfer",
+    "acceptance": "Seven predefined roles;custom roles V2;every check enforced server-side"
+  },
+  {
+    "id": "S092",
+    "module": "Integrations & Settings",
+    "screen": "AI Settings",
+    "phase": "V1",
+    "fields": [
+      "mode",
+      "allowedActions[]",
+      "maxSpend",
+      "maxPages",
+      "protectedUrls[]"
+    ],
+    "columns": [
+      "mode",
+      "limits",
+      "approvalRules"
+    ],
+    "actions": [
+      "Edit",
+      "save",
+      "view policy history"
+    ],
+    "api": "GET/PUT ai-policy",
+    "acceptance": "Manual/Assisted V1;Autopilot later;policy update cannot authorize blocked action"
+  },
+  {
+    "id": "S093",
+    "module": "Integrations & Settings",
+    "screen": "Notifications",
+    "phase": "V1",
+    "fields": [
+      "event",
+      "channel",
+      "enabled",
+      "digestFrequency"
+    ],
+    "columns": [
+      "event",
+      "channel",
+      "status"
+    ],
+    "actions": [
+      "Update preferences"
+    ],
+    "api": "GET/PUT notification-preferences",
+    "acceptance": "No email sent without provider/verified address;critical in-app remains available"
+  },
+  {
+    "id": "S094",
+    "module": "Integrations & Settings",
+    "screen": "Usage",
+    "phase": "V1",
+    "fields": [
+      "period",
+      "meter"
+    ],
+    "columns": [
+      "meter",
+      "used",
+      "limit",
+      "resetAt"
+    ],
+    "actions": [
+      "Inspect",
+      "export"
+    ],
+    "api": "GET usage-records",
+    "acceptance": "Usage generated server-side by successful/reserved operations;retries not double-billed"
+  },
+  {
+    "id": "S095",
+    "module": "Integrations & Settings",
+    "screen": "Billing",
+    "phase": "V1",
+    "fields": [
+      "planId",
+      "billingContact",
+      "currency"
+    ],
+    "columns": [
+      "plan",
+      "status",
+      "invoices",
+      "periodEnd"
+    ],
+    "actions": [
+      "Checkout",
+      "change plan",
+      "download invoice"
+    ],
+    "api": "GET subscription;POST billing/checkout",
+    "acceptance": "Webhook signature and event idempotency required;no client-set paid status"
+  },
+  {
+    "id": "S096",
+    "module": "Integrations & Settings",
+    "screen": "Audit Logs",
+    "phase": "V1",
+    "fields": [
+      "actorId",
+      "action",
+      "entityType",
+      "from",
+      "to",
+      "cursor"
+    ],
+    "columns": [
+      "actor",
+      "action",
+      "entity",
+      "time",
+      "before",
+      "after"
+    ],
+    "actions": [
+      "Filter",
+      "inspect",
+      "export"
+    ],
+    "api": "GET audit-logs",
+    "acceptance": "Append-only;redact tokens/passwords;every successful foundation mutation atomic with audit"
+  },
+  {
+    "id": "S097",
+    "module": "Integrations & Settings",
+    "screen": "API & Webhooks",
+    "phase": "V2",
+    "fields": [
+      "name",
+      "scopes[]",
+      "expiresAt",
+      "url",
+      "events[]"
+    ],
+    "columns": [
+      "keyPrefix",
+      "status",
+      "lastUsed",
+      "deliveryStatus"
+    ],
+    "actions": [
+      "Create",
+      "rotate",
+      "revoke",
+      "retry delivery"
+    ],
+    "api": "GET/POST api-keys;GET/POST webhooks",
+    "acceptance": "Hash keys;reveal once;sign deliveries;SSRF protection on callback URLs"
+  },
+  {
+    "id": "S098",
+    "module": "Integrations & Settings",
+    "screen": "Data Controls",
+    "phase": "V1",
+    "fields": [
+      "scope",
+      "retention",
+      "reason",
+      "confirmation"
+    ],
+    "columns": [
+      "exportStatus",
+      "deletionStatus",
+      "requestedBy"
+    ],
+    "actions": [
+      "Request export",
+      "request deletion"
+    ],
+    "api": "POST data-requests;GET data-requests",
+    "acceptance": "Owner-only;reauthenticate destructive actions;hold pending approval until retention policy satisfied"
+  },
+  {
+    "id": "S099",
+    "module": "Authentication & Shared Shell",
+    "screen": "Sign up",
+    "phase": "V1",
+    "fields": [
+      "name",
+      "email",
+      "password"
+    ],
+    "columns": [
+      "fieldErrors",
+      "submitting"
+    ],
+    "actions": [
+      "Register",
+      "open sign in"
+    ],
+    "api": "POST auth/register",
+    "acceptance": "Email normalized;password 12\u2013128;hash only;duplicate email generic conflict"
+  },
+  {
+    "id": "S100",
+    "module": "Authentication & Shared Shell",
+    "screen": "Sign in",
+    "phase": "V1",
+    "fields": [
+      "email",
+      "password"
+    ],
+    "columns": [
+      "fieldErrors",
+      "submitting"
+    ],
+    "actions": [
+      "Sign in",
+      "open reset"
+    ],
+    "api": "POST auth/login",
+    "acceptance": "Generic invalid-credential response;rate limit;HttpOnly expiring session"
+  },
+  {
+    "id": "S101",
+    "module": "Authentication & Shared Shell",
+    "screen": "Password Reset",
+    "phase": "V1",
+    "fields": [
+      "email",
+      "token",
+      "newPassword"
+    ],
+    "columns": [
+      "requestState",
+      "expiry"
+    ],
+    "actions": [
+      "Request link",
+      "reset"
+    ],
+    "api": "POST auth/password-reset;POST auth/password-reset/complete",
+    "acceptance": "Single-use hashed 30-minute token;all sessions revoked;email provider required"
+  },
+  {
+    "id": "S102",
+    "module": "Authentication & Shared Shell",
+    "screen": "Workspace Onboarding",
+    "phase": "V1",
+    "fields": [
+      "name",
+      "timezone",
+      "currency"
+    ],
+    "columns": [
+      "workspaces",
+      "roles"
+    ],
+    "actions": [
+      "Create",
+      "switch"
+    ],
+    "api": "GET/POST organizations",
+    "acceptance": "Create owner membership and audit in one transaction;zero sample data inserted"
+  },
+  {
+    "id": "S103",
+    "module": "Authentication & Shared Shell",
+    "screen": "Invitation Acceptance",
+    "phase": "V1",
+    "fields": [
+      "token"
+    ],
+    "columns": [
+      "organization",
+      "email",
+      "role",
+      "expiry"
+    ],
+    "actions": [
+      "Sign in",
+      "accept"
+    ],
+    "api": "POST invitations/accept",
+    "acceptance": "Only signed-in matching email can accept;expired/revoked token rejected atomically"
+  },
+  {
+    "id": "S104",
+    "module": "Authentication & Shared Shell",
+    "screen": "Global Search & Notifications",
+    "phase": "V1",
+    "fields": [
+      "query",
+      "type",
+      "cursor"
+    ],
+    "columns": [
+      "entity",
+      "title",
+      "module",
+      "unreadCount"
+    ],
+    "actions": [
+      "Search",
+      "open",
+      "mark read"
+    ],
+    "api": "GET search;GET notifications;PATCH notifications/:id",
+    "acceptance": "Results restricted before search;no cross-org titles/snippets leak"
+  }
+]
