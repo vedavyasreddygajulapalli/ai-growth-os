@@ -1,1 +1,24 @@
-{"name":"ai-growth-os-web","private":true,"version":"0.1.0","scripts":{"dev":"next dev --hostname 0.0.0.0","build":"next build","start":"next start","sync-ui":"node scripts/sync-ui.mjs"},"dependencies":{"next":"^15.5.9","react":"^19.1.1","react-dom":"^19.1.1"},"devDependencies":{"typescript":"^5.9.3","@types/react":"^19.1.16","@types/node":"^24.7.1"}}
+{
+  "name": "ai-growth-os-web",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "next dev --hostname 0.0.0.0",
+    "build": "next build",
+    "start": "next start",
+    "sync-ui": "node scripts/sync-ui.mjs"
+  },
+  "dependencies": {
+    "next": "^15.5.9",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "@types/react": "^19.1.16",
+    "@types/node": "^24.7.1"
+  },
+  "overrides": {
+    "postcss": "8.5.29"
+  }
+}

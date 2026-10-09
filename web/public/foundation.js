@@ -520,6 +520,8 @@
           live.members = [];
           live.invites = [];
           live.audit = [];
+          live.sessions = [];
+          live.securityEvents = [];
           live.generation++;
           closeModal();
           render();

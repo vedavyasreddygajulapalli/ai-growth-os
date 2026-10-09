@@ -18,12 +18,16 @@ Requires Node 22+ and MongoDB replica set (Atlas or local). The API deliberately
 3. `npm run build --prefix backend`
 4. In `backend/`, run `node --env-file=.env dist/main.js`.
 5. In another terminal: `npm ci --prefix web`, `npm run sync-ui --prefix web`, then `npm run dev --prefix web`.
-6. Open `http://localhost:3000`, choose **Open workspace**, register, create a workspace, add a website. Invite links are manual-share; no email is sent.
+6. Open `http://localhost:3000`, choose **Open workspace**, register, request and complete email verification, create a workspace, add a website. Invite links are manual-share; no email is sent.
 7. `npm test --prefix backend` runs tests against a temporary real MongoDB replica set. It downloads the MongoDB binary on first run and requires a host that permits running MongoDB/listening sockets.
 
 Next.js proxies `/api/*` to the trusted `API_INTERNAL_URL` (default `http://127.0.0.1:4000`). Use same-origin proxying in production so session cookies remain HttpOnly, Secure, SameSite=Lax. Backend checks exact `APP_ORIGINS` plus `X-Growth-Client`. Do not enable arbitrary CORS or put Atlas connection strings in public variables.
 
+## Account security increment
+
+Email verification, password reset/change, account profile, device sessions, logout-all and account security history are implemented. Configure the server-only email variables in `backend/.env.example` and run `npm run db:migrate --prefix backend` before upgrading an existing database. See `docs/04-account-security-acceptance.md` for exact workflows and deployment gates. Real inbox delivery and live Atlas remain unverified.
+
 ## Deployment
 Deploy `web/` to the roadmap's frontend host and `backend/` to a Node service, with Atlas replica set. Configure `MONGODB_URI`, `APP_ORIGINS`, `NODE_ENV=production`, `PORT`; bootstrap indexes under a migration/release job (`INIT_INDEXES=true` only for first bootstrap). Set frontend server-side `API_INTERNAL_URL` to the backend service. Current Sites-hosted static preview intentionally sets `apiEnabled:false` because no MongoDB/Node backend service has been configured there. Never change this flag to imply a connection that does not exist.
 
-Do not mark M1 complete until real database tests pass in the deployment environment, email verification/password reset are delivered, and production security/operations gates in the specification are complete. M2 crawling, subsequent modules, external integrations, automated AI and billing have specifications but are not implemented in this increment.
+Do not mark M1 complete until real database tests pass in the deployment environment, live email verification/password reset are verified, and production security/operations gates in the specification are complete. M2 crawling, subsequent modules, external integrations, automated AI and billing have specifications but are not implemented in this increment.

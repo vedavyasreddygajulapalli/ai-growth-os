@@ -11,6 +11,7 @@ import {
   Session,
   User,
   AuthToken,
+  EmailCooldown,
   SecurityEvent,
 } from "../src/database";
 import { setTestEmailTransport, AccountEmail } from "../src/email";
@@ -389,6 +390,7 @@ test("forgot password is generic; tokens are hashed, expire and are purpose boun
   await AuthToken.updateOne({ _id: stored._id }, { $set: { expiresAt: new Date(0) } });
   assert.equal((await call("/auth/password-reset/complete", "POST", { token, newPassword: "Replacement Password 123!" })).status, 409);
   await AuthToken.deleteOne({ _id: stored._id });
+  await EmailCooldown.deleteOne({ _id: `${stored.userId}:reset` });
 });
 test("password reset consumes once under concurrency and revokes all sessions", async () => {
   const login = await call("/auth/login", "POST", { email: "viewer@example.com", password: "Viewer Passphrase 123!" });

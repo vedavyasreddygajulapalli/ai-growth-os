@@ -8,7 +8,8 @@
     "dev": "tsx watch src/main.ts",
     "test": "tsc -p tsconfig.test.json && node --test .test-build/test/*.test.js",
     "test:unit": "tsc -p tsconfig.test.json && node --test .test-build/test/contracts.test.js .test-build/test/ui.test.js",
-    "test:integration": "tsc -p tsconfig.test.json && node --test .test-build/test/foundation.test.js"
+    "test:integration": "tsc -p tsconfig.test.json && node --test .test-build/test/foundation.test.js",
+    "db:migrate": "node dist/migrate.js"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.6",

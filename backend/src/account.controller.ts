@@ -1,7 +1,7 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query, Req, Res, UseGuards } from "@nestjs/common";
 import { Throttle } from "@nestjs/throttler";
 import { Response } from "express";
-import { AuthToken, User, Session, SecurityEvent, publicRecord, securityLog, transaction } from "./database";
+import { AuthToken, EmailCooldown, User, Session, SecurityEvent, publicRecord, securityLog, transaction } from "./database";
 import { changePasswordDto, emailDto, fail, paginate, parse, profileDto, recordId, resetDto, tokenDto } from "./contracts";
 import { AuthGuard, checkPassword, cookieName, cookieOptions, digest, hashPassword, randomToken } from "./security";
 import { assertEmailConfigured, sendAccountEmail } from "./email";
@@ -12,8 +12,15 @@ function clearSession(res: Response) {
 }
 async function sendToken(req: any, user: any, kind: "verify" | "reset") {
   // Per-account cooldown also limits distributed requests from multiple IPs.
-  const cutoff = new Date(Date.now() - 60000);
-  if (await AuthToken.exists({ userId: user._id, kind, createdAt: { $gt: cutoff } })) return;
+  const slot = `${user._id}:${kind}`;
+  const deadline = new Date(Date.now() + 60000);
+  try {
+    await EmailCooldown.updateOne({ _id: slot, expiresAt: { $lte: new Date() } },
+      { $set: { expiresAt: deadline } }, { upsert: true });
+  } catch (error: any) {
+    if (error.code === 11000) return;
+    throw error;
+  }
   const token = randomToken();
   const tokenHash = digest(token);
   await AuthToken.create({ userId: user._id, kind, tokenHash, authVersion: user.authVersion || 0,
@@ -26,6 +33,7 @@ async function sendToken(req: any, user: any, kind: "verify" | "reset") {
     await securityLog(req, user._id, `${kind}.email_requested`);
   } catch (error) {
     await AuthToken.deleteOne({ tokenHash });
+    await EmailCooldown.deleteOne({ _id: slot, expiresAt: deadline });
     // Do not log recipients, credentials, tokens, or provider error bodies.
     console.error(JSON.stringify({ code: "EMAIL_DELIVERY_FAILED", requestId: req.requestId }));
     throw error;

@@ -33,6 +33,8 @@ const session = schema({
 });
 session.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 session.index({ userId: 1 });
+const emailCooldown = schema({ _id: String, expiresAt: { type: Date, required: true } });
+emailCooldown.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 const authToken = schema({
   userId: { type: oid, required: true },
   kind: { type: String, enum: ["verify", "reset"], required: true },
@@ -184,6 +186,7 @@ interface AuditDoc extends Base {
   requestId: string;
   occurredAt: Date;
 }
+export const EmailCooldown = mongoose.model("EmailCooldown", emailCooldown, "email_cooldowns");
 export const AuthToken = mongoose.model("AuthToken", authToken, "auth_tokens");
 export const SecurityEvent = mongoose.model("SecurityEvent", securityEvent, "security_events");
 export async function securityLog(req: any, userId: any, action: string, session?: ClientSession) {
@@ -228,6 +231,7 @@ export async function initializeIndexes() {
     User,
     Session,
     AuthToken,
+    EmailCooldown,
     SecurityEvent,
     Organization,
     Membership,
