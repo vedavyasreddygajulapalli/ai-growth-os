@@ -10,7 +10,7 @@ import {
   HttpCode,
 } from "@nestjs/common";
 import { Request, Response } from "express";
-import { User, Session, publicRecord } from "./database";
+import { User, Session, publicRecord, securityLog, transaction } from "./database";
 import { fail, parse, registerDto, loginDto } from "./contracts";
 import {
   AuthGuard,
@@ -24,6 +24,7 @@ import {
 @Throttle({ default: { limit: 10, ttl: 60000 } })
 export class AuthController {
   @Post("register") async register(
+    @Req() req: any,
     @Body() body: unknown,
     @Res({ passthrough: true }) res: Response,
   ) {
@@ -41,10 +42,12 @@ export class AuthController {
         );
       throw e;
     });
-    await issueSession(u._id, res);
+    await issueSession(u._id, res, u.authVersion || 0, req.headers["user-agent"]);
+    await securityLog(req, u._id, "account.signed_in");
     return publicRecord(u);
   }
   @Post("login") @HttpCode(200) async login(
+    @Req() req: any,
     @Body() body: unknown,
     @Res({ passthrough: true }) res: Response,
   ) {
@@ -58,7 +61,8 @@ export class AuthController {
     );
     if (!u || !valid)
       fail(401, "INVALID_CREDENTIALS", "Email or password is incorrect.");
-    await issueSession(u._id, res);
+    await issueSession(u._id, res, u.authVersion || 0, req.headers["user-agent"]);
+    await securityLog(req, u._id, "account.signed_in");
     return publicRecord(u);
   }
   @Get("me") @UseGuards(AuthGuard) me(@Req() req: any) {
@@ -68,7 +72,10 @@ export class AuthController {
     @Req() req: any,
     @Res({ passthrough: true }) res: Response,
   ) {
-    await Session.deleteOne({ _id: req.sessionId });
+    await transaction(async session => {
+      await Session.deleteOne({ _id: req.sessionId, userId: req.user._id }, { session });
+      await securityLog(req, req.user._id, "account.signed_out", session);
+    });
     const { maxAge, ...options } = cookieOptions();
     res.clearCookie(cookieName, options);
   }

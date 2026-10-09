@@ -13,6 +13,8 @@
     members: [],
     invites: [],
     audit: [],
+    sessions: [],
+    securityEvents: [],
     error: "",
     cursor: null,
     generation: 0,
@@ -32,7 +34,7 @@
   const button = (label, act, primary = false) =>
     `<button type="button" class="btn ${primary ? "primary" : ""}" data-live="${act}">${esc(label)}</button>`;
   const input = (label, name, value = "", type = "text", required = true) =>
-    `<label class="field"><span>${esc(label)}</span><input name="${name}" value="${esc(value)}" type="${type}" ${required ? "required" : ""} ${name === "password" ? 'minlength="12" maxlength="128" autocomplete="current-password"' : ""}></label>`;
+    `<label class="field"><span>${esc(label)}</span><input name="${name}" value="${esc(value)}" type="${type}" ${required ? "required" : ""} ${type === "password" && name !== "currentPassword" ? 'minlength="12" maxlength="128" autocomplete="current-password"' : ""}></label>`;
   const select = (label, name, values, value) =>
     `<label class="field"><span>${esc(label)}</span><select name="${name}">${values.map((v) => `<option ${v === value ? "selected" : ""}>${esc(v)}</option>`).join("")}</select></label>`;
   const errorBox = (msg) =>
@@ -58,6 +60,9 @@
       e.details = data.error?.details;
       if (res.status === 401) {
         live.user = null;
+        live.orgs = [];
+        live.sessions = [];
+        live.securityEvents = [];
         live.org = null;
         live.sites = [];
         live.members = [];
@@ -76,7 +81,7 @@
     render();
     try {
       const user = await api("/auth/me");
-      const organizations = await api("/organizations");
+      const organizations = user.emailVerifiedAt ? await api("/organizations") : { items: [] };
       if (generation !== live.generation) return;
       live.user = user;
       live.orgs = organizations.items;
@@ -94,6 +99,11 @@
     }
   }
   async function loadTab(generation = live.generation) {
+    if (live.tab === "Account" && live.user) {
+      const [sessions, events] = await Promise.all([api("/auth/sessions"), api("/auth/security-events")]);
+      if (generation === live.generation) { live.sessions = sessions.items; live.securityEvents = events.items; }
+      return;
+    }
     if (!live.org) return;
     const base = orgPath("");
     let data;
@@ -171,7 +181,7 @@
   function authForm(register = false) {
     showForm(
       register ? "Create your account" : "Sign in to your workspace",
-      `${register ? input("Full name", "name") : ""}${input("Email address", "email", "", "email")}${input("Password (at least 12 characters)", "password", "", "password")}<p class="helper">Your account opens a real workspace. Demo records are kept separate.</p>${button(register ? "Already have an account?" : "Create an account", register ? "sign-in" : "sign-up")}`,
+      `${register ? input("Full name", "name") : ""}${input("Email address", "email", "", "email")}${input("Password (at least 12 characters)", "password", "", "password")}<p class="helper">Your account opens a real workspace. Demo records are kept separate.</p>${!register ? button("Forgot password?", "forgot-password") : ""}${button(register ? "Already have an account?" : "Create an account", register ? "sign-in" : "sign-up")}`,
       register ? "Create account" : "Sign in",
       async (data) => {
         await api(register ? "/auth/register" : "/auth/login", {
@@ -221,6 +231,13 @@
         '<p class="helper">Add your domain first, then verify ownership using a DNS record.</p>',
       site ? "Save website" : "Add website",
       async (data) => {
+        if (site && data.status === "archived" && site.status !== "archived") {
+          showForm("Archive website", '<p class="helper">This website will be archived. You can restore it later by changing its status.</p>', "Confirm archive", async () => {
+            await api(orgPath("/websites/" + site._id), { method: "PATCH", body: { ...data, version: site.version } });
+            closeModal(); await changeTab("Websites"); notify("Website archived.");
+          });
+          return;
+        }
         await api(orgPath("/websites" + (site ? "/" + site._id : "")), {
           method: site ? "PATCH" : "POST",
           body: { ...data, ...(site ? { version: site.version } : {}) },
@@ -256,9 +273,24 @@
   function workspacePicker() {
     modal(
       "Your workspaces",
-      `<div style="display:grid;gap:10px">${live.orgs.map((o) => button(`${o.name} · ${o.role}`, "switch:" + o._id)).join("")}${button("Create workspace", "create-org")}${button("Accept invitation", "accept-invite")}${button("Sign out", "sign-out")}</div>`,
+      `<div style="display:grid;gap:10px">${live.orgs.map((o) => button(`${o.name} · ${o.role}`, "switch:" + o._id)).join("")}${button("Create workspace", "create-org")}${button("Accept invitation", "accept-invite")}${button("Account & security", "account")}${button("Sign out", "sign-out")}</div>`,
     );
     bindLive();
+  }
+  function accountContent() {
+    return header("Account & security", "Manage your profile, password and signed-in devices.") + errorBox(live.error) +
+      `<section class="card padded"><h3>${esc(live.user.name)}</h3><p class="helper">${esc(live.user.email)}</p>${badge(live.user.emailVerifiedAt ? "Verified" : "Verification required")}<div class="actions" style="margin-top:20px">${button("Edit profile", "edit-profile", true)}${button("Change password", "change-password")}${!live.user.emailVerifiedAt ? button("Send verification email", "send-verification") : ""}${button("Back to workspace", "back-workspace")}</div></section>
+      <section class="card padded" style="margin-top:20px"><div class="card-head"><h2>Signed-in devices</h2>${button("Sign out all devices", "logout-all")}</div><p class="helper">Device labels come from the browser and are approximate. Up to 100 active sessions are shown.</p>${live.sessions.length ? live.sessions.map(session => `<div class="knowledge"><div style="min-width:0;overflow-wrap:anywhere"><strong>${esc(session.userAgent)}</strong><small>Signed in ${esc(new Date(session.createdAt).toLocaleString())} · Expires ${esc(new Date(session.expiresAt).toLocaleString())}</small></div>${session.current ? badge("This device") : ""}${button("Sign out", "revoke-session:" + session._id)}</div>`).join("") : '<p class="helper">No active sessions loaded.</p>'}${button("Refresh devices", "account")}</section>
+      <section class="card padded" style="margin-top:20px"><h3>Recent account activity</h3>${live.securityEvents.length ? live.securityEvents.map(event => `<div class="knowledge"><strong>${esc(event.action)}</strong><small>${esc(new Date(event.createdAt).toLocaleString())}</small></div>`).join("") : '<p class="helper">No security events yet.</p>'}</section>`;
+  }
+  function tokenForm(kind, token) {
+    showForm(kind === "verify" ? "Verify your email" : "Choose a new password",
+      kind === "verify" ? '<p class="helper">Confirm your email to access workspace data. Verification links expire after 24 hours.</p>' : input("New password (at least 12 characters)", "newPassword", "", "password") + '<p class="helper">This signs you out of every device. Reset links expire after 30 minutes.</p>',
+      kind === "verify" ? "Verify email" : "Reset password", async data => {
+        const result = await api(kind === "verify" ? "/auth/email-verification/complete" : "/auth/password-reset/complete", { method: "POST", body: { token, ...data } });
+        closeModal(); await refresh(); notify(result.message);
+        if (!live.user) authForm();
+      });
   }
   function liveContent() {
     if (live.loading)
@@ -283,6 +315,10 @@
         errorBox(live.error) +
         `<section class="card padded"><h3>Welcome to AI Growth OS</h3><p class="helper">Create an account to start with an empty, private workspace.</p><div class="actions">${button("Sign in", "sign-in", true)}${button("Create account", "sign-up")}${button("Try again", "retry")}</div></section>`
       );
+    if (live.tab === "Account") return accountContent();
+    if (!live.user.emailVerifiedAt)
+      return header("Verify your email", "Protect your account before opening a workspace.") + errorBox(live.error) +
+        `<section class="card padded"><h3>Check your inbox</h3><p class="helper">Send a verification link to ${esc(live.user.email)}. Your workspace stays private until your email is verified.</p><div class="actions">${button("Send verification email", "send-verification", true)}${button("I have verified my email", "retry")}${button("Account & security", "account")}${button("Sign out", "sign-out")}</div></section>`;
     if (!live.org)
       return (
         header(
@@ -303,6 +339,7 @@
     const available = [
       "Organization",
       "Websites",
+      "Account",
       ...(isManager() ? ["Team & roles", "Audit logs"] : []),
     ];
     if (!available.includes(live.tab)) live.tab = "Organization";
@@ -362,6 +399,7 @@
         "<strong>Workspace foundation</strong><p>Organization · Team · Websites</p>";
       document.querySelector(".profile").innerHTML =
         `<span class="avatar">${esc(live.user?.name?.slice(0, 2).toUpperCase() || "YO")}</span><span><b>${esc(live.user?.name || "Your account")}</b><small>${esc(live.org?.role || "Not signed in")}</small></span>`;
+      document.querySelector(".profile").onclick = () => run("account");
       document.querySelectorAll(".nav .count").forEach((e) => e.remove());
       document.querySelector(".search-global").style.display = "none";
       document.querySelector(".notification").style.display = "none";
@@ -407,6 +445,38 @@
             '<p class="helper">Foundation → Website management and crawler → Brand and Media → Research and Strategy → Content → WordPress → SEO and Indexing → CRM → Analytics → Assisted AI → Billing → Production hardening.</p><div class="note">The approved design stays consistent. Each module connects to real data after the preceding milestone is verified.</div>',
           );
           break;
+        case "forgot-password":
+          showForm("Reset your password", input("Email address", "email", "", "email"), "Request reset link", async data => {
+            const r = await api("/auth/password-reset", { method: "POST", body: data });
+            modal("Check your inbox", `<p class="helper">${esc(r.message)}</p>${button("Back to sign in", "sign-in")}`); bindLive();
+          });
+          break;
+        case "send-verification":
+          showForm("Send verification email", `<p class="helper">Send a private link to ${esc(live.user.email)}.</p>`, "Send link", async () => {
+            const r = await api("/auth/email-verification", { method: "POST", body: {} });
+            closeModal(); notify(r.message);
+          });
+          break;
+        case "account":
+          state.page = "settings"; closeModal(); await changeTab("Account"); break;
+        case "back-workspace":
+          await changeTab("Organization"); break;
+        case "edit-profile":
+          showForm("Edit profile", input("Full name", "name", live.user.name), "Save profile", async data => {
+            live.user = await api("/auth/account", { method: "PATCH", body: { ...data, version: live.user.version } });
+            closeModal(); await refresh(); notify("Profile saved.");
+          }); break;
+        case "change-password":
+          showForm("Change password", input("Current password", "currentPassword", "", "password") + input("New password (at least 12 characters)", "newPassword", "", "password") + '<p class="helper">All devices will be signed out after this change.</p>', "Change password and sign out", async data => {
+            await api("/auth/password", { method: "POST", body: data });
+            closeModal(); await refresh(); notify("Password changed. Sign in again."); authForm();
+          }); break;
+        case "logout-all":
+        case "revoke-session":
+          showForm(key === "logout-all" ? "Sign out all devices" : "Sign out device", '<p class="helper">The selected sessions will lose account access immediately.</p>', "Confirm sign out", async () => {
+            await api(key === "logout-all" ? "/auth/logout-all" : "/auth/sessions/" + id, { method: key === "logout-all" ? "POST" : "DELETE" });
+            closeModal(); await refresh();
+          }); break;
         case "sign-in":
           authForm();
           break;
@@ -629,6 +699,14 @@
     );
   }
   render();
+  const securityParams = new URLSearchParams(location.hash.split("?")[1] || "");
+  const securityKind = securityParams.has("reset") ? "reset" : securityParams.has("verify") ? "verify" : null;
+  if (securityKind) {
+    const token = securityParams.get(securityKind);
+    history.replaceState(null, "", location.pathname + "#settings");
+    live.active = true; state.page = "settings"; render();
+    if (cfg.apiEnabled) tokenForm(securityKind, token);
+  }
   if (location.hash.includes("invite=")) {
     live.active = true;
     state.page = "settings";

@@ -54,7 +54,7 @@ test("connected adapter loads org/site records from API and keeps live writes ou
     calls.push([url, opts]);
     let data: any;
     if (url.endsWith("/auth/me"))
-      data = { _id: "b".repeat(24), name: "Real Owner" };
+      data = { _id: "b".repeat(24), name: "Real Owner", emailVerifiedAt: "2026-10-09T00:00:00Z" };
     else if (url.endsWith("/organizations")) data = { items: [org] };
     else if (url.endsWith("/websites"))
       data = {
@@ -140,5 +140,35 @@ test("form errors preserve unsaved values and show API failure without success",
     (form.querySelector("[type=submit]") as HTMLButtonElement).disabled,
     false,
   );
+  dom.window.close();
+});
+test("unverified accounts see a real verification gate and do not request tenant data", async () => {
+  const calls: string[] = [];
+  const dom = setup(true, async (url: string) => {
+    calls.push(url);
+    return { ok: true, status: 200, json: async () => ({ name: "Unverified", email: "test@example.com", emailVerifiedAt: null }) };
+  });
+  click(dom, "live"); await tick();
+  assert.match(dom.window.document.querySelector(".page")!.textContent!, /Verify your email/);
+  assert.equal(calls.some(url => url.endsWith("/organizations")), false);
+  click(dom, "send-verification");
+  assert.match(dom.window.document.querySelector("#live-form")!.textContent!, /test@example.com/);
+  dom.window.close();
+});
+test("password recovery form uses real endpoint and hides account existence", async () => {
+  const calls: any[] = [];
+  const dom = setup(true, async (url: string, options: any) => {
+    calls.push([url, options]);
+    return url.endsWith("/auth/password-reset")
+      ? { ok: true, status: 202, json: async () => ({ message: "If an eligible account exists, a reset link will be sent." }) }
+      : { ok: false, status: 401, json: async () => ({ error: { message: "Sign in" } }) };
+  });
+  click(dom, "live"); await tick(); click(dom, "sign-in"); click(dom, "forgot-password");
+  const form = dom.window.document.querySelector("#live-form") as HTMLFormElement;
+  (form.querySelector("[name=email]") as HTMLInputElement).value = "test@example.com";
+  form.dispatchEvent(new dom.window.Event("submit", { bubbles: true, cancelable: true }));
+  await tick();
+  assert.ok(calls.some(([url, opts]) => url.endsWith("/auth/password-reset") && JSON.parse(opts.body).email === "test@example.com"));
+  assert.match(dom.window.document.querySelector("#overlay")!.textContent!, /If an eligible account exists/);
   dom.window.close();
 });

@@ -148,3 +148,10 @@ export async function paginate(
     nextCursor: rows.length > limit ? String(rows[limit - 1]._id) : null,
   };
 }
+
+export const emailDto = z.object({ email }).strict();
+export const resetDto = tokenDto.extend({ newPassword: password }).strict();
+export const profileDto = z.object({ name: text, version: z.number().int().nonnegative() }).strict();
+export const changePasswordDto = z.object({
+  currentPassword: z.string().min(1).max(128), newPassword: password,
+}).strict();

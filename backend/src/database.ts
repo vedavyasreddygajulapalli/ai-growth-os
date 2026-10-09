@@ -20,13 +20,34 @@ const user = schema({
   email: { type: String, required: true, unique: true },
   passwordHash: { type: String, required: true, select: false },
   status: { type: String, default: "active" },
+  emailVerifiedAt: { type: Date, default: null },
+  authVersion: { type: Number, default: 0 },
+  version: { type: Number, default: 0 },
 });
 const session = schema({
   userId: { type: oid, required: true },
-  tokenHash: { type: String, unique: true, required: true },
+  tokenHash: { type: String, unique: true, required: true, select: false },
+  authVersion: { type: Number, default: 0 },
+  userAgent: { type: String, default: "Unknown device" },
   expiresAt: { type: Date, required: true },
 });
 session.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+session.index({ userId: 1 });
+const authToken = schema({
+  userId: { type: oid, required: true },
+  kind: { type: String, enum: ["verify", "reset"], required: true },
+  tokenHash: { type: String, required: true, unique: true, select: false },
+  authVersion: { type: Number, required: true },
+  expiresAt: { type: Date, required: true },
+});
+authToken.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+authToken.index({ userId: 1, kind: 1 });
+const securityEvent = schema({
+  userId: { type: oid, required: true },
+  action: { type: String, required: true },
+  requestId: { type: String, required: true },
+});
+securityEvent.index({ userId: 1, _id: -1 });
 const org = schema({
   name: { type: String, required: true },
   timezone: { type: String, required: true },
@@ -35,6 +56,7 @@ const org = schema({
   status: { type: String, default: "active" },
 });
 const membership = schema({
+  authorizationRevision: { type: Number, default: 0 },
   orgId: { type: oid, required: true },
   userId: { type: oid, required: true },
   role: { type: String, enum: roles, required: true },
@@ -102,12 +124,17 @@ interface Base {
   updatedAt: Date;
 }
 interface UserDoc extends Base {
+  emailVerifiedAt: Date | null;
+  authVersion: number;
+  version: number;
   name: string;
   email: string;
   passwordHash: string;
   status: string;
 }
 interface SessionDoc extends Base {
+  authVersion: number;
+  userAgent: string;
   userId: Id;
   tokenHash: string;
   expiresAt: Date;
@@ -157,6 +184,11 @@ interface AuditDoc extends Base {
   requestId: string;
   occurredAt: Date;
 }
+export const AuthToken = mongoose.model("AuthToken", authToken, "auth_tokens");
+export const SecurityEvent = mongoose.model("SecurityEvent", securityEvent, "security_events");
+export async function securityLog(req: any, userId: any, action: string, session?: ClientSession) {
+  await SecurityEvent.create([{ userId, action, requestId: req.requestId }], { session });
+}
 export const User = mongoose.model<UserDoc>("User", user, "users");
 export const Session = mongoose.model<SessionDoc>(
   "Session",
@@ -195,6 +227,8 @@ export async function initializeIndexes() {
   for (const model of [
     User,
     Session,
+    AuthToken,
+    SecurityEvent,
     Organization,
     Membership,
     Invitation,
@@ -209,6 +243,8 @@ export function publicRecord(doc: any) {
   if (!doc) return null;
   const obj = doc.toObject ? doc.toObject() : { ...doc };
   delete obj.passwordHash;
+  delete obj.authVersion;
+  delete obj.authorizationRevision;
   delete obj.tokenHash;
   delete obj.verificationToken;
   return obj;

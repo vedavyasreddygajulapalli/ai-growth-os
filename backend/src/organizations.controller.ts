@@ -35,6 +35,7 @@ import {
 } from "./contracts";
 import {
   AuthGuard,
+  VerifiedGuard,
   access,
   managers,
   assignable,
@@ -42,7 +43,7 @@ import {
   digest,
 } from "./security";
 @Controller("organizations")
-@UseGuards(AuthGuard)
+@UseGuards(AuthGuard, VerifiedGuard)
 export class OrganizationsController {
   @Get() async list(@Req() req: any) {
     const memberships = await Membership.find({
@@ -89,6 +90,7 @@ export class OrganizationsController {
     await access(req, orgId, managers);
     const { version, ...changes } = parse(orgPatchDto, body);
     return transaction(async (session) => {
+      await access(req, orgId, managers, session);
       const before = await Organization.findById(orgId).session(session);
       const org = await Organization.findOneAndUpdate(
         { _id: orgId, version },
@@ -161,6 +163,8 @@ export class OrganizationsController {
       fail(409, "ALREADY_MEMBER", "This person is already a member.");
     const token = randomToken();
     const result = await transaction(async (session) => {
+      const actor = await access(req, orgId, managers, session);
+      assignable(actor.role!, dto.role);
       await Invitation.updateMany(
         {
           orgId,
@@ -205,6 +209,7 @@ export class OrganizationsController {
     const actor = await access(req, orgId, managers);
     recordId(id);
     await transaction(async (session) => {
+      const actor = await access(req, orgId, managers, session);
       const inv = await Invitation.findOne({
         _id: id,
         orgId,
@@ -238,6 +243,7 @@ export class OrganizationsController {
     const dto = parse(roleDto, body);
     assignable(actor.role!, dto.role);
     return transaction(async (session) => {
+      const actor = await access(req, orgId, managers, session);
       const m = await Membership.findOne({
         _id: id,
         orgId,
@@ -248,6 +254,7 @@ export class OrganizationsController {
         fail(403, "FORBIDDEN", "This role cannot be changed here.");
       if (m.version !== dto.version)
         fail(409, "VERSION_CONFLICT", "Membership changed. Reload first.");
+      assignable(actor.role!, dto.role);
       const before = m.toObject();
       m.role = dto.role;
       m.version!++;
@@ -273,6 +280,7 @@ export class OrganizationsController {
     const actor = await access(req, orgId, managers);
     recordId(id);
     await transaction(async (session) => {
+      const actor = await access(req, orgId, managers, session);
       const m = await Membership.findOne({
         _id: id,
         orgId,
@@ -318,6 +326,7 @@ export class OrganizationsController {
     );
     recordId(dto.membershipId);
     return transaction(async (session) => {
+      const actor = await access(req, orgId, ["Owner"], session);
       const target = await Membership.findOne({
         _id: dto.membershipId,
         orgId,
@@ -358,7 +367,7 @@ export class OrganizationsController {
   }
 }
 @Controller("invitations")
-@UseGuards(AuthGuard)
+@UseGuards(AuthGuard, VerifiedGuard)
 export class InvitationsController {
   @Post("accept") async accept(@Req() req: any, @Body() body: unknown) {
     const { token } = parse(tokenDto, body);
@@ -396,6 +405,7 @@ export class InvitationsController {
           "The inviter no longer has permission.",
         );
       assignable(issuer.role!, inv.role!);
+      await access({ user: { _id: issuer.userId } }, String(inv.orgId), managers, session);
       if (
         await Membership.exists({
           orgId: inv.orgId,

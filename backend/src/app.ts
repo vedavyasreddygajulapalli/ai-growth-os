@@ -15,6 +15,7 @@ import helmet from "helmet";
 import express from "express";
 import { randomUUID } from "node:crypto";
 import mongoose from "mongoose";
+import { AccountController } from "./account.controller";
 import { AuthController } from "./auth.controller";
 import {
   OrganizationsController,
@@ -83,6 +84,7 @@ class HealthController {
   controllers: [
     HealthController,
     AuthController,
+    AccountController,
     OrganizationsController,
     InvitationsController,
     WebsitesController,

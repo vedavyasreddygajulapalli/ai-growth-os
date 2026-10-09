@@ -1,3 +1,4 @@
+import { ClientSession } from "mongoose";
 import { CanActivate, ExecutionContext, Injectable } from "@nestjs/common";
 import {
   createHash,
@@ -30,10 +31,12 @@ export const cookieOptions = () => ({
   path: "/api/v1",
   maxAge: 7 * 86400 * 1000,
 });
-export async function issueSession(userId: any, res: any) {
+export async function issueSession(userId: any, res: any, authVersion = 0, userAgent = "Unknown device") {
   const token = randomToken();
   await Session.create({
     userId,
+    authVersion,
+    userAgent: userAgent.slice(0, 250),
     tokenHash: digest(token),
     expiresAt: new Date(Date.now() + 7 * 86400 * 1000),
   });
@@ -52,7 +55,7 @@ export class AuthGuard implements CanActivate {
     }).lean();
     if (!s) fail(401, "UNAUTHENTICATED", "Your session has expired.");
     const user = await User.findOne({ _id: s.userId, status: "active" }).lean();
-    if (!user) fail(401, "UNAUTHENTICATED", "Sign in to continue.");
+    if (!user || (user.authVersion || 0) !== (s.authVersion || 0)) fail(401, "UNAUTHENTICATED", "Sign in to continue.");
     req.user = user;
     req.sessionId = s._id;
     return true;
@@ -62,22 +65,39 @@ export async function access(
   req: any,
   orgId: string,
   allowed?: readonly string[],
+  session?: ClientSession,
 ) {
   recordId(orgId);
   const m = await Membership.findOne({
     orgId,
     userId: req.user._id,
     status: "active",
-  }).lean();
+  }).session(session || null).lean();
   if (!m) fail(404, "NOT_FOUND", "Workspace unavailable.");
-  if (!(await Organization.exists({ _id: orgId, status: "active" })))
+  if (!(await Organization.exists({ _id: orgId, status: "active" }).session(session || null)))
     fail(404, "NOT_FOUND", "Workspace unavailable.");
   if (allowed && !allowed.includes(m.role!))
     fail(403, "FORBIDDEN", "Your role cannot perform this action.");
+  if (session) {
+    // This write serializes a protected mutation against role changes/removal.
+    const locked = await Membership.updateOne({ _id: m._id, status: "active", role: m.role, version: m.version },
+      { $inc: { authorizationRevision: 1 } }, { session });
+    if (!locked.matchedCount) fail(409, "PERMISSION_CHANGED", "Your permissions changed. Reload before continuing.");
+  }
   return m;
 }
 export const managers = ["Owner", "Admin"];
 export function assignable(actor: string, role: string) {
   if (role === "Owner" || (actor !== "Owner" && role === "Admin"))
     fail(403, "FORBIDDEN", "Only the owner can assign administrator access.");
+}
+
+@Injectable()
+export class VerifiedGuard implements CanActivate {
+  canActivate(context: ExecutionContext) {
+    const req = context.switchToHttp().getRequest();
+    if (!req.user?.emailVerifiedAt)
+      fail(403, "EMAIL_UNVERIFIED", "Verify your email before accessing workspace data.");
+    return true;
+  }
 }

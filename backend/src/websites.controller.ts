@@ -20,9 +20,9 @@ import {
   websitePatchDto,
   paginate,
 } from "./contracts";
-import { AuthGuard, access, managers, randomToken } from "./security";
+import { AuthGuard, VerifiedGuard, access, managers, randomToken } from "./security";
 @Controller("organizations/:orgId/websites")
-@UseGuards(AuthGuard)
+@UseGuards(AuthGuard, VerifiedGuard)
 export class WebsitesController {
   @Get() async list(
     @Req() req: any,
@@ -51,6 +51,7 @@ export class WebsitesController {
     await access(req, orgId, managers);
     const dto = parse(websiteDto, body);
     return transaction(async (session) => {
+      await access(req, orgId, managers, session);
       const [site] = await Website.create(
         [{ ...dto, orgId, verificationToken: randomToken() }],
         { session },
@@ -78,6 +79,7 @@ export class WebsitesController {
     recordId(id);
     const { version, ...changes } = parse(websitePatchDto, body);
     return transaction(async (session) => {
+      await access(req, orgId, managers, session);
       const before = await Website.findOne({ _id: id, orgId }).session(session);
       if (!before) fail(404, "NOT_FOUND", "Website unavailable.");
       const update: any = { ...changes };
@@ -161,6 +163,7 @@ export class WebsitesController {
         "TXT record does not match. Check its value and retry.",
       );
     return transaction(async (session) => {
+      await access(req, orgId, managers, session);
       const site = await Website.findOneAndUpdate(
         {
           _id: id,
