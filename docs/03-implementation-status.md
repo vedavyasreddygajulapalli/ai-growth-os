@@ -4,7 +4,7 @@
 
 ## Account security update
 
-GitHub branch `m1-account-security`, commit `6466adb`: 17 real MongoDB integration tests and 10 unit/UI tests passed; backend and frontend production builds passed. Evidence: https://github.com/vedavyasreddygajulapalli/ai-growth-os/actions/runs/37972841519 . Email delivery uses a test-only in-memory transport in CI, not a live inbox. Additional migration/cooldown/dependency updates require a final CI run before merging.
+GitHub branch `m1-account-security`, commit `0419dde`: 17 real MongoDB integration tests and 10 unit/UI tests passed; backend and frontend production builds passed. Evidence: https://github.com/vedavyasreddygajulapalli/ai-growth-os/actions/runs/37973672202 . Email delivery uses a test-only in-memory transport in CI, not a live inbox. The final migration/cooldown/dependency update passed the same CI checks. Both dependency audits report zero known vulnerabilities as of this run; this is not a security certification.
 
 Implemented email verification, password reset/change, profile versioning, device session listing/revocation, logout-all, account security history, verification-gated tenant routes, and transactional membership authorization checks. Account forms reuse approved styling. Exact new screen contracts, collections, deployment variables and acceptance are in `04-account-security-acceptance.md` and OpenAPI.
 
