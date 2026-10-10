@@ -22,3 +22,6 @@ The Export JSON modal describes the 1,000-record limit, inclusion of before/afte
 6. Verify mobile filter modal scrolling, table overflow, keyboard access, download support, loading, errors and retry with the existing premium styles.
 
 Automated validation and permission scenarios were added to the existing contract and MongoDB integration suites; they have not been executed for this increment. Full live/browser verification remains deferred.
+
+### Hardening additions
+Literal search across action/entity type/request ID and exact entity ID filtering are now supported. Export ceiling is configured with AUDIT_EXPORT_LIMIT; retention configuration and dry-run maintenance are documented in 06-foundation-operations.md. Existing tenant/role boundaries and append-only API behavior remain unchanged.

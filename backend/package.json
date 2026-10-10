@@ -7,9 +7,10 @@
     "start": "node dist/main.js",
     "dev": "tsx watch src/main.ts",
     "test": "tsc -p tsconfig.test.json && node --test .test-build/test/*.test.js",
-    "test:unit": "tsc -p tsconfig.test.json && node --test .test-build/test/contracts.test.js .test-build/test/ui.test.js",
+    "test:unit": "tsc -p tsconfig.test.json && node --test .test-build/test/contracts.test.js .test-build/test/ui.test.js .test-build/test/operations.test.js",
     "test:integration": "tsc -p tsconfig.test.json && node --test .test-build/test/foundation.test.js",
-    "db:migrate": "node dist/migrate.js"
+    "db:migrate": "node dist/migrate.js",
+    "audit:retention": "node dist/retention.js"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.6",
@@ -18,6 +19,7 @@
     "@nestjs/throttler": "^6.4.0",
     "cookie-parser": "^1.4.7",
     "helmet": "^8.1.0",
+    "ioredis": "^6.0.0",
     "mongoose": "^8.19.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",

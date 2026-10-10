@@ -1,0 +1,24 @@
+# Foundation operations and acceptance
+
+## Runtime configuration
+Production validates MONGODB_URI, exact HTTPS APP_ORIGINS and PUBLIC_APP_URL, port, Redis scheme and policy limits before serving. Email credentials are not mandatory at boot: missing provider configuration returns a controlled error and stays a live acceptance gate. Email verification is never bypassed in production. The test-only transport verifies token workflows without sending real messages.
+
+RATE_LIMIT_STORE=redis plus REDIS_URL enables atomic, shared Redis counters with server time. Redis failures reject protected traffic with 503; they never fall back to fresh per-instance counters. Memory mode is for development/single-instance deployments; Redis configuration/load testing remains a deployment gate. TRUST_PROXY accepts explicit trusted IPs/subnets only. Leave blank until the real proxy chain is confirmed: clients then share the proxy's quota, a conservative default. Never trust arbitrary X-Forwarded-For. Redis should use a private network or TLS and authentication.
+
+Health: GET /api/v1/health retains the legacy DB connection check. /health/live reports process liveness; /health/ready actively pings MongoDB and configured shared Redis. Configure readiness health checks before traffic. SIGTERM closes HTTP, MongoDB and Redis through Nest lifecycle hooks. Structured http.request logs include request ID, method, status and duration, never URL query strings, bodies, cookies or secrets. Alert on elevated 5xx/503, readiness failure, latency and memory; configure alert destinations in hosting before launch.
+
+## Migrations and rollback
+Run npm run build --prefix backend and npm run db:migrate --prefix backend as a release step. Bootstrap is idempotent and does not auto-verify users. CI integration setup rehearses it twice against a disposable real replica set. Do not use syncIndexes to drop indexes automatically. Take a snapshot before releases; roll back the application commit if an additive migration fails, investigate index conflicts before retrying. Do not retry non-idempotent writes blindly. MongoDB transactions retry transient database conflicts; external email requests stay outside retried callbacks.
+
+## Audit policies
+Append-only API records remain immutable. AUDIT_EXPORT_LIMIT defaults to 1000 (maximum 10000); exports reject oversized results rather than truncate and record audit.exported transactionally. Search is escaped literal matching on action/entityType/requestId, with exact actor/entity IDs and inclusive UTC dates. Export files contain tenant data and must be handled privately.
+
+Retention defaults to indefinite: no automatic deletion is enabled. Configure AUDIT_RETENTION_DAYS (1–3650) only after approving the organization's retention obligations and resolving legal holds. Run npm run audit:retention --prefix backend for a dry-run count/cutoff. After backup and explicit operator approval, append -- --apply to delete in bounded batches. This operator-only maintenance job is never exposed as a user endpoint. Do not schedule it where legal holds require selective retention; keep indefinite retention there.
+
+## Backup and restore procedure
+Use Atlas automated encrypted snapshots with point-in-time restore if supported by the selected plan. Target daily backups with at least 30-day retention, RPO 24 hours and RTO 4 hours until business requirements override. These are targets, not measured evidence. Store backup credentials separately from the application's least-privilege database user.
+
+Restore rehearsal: create a new isolated cluster/database from a snapshot; never overwrite production for testing. Point a staging API at the restore using restricted credentials; run migrations, readiness and acceptance tests. Reconcile collection counts/indexes and sample tenant relations. Invalidate restored sessions and auth tokens before any restored environment is publicly reachable, because restoration can revive previously revoked credentials. Keep outbound email and crawlers disabled during rehearsal. Record snapshot timestamp, restore duration and data loss window, then approve a maintenance cutover only after all gates pass. A live backup/restore rehearsal requires Atlas operator access and remains a deployment gate.
+
+## Evidence boundaries
+Existing GitHub CI run 38015784705 passed the prior audit increment, including real MongoDB integration and frontend/backend builds. New hardening tests cover config validation, provider responses and shared Redis counters; latest results must be recorded separately. Local MongoDB startup fails with open: Operation not permitted, before assertions; CI is the real database execution environment. Do not count that local run as a pass. Real inbox delivery, DNS ownership on a user domain, Atlas restore, host monitoring and mobile visual QA remain separate deployment acceptance work.

@@ -224,6 +224,7 @@ export async function connectDatabase(uri: string) {
     serverSelectionTimeoutMS: 5000,
     autoIndex: false,
     maxPoolSize: 10,
+    socketTimeoutMS: 10000,
   });
 }
 export async function initializeIndexes() {

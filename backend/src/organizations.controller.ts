@@ -11,6 +11,7 @@ import {
   UseGuards,
   HttpCode,
 } from "@nestjs/common";
+import { positiveInteger } from "./environment";
 import { z } from "zod";
 import { auditFiltersDto, auditFilter, auditPage } from "./audit-query";
 import {
@@ -373,9 +374,10 @@ export class OrganizationsController {
     const filters = parse(auditFiltersDto, body);
     return transaction(async session => {
       await access(req, orgId, managers, session);
+      const limit = positiveInteger(process.env.AUDIT_EXPORT_LIMIT, 1000, 10000);
       const items = await Audit.find(auditFilter(orgId, filters)).sort({ _id: -1 })
-        .limit(1001).session(session).lean();
-      if (items.length > 1000) fail(422, "EXPORT_TOO_LARGE", "More than 1,000 records match. Narrow the date range or filters before exporting.");
+        .limit(limit + 1).session(session).lean();
+      if (items.length > limit) fail(422, "EXPORT_TOO_LARGE", `More than ${limit} records match. Narrow the date range or filters before exporting.`);
       await log(session, req, orgId, "audit.exported", "organization", orgId, null,
         { filters, count: items.length });
       return { schemaVersion: 1, orgId, exportedAt: new Date().toISOString(), filters, count: items.length, items };

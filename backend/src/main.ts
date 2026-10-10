@@ -1,6 +1,8 @@
 import { connectDatabase, initializeIndexes } from "./database";
+import { validateEnvironment } from "./environment";
 import { createApp } from "./app";
 async function main() {
+  validateEnvironment();
   if (!process.env.MONGODB_URI)
     throw Error(
       "MONGODB_URI is required. Use an Atlas cluster or local replica set.",

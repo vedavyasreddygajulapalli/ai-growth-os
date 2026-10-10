@@ -353,7 +353,7 @@
     if (live.tab === "Organization")
       body = `<section class="card padded"><h3>${esc(live.org.name)}</h3><div class="knowledge"><span>Timezone</span><strong>${esc(live.org.timezone)}</strong></div><div class="knowledge"><span>Currency</span><strong>${esc(live.org.currency)}</strong></div><div class="knowledge"><span>Your role</span>${badge(live.org.role)}</div><div class="actions" style="margin-top:24px">${isManager() ? button("Edit preferences", "edit-org", true) : ""}${button("Switch workspace", "workspaces")}${button("Accept invitation", "accept-invite")}</div></section>`;
     if (live.tab === "Websites")
-      body = `<section class="card"><div class="card-head"><div><h2>Your websites</h2><p>Verify ownership before starting a crawl.</p></div>${isManager() ? button("Add website", "add-site", true) : ""}</div>${live.sites.length ? `<div class="table-scroll"><table><thead><tr><th>Website</th><th>CMS</th><th>Ownership</th><th>Status</th><th>Actions</th></tr></thead><tbody>${live.sites.map((s) => `<tr><td>${esc(s.name)}<small>${esc(s.domain)}</small></td><td>${esc(s.cmsType)}</td><td>${badge(s.verificationStatus)}</td><td>${badge(s.status)}</td><td><div class="actions">${isManager() ? button("Edit", "edit-site:" + s._id) + (s.status === "active" ? button("Verify", "verify-site:" + s._id) : "") : ""}</div></td></tr>`).join("")}</tbody></table></div>` : '<div class="empty"><strong>No websites yet</strong>Add your first domain to start your website setup.</div>'}${live.cursor ? button("Load more", "more") : ""}</section>`;
+      body = `<section class="card"><div class="card-head"><div><h2>Your websites</h2><p>Verify ownership before starting a crawl.</p></div>${isManager() ? button("Add website", "add-site", true) : ""}</div>${live.sites.length ? `<div class="table-scroll"><table><thead><tr><th>Website</th><th>CMS</th><th>Ownership</th><th>Status</th><th>Actions</th></tr></thead><tbody>${live.sites.map((s) => `<tr><td>${esc(s.name)}<small>${esc(s.domain)}</small></td><td>${esc(s.cmsType)}</td><td>${badge(s.verificationStatus)}</td><td>${badge(s.status)}</td><td><div class="actions">${button("View", "view-site:" + s._id)}${isManager() ? button("Edit", "edit-site:" + s._id) + (s.status === "active" ? button("Verify", "verify-site:" + s._id) : "") : ""}</div></td></tr>`).join("")}</tbody></table></div>` : '<div class="empty"><strong>No websites yet</strong>Add your first domain to start your website setup.</div>'}${live.cursor ? button("Load more", "more") : ""}</section>`;
     if (live.tab === "Team & roles")
       body = `<section class="card padded"><div class="card-head" style="padding:0 0 20px"><h2>Your team</h2>${button("Invite member", "invite", true)}</div>${live.members.map((m) => `<div class="knowledge"><div><strong>${esc(m.user?.name || "Member")}</strong><small>${esc(m.user?.email || "")}</small></div>${badge(m.role)}<div class="actions">${m.role !== "Owner" && (live.org.role === "Owner" || m.role !== "Admin") ? button("Manage", "member:" + m._id) : ""}</div></div>`).join("")}<h3 style="margin-top:28px">Pending invitations</h3>${live.invites.length ? live.invites.map((i) => `<div class="knowledge"><div><strong>${esc(i.email)}</strong><small>${esc(i.role)} · Expires ${new Date(i.expiresAt).toLocaleDateString()}</small></div>${live.org.role === "Owner" || i.role !== "Admin" ? button("Revoke", "revoke:" + i._id) : ""}</div>`).join("") : '<p class="helper">No pending invitations.</p>'}<p class="helper">Invitations use a private link you share yourself. No email is sent automatically.</p></section>`;
     if (live.tab === "Audit logs")
@@ -534,6 +534,13 @@
           closeModal();
           render();
           break;
+        case "view-site": {
+          const gen = live.generation;
+          const site = await api(orgPath("/websites/" + id));
+          if (gen !== live.generation) return;
+          modal("Website details", `<h3>${esc(site.name)}</h3><p class="helper">${esc(site.domain)}</p>${[ ["CMS", site.cmsType], ["Status", site.status], ["Ownership", site.verificationStatus], ["Verified", site.verifiedAt || "Not verified"], ["Version", site.version], ["Created", site.createdAt], ["Updated", site.updatedAt] ].map(([label, value]) => `<div class="knowledge"><span>${esc(label)}</span><strong>${esc(String(value ?? "—"))}</strong></div>`).join("")}`, "", true);
+          break;
+        }
         case "add-site":
           siteForm();
           break;
@@ -673,6 +680,8 @@
           const f = live.auditFilters;
           showForm("Filter workspace activity",
             '<p class="helper">Action, record type and actor use exact matches. Dates include the full day in UTC.</p>' +
+            input("Search action, record type or request ID", "search", f.search || "", "text", false) +
+            input("Entity ID", "entityId", f.entityId || "", "text", false) +
             input("Action (for example website.updated)", "action", f.action || "", "text", false) +
             input("Record type (for example website)", "entityType", f.entityType || "", "text", false) +
             input("Actor ID", "actorId", f.actorId || "", "text", false) +
@@ -696,7 +705,7 @@
           break;
         case "audit-export":
           showForm("Export workspace activity",
-            '<p class="helper">Download up to 1,000 matching records as JSON, including before/after values. The export is recorded in workspace activity. Keep the downloaded file private.</p>',
+            '<p class="helper">Download matching records within the configured export limit as JSON, including before/after values. The export is recorded in workspace activity. Keep the downloaded file private.</p>',
             "Download JSON", async () => {
               const gen = live.generation, orgId = live.org._id;
               const result = await api(orgPath("/audit-logs/export"), { method: "POST", body: live.auditFilters });

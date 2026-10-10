@@ -2655,6 +2655,20 @@
               "format": "date-time"
             },
             "description": "Inclusive UTC ISO timestamp"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "entityId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
           }
         ]
       }
@@ -3710,6 +3724,12 @@
                   "to": {
                     "type": "string",
                     "format": "date-time"
+                  },
+                  "search": {
+                    "type": "string"
+                  },
+                  "entityId": {
+                    "type": "string"
                   }
                 }
               }
@@ -3800,6 +3820,32 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/health/live": {
+      "get": {
+        "summary": "Process liveness",
+        "responses": {
+          "200": {
+            "description": "Healthy"
+          },
+          "503": {
+            "description": "Dependency unavailable"
+          }
+        }
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "summary": "MongoDB and configured Redis readiness",
+        "responses": {
+          "200": {
+            "description": "Healthy"
+          },
+          "503": {
+            "description": "Dependency unavailable"
           }
         }
       }

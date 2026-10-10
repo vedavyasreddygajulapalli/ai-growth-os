@@ -16,6 +16,7 @@ import {
 } from "../src/database";
 import { setTestEmailTransport, AccountEmail } from "../src/email";
 import { digest } from "../src/security";
+import { runMigrations } from "../src/migrations";
 import { createApp } from "../src/app";
 let repl: MongoMemoryReplSet, app: any, base: string;
 process.env.NODE_ENV = "test";
@@ -69,7 +70,8 @@ before(async () => {
     binary: { version: "7.0.24" },
   });
   await connectDatabase(repl.getUri());
-  await initializeIndexes();
+  await runMigrations();
+  await runMigrations(); // Rehearse repeatable bootstrap before all real Mongo workflows.
   app = await createApp();
   await app.listen(0, "127.0.0.1");
   base = (await app.getUrl()) + "/api/v1";

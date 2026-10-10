@@ -9,12 +9,14 @@ import {
   Controller,
 } from "@nestjs/common";
 import { APP_GUARD, NestFactory } from "@nestjs/core";
-import { ThrottlerModule, ThrottlerGuard } from "@nestjs/throttler";
+import { ThrottlerModule, ThrottlerGuard, SkipThrottle } from "@nestjs/throttler";
 import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import express from "express";
 import { randomUUID } from "node:crypto";
 import mongoose from "mongoose";
+import { validateEnvironment } from "./environment";
+import { rateLimitStore, closeRateLimitStore } from "./rate-limit";
 import { AccountController } from "./account.controller";
 import { AuthController } from "./auth.controller";
 import {
@@ -69,7 +71,17 @@ class ErrorFilter implements ExceptionFilter {
   }
 }
 @Controller("health")
+@SkipThrottle()
 class HealthController {
+  @Get("live") live() { return { status: "alive" }; }
+  @Get("ready") async ready() {
+    try {
+      if (mongoose.connection.readyState !== 1) throw Error();
+      await mongoose.connection.db!.admin().ping();
+      if (process.env.RATE_LIMIT_STORE === "redis") await rateLimitStore()!.ready();
+      return { status: "ready" };
+    } catch { throw new HttpException({ code: "DEPENDENCY_UNAVAILABLE", message: "Service is not ready." }, 503); }
+  }
   @Get() health() {
     if (mongoose.connection.readyState !== 1)
       throw new HttpException(
@@ -80,7 +92,7 @@ class HealthController {
   }
 }
 @Module({
-  imports: [ThrottlerModule.forRoot([{ ttl: 60000, limit: 120 }])],
+  imports: [ThrottlerModule.forRootAsync({ useFactory: () => ({ throttlers: [{ ttl: 60000, limit: 120 }], storage: rateLimitStore() }) })],
   controllers: [
     HealthController,
     AuthController,
@@ -89,10 +101,13 @@ class HealthController {
     InvitationsController,
     WebsitesController,
   ],
-  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
+  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }, {
+    provide: "RESOURCE_LIFECYCLE", useValue: { async onApplicationShutdown() { closeRateLimitStore(); await mongoose.disconnect(); } },
+  }],
 })
 export class AppModule {}
 export async function createApp() {
+  validateEnvironment();
   const app = await NestFactory.create(AppModule, {
     logger: process.env.NODE_ENV === "test" ? false : ["error", "warn"],
     bodyParser: false,
@@ -100,11 +115,16 @@ export async function createApp() {
   const allowed = (process.env.APP_ORIGINS || "http://localhost:3000")
     .split(",")
     .map((x) => x.trim());
+  if (process.env.TRUST_PROXY) app.getHttpAdapter().getInstance().set("trust proxy", process.env.TRUST_PROXY.split(",").map(s => s.trim()));
   app.use(helmet());
   app.use(express.json({ limit: "64kb" }));
   app.use(cookieParser());
   app.use((req: any, res: any, next: any) => {
     req.requestId = randomUUID();
+    const started = Date.now();
+    res.on("finish", () => {
+      if (process.env.NODE_ENV !== "test") console.info(JSON.stringify({ event: "http.request", requestId: req.requestId, method: req.method, status: res.statusCode, durationMs: Date.now() - started }));
+    });
     res.setHeader("X-Request-Id", req.requestId);
     res.setHeader("Cache-Control", "no-store");
     if (
@@ -132,5 +152,7 @@ export async function createApp() {
   app.setGlobalPrefix("api/v1");
   app.useGlobalFilters(new ErrorFilter());
   app.enableShutdownHooks();
+  const originalClose = app.close.bind(app);
+  app.close = async () => { await originalClose(); closeRateLimitStore(); await mongoose.disconnect(); };
   return app;
 }

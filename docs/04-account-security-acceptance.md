@@ -45,3 +45,6 @@ Run `npm ci --prefix backend`, `npm run build --prefix backend`, then `npm run d
 Restore rehearsal: restore an Atlas backup into an isolated database; run migration, health check, and a dedicated test-account authentication/workspace/website smoke test; confirm tenant separation before any production cutover. No restore or backup configuration has been executed here.
 
 Before M1 completion: provision Atlas and email sender; deploy backend and same-origin frontend proxy; verify live register → verification → workspace → invitation/accept → website/edit/archive → audit → logout; verify live recovery, device revocation and DNS ownership; validate proxy-aware shared rate limiting, monitoring, retention and restore; complete responsive browser QA. Only after these gates pass may M2 crawler implementation be marked ready to start.
+
+### Hardening verification
+Provider transport now has explicit mocked success, provider rejection and network failure tests. Shared Redis rate limits fail closed, sessions retain secure cookie semantics, and production origin configuration is validated before startup. Live inbox delivery remains a deployment-only gate when provider configuration is unavailable; it is not replaced with an insecure email-verification bypass.
