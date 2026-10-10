@@ -577,7 +577,7 @@
           live.crawlSite = live.sites.find(s => s._id === id); live.crawlFocus = null; live.crawlReport = null; live.urlItems = []; live.urlFilters = {}; live.urlPage = 1;
           await changeTab("Crawls"); break;
         case "start-crawl":
-          showForm("Start website crawl", select("Crawl mode", "mode", ["full", "sitemap", "single"], "full") + input("Maximum pages (1–500)", "maxPages", "100", "number") + input("Single-page URL (optional)", "startUrl", "", "url", false) + select("Render JavaScript", "renderJs", ["No", "Yes"], "No") + '<p class="helper">Ownership verification and robots restrictions are always enforced. JavaScript rendering requires an enabled browser worker.</p>', "Queue crawl", async data => {
+          showForm("Start website crawl", select("Crawl mode", "mode", ["full", "sitemap", "single"], "full") + input(`Maximum pages (1–${live.crawlSummary?.limits?.maxPages || 500})`, "maxPages", String(live.crawlSummary?.limits?.defaultPages || 100), "number") + input("Single-page URL (optional)", "startUrl", "", "url", false) + select("Render JavaScript", "renderJs", live.crawlSummary?.limits?.renderJs ? ["No", "Yes"] : ["No"], "No") + '<p class="helper">Ownership verification and robots restrictions are always enforced. JavaScript rendering requires an enabled browser worker.</p>', "Queue crawl", async data => {
             const site = await api(orgPath("/websites/" + live.crawlSite._id));
             await api(crawlPath("/crawls"), { method:"POST", body:{mode:data.mode,maxPages:Number(data.maxPages),renderJs:data.renderJs==="Yes",...(data.startUrl ? {startUrl:data.startUrl} : {}),version:site.version} });
             closeModal(); await changeTab("Crawls"); notify("Crawl queued.");

@@ -184,7 +184,7 @@ test("crawler UI reads real endpoints, renders empty/progress states and hides w
       else if(url.endsWith("/organizations"))data={items:[org]};
       else if(url.endsWith("/websites"))data={items:[site]};
       else if(url.endsWith("/crawls"))data={items:[{_id:"d".repeat(24),status:"running",progress:25,discovered:4,crawled:1,version:0}]};
-      else if(url.endsWith("/crawl-summary"))data={total:0,indexable:0,notIndexable:0};
+      else if(url.endsWith("/crawl-summary"))data={total:0,indexable:0,notIndexable:0,limits:{maxPages:20,defaultPages:20,renderJs:false}};
       else if(url.includes("/urls?"))data={items:[],total:0};
       else throw Error(url);
       return{ok:true,status:200,json:async()=>data};
@@ -192,6 +192,12 @@ test("crawler UI reads real endpoints, renders empty/progress states and hides w
     click(dom,"live");await tick();click(dom,"tab:Websites");await tick();click(dom,"open-crawls:"+site._id);await tick();
     assert.match(dom.window.document.body.textContent!,/running|25%/);
     assert.equal(!!dom.window.document.querySelector('[data-live="start-crawl"]'),role==="Owner");
+    if(role==="Owner") {
+      click(dom,"start-crawl");
+      assert.equal((dom.window.document.querySelector('[name="maxPages"]') as HTMLInputElement).value,"20");
+      assert.equal(dom.window.document.querySelectorAll('[name="renderJs"] option').length,1);
+      (dom.window.document.querySelector("[data-close]") as HTMLButtonElement).click();
+    }
     click(dom,"tab:URL Inventory");await tick();assert.match(dom.window.document.body.textContent!,/No matching URLs/);
     click(dom,"url-filter");assert.ok(dom.window.document.querySelector('[name="statusCode"]'));
     assert.ok(calls.some(x=>x.endsWith("/crawls")));dom.window.close();

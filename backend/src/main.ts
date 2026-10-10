@@ -1,3 +1,4 @@
+import { startEmbeddedCrawler } from "./crawler/embedded";
 import { connectDatabase, initializeIndexes } from "./database";
 import { validateEnvironment } from "./environment";
 import { createApp } from "./app";
@@ -10,6 +11,7 @@ async function main() {
   await connectDatabase(process.env.MONGODB_URI);
   if (process.env.INIT_INDEXES === "true") await initializeIndexes();
   const app = await createApp();
+  startEmbeddedCrawler();
   await app.listen(Number(process.env.PORT || 4000), "0.0.0.0");
 }
 main().catch((error) => {

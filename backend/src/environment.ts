@@ -1,9 +1,11 @@
+import { crawlSettings } from "./crawler/settings";
 export function positiveInteger(value: string | undefined, fallback: number, max: number) {
   if (value === undefined || value === "") return fallback;
   if (!/^\d+$/.test(value) || Number(value) < 1 || Number(value) > max) throw new Error("Invalid numeric environment setting");
   return Number(value);
 }
 export function validateEnvironment(env: NodeJS.ProcessEnv = process.env) {
+  crawlSettings(env);
   positiveInteger(env.PORT, 4000, 65535);
   positiveInteger(env.AUDIT_EXPORT_LIMIT, 1000, 10000);
   if (env.AUDIT_RETENTION_DAYS) positiveInteger(env.AUDIT_RETENTION_DAYS, 365, 3650);

@@ -45,3 +45,7 @@ Follow-up test-only commit `691a93ba041dc6cc094d848278edf7dad09f9635` passed CI,
 ## M3 — next
 
 Brand & Media starts only after M1 and M2 acceptance gates close. Later milestone specifications do not imply implemented backend workflows. See `04-account-security-acceptance.md`, `05-audit-acceptance.md`, `06-foundation-operations.md` and `07-crawler-acceptance.md` for detailed gates.
+
+## Free testing profile — 11 October (India time)
+
+User approved a free temporary crawler setup with unchanged visual design. A private free Render Key Value instance is provisioned in Singapore (no external IP access; noeviction). Added an opt-in supervised API child process, 20-page/one-job/no-JS limits, bounded sitemap/runtime budgets, capability-driven values in the existing form, and a documented transition to dedicated paid infrastructure. No new paid service is authorized or created. Local compilation and unit/UI tests pass; the new child-process MongoDB/Redis integration test and deployment checks remain pending at this source revision. This does not close authenticated live crawl/email acceptance.

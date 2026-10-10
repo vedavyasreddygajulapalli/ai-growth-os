@@ -27,3 +27,13 @@ test("metadata extraction and technical issues use actual HTML and headers", () 
   const d=extract(r,"example.com");assert.equal(d.indexable,false);assert.equal(d.canonical,"https://example.com/preferred");assert.equal(d.headings.h6[0],"Sixth");assert.deepEqual(d.schemaTypes,["Organization"]);assert.equal(d.links[0].internal,true);assert.equal(d.links[1].nofollow,true);assert.equal(d.openGraph["og:title"],"OG title");assert.equal(d.twitter["twitter:card"],"summary");
   const types=pageIssues(d).map(x=>x.type);for(const type of ["noindex","multiple_h1","canonical_mismatch","missing_alt"])assert.ok(types.includes(type),type);
 });
+
+import { crawlSettings } from "../src/crawler/settings";
+test("free execution enforces small crawl budgets without changing external worker defaults",()=>{
+  const free=crawlSettings({CRAWLER_EXECUTION:"embedded",CRAWLER_ENABLED:"true",REDIS_URL:"redis://localhost:6379"});
+  assert.equal(free.maxPages,20);assert.equal(free.defaultPages,20);assert.equal(free.concurrency,1);assert.equal(free.renderJs,false);assert.equal(free.maxSitemaps,5);assert.equal(free.maxDurationMs,180000);
+  assert.equal(crawlSettings({}).maxPages,500);
+  assert.throws(()=>crawlSettings({CRAWLER_EXECUTION:"embedded",CRAWLER_RENDER_JS:"true"}));
+  assert.throws(()=>crawlSettings({CRAWLER_ENABLED:"true"}));
+  assert.throws(()=>crawlSettings({CRAWLER_EXECUTION:"unknown"}));
+});

@@ -3919,7 +3919,7 @@
       },
       "post": {
         "summary": "Queue a verified website crawl",
-        "description": "Tenant-scoped, verified session required. Mutations require Owner/Admin/Marketing Manager/SEO Manager plus allowed Origin and X-Growth-Client.",
+        "description": "Queue an ownership-verified website crawl. In embedded free testing mode maxPages defaults to and is capped at 20; renderJs must be false. External workers allow up to 500 pages. Server enforces all limits.",
         "parameters": [
           {
             "name": "orgId",
@@ -4539,7 +4539,7 @@
     "/organizations/{orgId}/websites/{websiteId}/crawl-summary": {
       "get": {
         "summary": "Read last crawl and indexability counts",
-        "description": "Tenant-scoped, verified session required. Mutations require Owner/Admin/Marketing Manager/SEO Manager plus allowed Origin and X-Growth-Client.",
+        "description": "Tenant-scoped observed inventory summary. Response includes limits: execution (embedded/external), maxPages, defaultPages, concurrency, maxSitemaps, maxDurationMs and renderJs. Use these for existing form controls.",
         "parameters": [
           {
             "name": "orgId",

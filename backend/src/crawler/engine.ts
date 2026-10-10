@@ -1,3 +1,4 @@
+import { crawlSettings } from "./settings";
 import { randomUUID } from "node:crypto";
 import { Website, transaction } from "../database";
 import { CrawlJob, CrawlPage, WebsiteUrl, CrawlError, RobotsRecord, SitemapRecord, DiscoveredLink, TechnicalIssue } from "./models";
@@ -6,15 +7,18 @@ import { hash, robots, sitemap, extract, pageIssues, issue } from "./extract";
 import { renderPage } from "./render";
 
 export async function runCrawl(id: string, fetcher: Fetcher = safeFetch) {
+  const settings = crawlSettings(), deadline = Date.now() + settings.maxDurationMs;
   const executionId = randomUUID();
   const job: any = await CrawlJob.findOneAndUpdate({ _id: id, status: { $in: ["queued", "running"] }, active: true }, { $set: { status: "running", executionId, startedAt: new Date(), heartbeatAt: new Date(), error: null }, $inc: { version: 1 } }, { new: true }).lean();
   if (!job) return;
   const scope = { orgId: job.orgId, websiteId: job.websiteId }, evidence = { ...scope, jobId: job._id, source: job.source, status: "stored" };
   const active = async () => {
+    if (Date.now() > deadline) throw Error("CRAWL_TIME_LIMIT");
     const [current, site]: any[] = await Promise.all([CrawlJob.exists({ _id: id, executionId, status: "running" }), Website.findOne({ _id: job.websiteId, orgId: job.orgId, status: "active", verificationStatus: "verified", domain: job.domain })]);
     if (!current) throw Error("CANCELLED"); if (!site) throw Error("WEBSITE_CHANGED");
   };
   const persist = async (fn: (session: any) => Promise<void>) => transaction(async session => {
+    if (Date.now() > deadline) throw Error("CRAWL_TIME_LIMIT");
     const locked = await CrawlJob.updateOne({ _id: id, executionId, status: "running" }, { $set: { heartbeatAt: new Date() } }, { session });
     if (!locked.matchedCount) throw Error("CANCELLED");
     const site = await Website.updateOne({ _id:job.websiteId, orgId:job.orgId, status:"active", verificationStatus:"verified", domain:job.domain }, { $inc:{crawlRevision:1} }, { session });
@@ -23,7 +27,8 @@ export async function runCrawl(id: string, fetcher: Fetcher = safeFetch) {
   });
   try {
     await active();
-    if (job.config.renderJs && process.env.CRAWLER_RENDER_JS !== "true") throw Error("RENDER_UNAVAILABLE");
+    if (job.config.renderJs && !settings.renderJs) throw Error("RENDER_UNAVAILABLE");
+    if (job.config.maxPages > settings.maxPages) throw Error("CRAWL_LIMIT_EXCEEDED");
     // A BullMQ retry rebuilds this run's evidence deterministically. Prior runs remain intact.
     await persist(async session => { for (const model of [CrawlPage,CrawlError,RobotsRecord,SitemapRecord,DiscoveredLink,TechnicalIssue]) await model.deleteMany({ ...scope, jobId: id }, { session }); });
     const root = `https://${job.domain}/`, robotsUrl = root + "robots.txt";
@@ -43,7 +48,7 @@ export async function runCrawl(id: string, fetcher: Fetcher = safeFetch) {
     };
     if (job.config.mode !== "sitemap") add(job.config.startUrl || root, "seed");
     const maps = [...rules.getSitemaps(), root + "sitemap.xml"];
-    if (job.config.mode !== "single") while (maps.length && visitedMaps.size < 20) {
+    if (job.config.mode !== "single") while (maps.length && visitedMaps.size < settings.maxSitemaps) {
       await active();
       const raw = maps.shift()!; let url: string;
       try { url = normalizeUrl(raw, root); if (!sameHost(url, job.domain) || visitedMaps.has(url)) continue; visitedMaps.add(url);
@@ -59,6 +64,7 @@ export async function runCrawl(id: string, fetcher: Fetcher = safeFetch) {
         await persist(async session => { await SitemapRecord.create([{ ...evidence, url: raw, status: "error", error: "SITEMAP_UNAVAILABLE_OR_INVALID" }], { session }); });
       }
     }
+    if (maps.length && job.config.mode !== "single") truncated = true;
     if (!frontier.size) throw Error("NO_URLS_DISCOVERED");
     const pages: any[] = []; let successCount = 0, redirectCount = 0, errorCount = sitemapErrors;
     for (const [url, source] of frontier) {

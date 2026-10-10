@@ -40,3 +40,6 @@ The real crawler implementation is in `backend/src/crawler/`. Run `npm run db:mi
 
 ## Verified deployment checkpoint
 Code commit `49f5c5da2b7cf2c6418bd59cccc1ee4b7c872fab` is live on both existing Render services. Its CI passed 19 unit/UI/operations tests, 22 MongoDB integration tests and both production builds: https://github.com/vedavyasreddygajulapalli/ai-growth-os/actions/runs/38057001660 . Render index migration completed; API readiness and the frontend-proxied readiness endpoint returned HTTP 200. This does not close live email, authenticated browser, DNS, backup/restore or crawler-worker acceptance gates. See the implementation-status document for newer test-only evidence.
+
+## Free crawler testing mode
+The existing API can supervise the crawler using `CRAWLER_EXECUTION=embedded`, `CRAWLER_ENABLED=true`, `CRAWLER_RENDER_JS=false` and a private `REDIS_URL`. This profile caps crawls at 20 pages, one concurrent job and five sitemap files. Real results remain in MongoDB; the approved UI is unchanged apart from permitted form values. Free hosting can sleep and free Redis can reset, so queued/interrupted jobs may wait or require retry. Do not use this profile as proof of reliable unattended production crawling. See the free-to-paid migration steps in `docs/07-crawler-acceptance.md`.

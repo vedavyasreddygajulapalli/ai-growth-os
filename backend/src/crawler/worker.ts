@@ -1,3 +1,4 @@
+import { crawlSettings } from "./settings";
 import { Worker } from "bullmq";
 import Redis from "ioredis";
 import mongoose from "mongoose";
@@ -10,6 +11,8 @@ import { expireStaleCrawls } from "./recovery";
 async function main() {
   if (!process.env.MONGODB_URI || !process.env.REDIS_URL) throw Error("Worker database and queue settings required");
   await connectDatabase(process.env.MONGODB_URI);
+  const settings = crawlSettings();
+  await crawlQueue().setGlobalConcurrency(settings.concurrency);
   const redis = new Redis(process.env.REDIS_URL,{maxRetriesPerRequest:1,commandTimeout:5000}); redis.on("error",()=>{});
   const fetcher:typeof safeFetch = async (url,domain,allowed,_pace,interval=1000) => {
     // Global per-host pacing, including redirects and browser subresources.
@@ -21,13 +24,16 @@ async function main() {
     for(let attempt=0;attempt<2;attempt++)try{return await safeFetch(url,domain,allowed,pace);}catch(e){error=e;if(e instanceof Error && !["FETCH_FAILED","DNS_TIMEOUT"].includes(e.message))throw e;}
     throw error;
   };
-  const worker=new Worker(queueName,async job=>runCrawl(String(job.data.id),fetcher),{connection:redisConnection(),concurrency:2,maxStalledCount:1});
-  worker.on("error",()=>console.error("Crawl queue connection error"));
+  const worker=new Worker(queueName,async job=>runCrawl(String(job.data.id),fetcher),{connection:redisConnection(),concurrency:settings.concurrency,maxStalledCount:1});
+  worker.on("error",()=>{process.send?.({type:"crawler.unavailable"});console.error("Crawl queue connection error");});
+  worker.on("ready",()=>process.send?.({type:"crawler.ready"}));
   worker.on("failed",async job=>{if(job)await CrawlJob.updateOne({_id:job.data.id,active:true},{$set:{status:"failed",active:false,error:"WORKER_FAILED",completedAt:new Date()},$inc:{version:1}}).catch(()=>{});});
   let dispatching=false;
   const dispatch=async()=>{if(dispatching)return;dispatching=true;try{await expireStaleCrawls();const jobs=await CrawlJob.find({status:"queued",active:true}).limit(100).lean();for(const job of jobs)await crawlQueue().add("crawl",{id:String(job._id)},{jobId:String(job._id)});}catch{console.error("Crawl dispatch unavailable");}finally{dispatching=false;}};
   const timer=setInterval(dispatch,5000);await dispatch();
-  let stopping=false; const stop=async()=>{if(stopping)return;stopping=true;clearInterval(timer);await worker.close();await closeCrawlQueue();redis.disconnect();await mongoose.disconnect();};
+  let stopping=false; const stop=async()=>{if(stopping)return;stopping=true;clearInterval(timer);await worker.close();await closeCrawlQueue();redis.disconnect();await mongoose.disconnect();if(process.connected)process.disconnect();};
   process.on("SIGTERM",()=>void stop());process.on("SIGINT",()=>void stop());
+  await worker.waitUntilReady();
+  process.send?.({type:"crawler.ready"});
 }
-main().catch(()=>{console.error("Crawler startup failed; check configuration.");process.exitCode=1;});
+main().catch(()=>{console.error("Crawler startup failed; check configuration.");if(process.connected)process.disconnect();process.exitCode=1;});

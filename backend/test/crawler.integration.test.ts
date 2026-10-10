@@ -106,3 +106,36 @@ for (const action of ["cancel", "domain", "archive"] as const) {
     assert.equal(JSON.stringify(await WebsiteUrl.find().sort({_id:1}).lean()),snapshot);
   });
 }
+
+import { startEmbeddedCrawler, stopEmbeddedCrawler, embeddedCrawlerReady } from "../src/crawler/embedded";
+test("embedded mode enforces API budgets and starts and stops the real child worker",{timeout:30000},async()=>{
+  const previous={execution:process.env.CRAWLER_EXECUTION,mongo:process.env.MONGODB_URI};
+  process.env.CRAWLER_EXECUTION="embedded";process.env.MONGODB_URI=db.getUri();
+  await worker.close();
+  await Website.updateOne({_id:site},{$set:{status:"active",domain:"example.com",verificationStatus:"verified"}});
+  const website:any=await Website.findById(site).lean();
+  try {
+    assert.equal((await call(path()+"/crawls","POST",{version:website.version,maxPages:21})).status,422);
+    assert.equal((await call(path()+"/crawls","POST",{version:website.version,renderJs:true})).status,422);
+    const summary=await call(path()+"/crawl-summary");assert.equal(summary.data.limits.maxPages,20);
+    const submitted=await call(path()+"/crawls","POST",{version:website.version});assert.equal(submitted.status,201);assert.equal(submitted.data.config.maxPages,20);
+    await call(path()+`/crawls/${submitted.data._id}/cancel`,"POST",{version:submitted.data.version});
+    startEmbeddedCrawler();
+    for(let i=0;i<100 && !embeddedCrawlerReady();i++)await new Promise(r=>setTimeout(r,100));
+    assert.equal(embeddedCrawlerReady(),true);
+    assert.equal(await crawlQueue().getGlobalConcurrency(),1);
+    const health=await call("/health/ready");assert.equal(health.data.crawler.ready,true);
+    // Isolated fixture: the real child must dispatch and refuse a private target.
+    // Production website DTOs do not allow creating this target.
+    const unsafeSite=await Website.create({orgId:org,name:"Unsafe fixture",domain:"127.0.0.1",cmsType:"Other",status:"active",verificationStatus:"verified"});
+    const unsafe=await CrawlJob.create({orgId:org,websiteId:unsafeSite._id,domain:"127.0.0.1",status:"queued",active:true,source:"test",config:{mode:"single",maxPages:1,renderJs:false,startUrl:"http://127.0.0.1/"}});
+    let rejected:any;
+    for(let i=0;i<100;i++){rejected=await CrawlJob.findById(unsafe._id).lean();if(!rejected.active)break;await new Promise(r=>setTimeout(r,100));}
+    assert.equal(rejected.status,"failed");assert.equal(rejected.error,"ROBOTS_UNAVAILABLE");
+    assert.equal(await WebsiteUrl.countDocuments({websiteId:unsafeSite._id}),0);
+  } finally {
+    await stopEmbeddedCrawler();assert.equal(embeddedCrawlerReady(),false);
+    if(previous.execution===undefined)delete process.env.CRAWLER_EXECUTION;else process.env.CRAWLER_EXECUTION=previous.execution;
+    if(previous.mongo===undefined)delete process.env.MONGODB_URI;else process.env.MONGODB_URI=previous.mongo;
+  }
+});

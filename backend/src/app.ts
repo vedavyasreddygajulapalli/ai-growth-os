@@ -1,3 +1,5 @@
+import { embeddedCrawlerReady, stopEmbeddedCrawler } from "./crawler/embedded";
+import { crawlSettings } from "./crawler/settings";
 import "reflect-metadata";
 import {
   Catch,
@@ -80,7 +82,7 @@ class HealthController {
       if (mongoose.connection.readyState !== 1) throw Error();
       await mongoose.connection.db!.admin().ping();
       if (process.env.RATE_LIMIT_STORE === "redis") await rateLimitStore()!.ready();
-      return { status: "ready" };
+      return { status: "ready", ...(process.env.CRAWLER_ENABLED === "true" && crawlSettings().execution === "embedded" ? { crawler: { mode: "embedded", ready: embeddedCrawlerReady() } } : {}) };
     } catch { throw new HttpException({ code: "DEPENDENCY_UNAVAILABLE", message: "Service is not ready." }, 503); }
   }
   @Get() health() {
@@ -104,7 +106,7 @@ class HealthController {
     CrawlsController,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }, {
-    provide: "RESOURCE_LIFECYCLE", useValue: { async onApplicationShutdown() { closeRateLimitStore(); await mongoose.disconnect(); } },
+    provide: "RESOURCE_LIFECYCLE", useValue: { async beforeApplicationShutdown() { await stopEmbeddedCrawler(); }, async onApplicationShutdown() { closeRateLimitStore(); await mongoose.disconnect(); } },
   }],
 })
 export class AppModule {}

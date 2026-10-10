@@ -1,3 +1,4 @@
+import { crawlSettings } from "./settings";
 import { Body, Controller, Get, Param, Post, Query, Req, UseGuards, HttpCode } from "@nestjs/common";
 import { z } from "zod";
 import { AuthGuard, VerifiedGuard, access } from "../security";
@@ -18,9 +19,10 @@ export class CrawlsController {
     if(!site) fail(404,"NOT_FOUND","Website unavailable."); return site;
   }
   @Post("crawls") async start(@Req() req:any,@Param("orgId") orgId:string,@Param("websiteId") websiteId:string,@Body() body:unknown) {
-    const dto=parse(configDto,body); await this.site(req,orgId,websiteId,true);
+    const settings=crawlSettings();
+    const dto=parse(configDto.extend({maxPages:z.number().int().min(1).max(settings.maxPages).default(settings.defaultPages)}),body); await this.site(req,orgId,websiteId,true);
     if(process.env.CRAWLER_ENABLED!=="true" || !process.env.REDIS_URL) fail(503,"CRAWLER_UNAVAILABLE","Crawl worker is not configured yet.");
-    if(dto.renderJs && process.env.CRAWLER_RENDER_JS!=="true") fail(422,"RENDER_UNAVAILABLE","JavaScript rendering is not enabled on this worker.");
+    if(dto.renderJs && !settings.renderJs) fail(422,"RENDER_UNAVAILABLE","JavaScript rendering is not enabled on this worker.");
     return transaction(async session=>{
       const site=await this.site(req,orgId,websiteId,true,session);
       if(site.status!=="active" || site.verificationStatus!=="verified") fail(409,"WEBSITE_UNVERIFIED","Verify an active website before crawling.");
@@ -57,7 +59,7 @@ export class CrawlsController {
     const [items,total]=await Promise.all([WebsiteUrl.find(filter).select("-data.links -data.images -data.headings -data.headers -data.openGraph -data.twitter").sort(sort).skip((q.page-1)*q.limit).limit(q.limit).lean(),WebsiteUrl.countDocuments(filter)]);return{items,total,page:q.page,limit:q.limit};
   }
   @Get("urls/:urlId") async urlDetail(@Req() req:any,@Param() p:any) {await this.site(req,p.orgId,p.websiteId);recordId(p.urlId);const item:any=await WebsiteUrl.findOne({_id:p.urlId,orgId:p.orgId,websiteId:p.websiteId}).lean();if(!item)fail(404,"NOT_FOUND","URL unavailable.");const history=await CrawlPage.find({orgId:p.orgId,websiteId:p.websiteId,urlHash:item.urlHash}).select("jobId status data.statusCode data.crawledAt").sort({_id:-1}).limit(25).lean();return{...item,history};}
-  @Get("crawl-summary") async summary(@Req() req:any,@Param() p:any) {await this.site(req,p.orgId,p.websiteId);const scope={orgId:p.orgId,websiteId:p.websiteId};const [last,total,indexable]=await Promise.all([CrawlJob.findOne(scope).select("-executionId").sort({_id:-1}).lean(),WebsiteUrl.countDocuments(scope),WebsiteUrl.countDocuments({...scope,"data.indexable":true})]);return{last,total,indexable,notIndexable:total-indexable};}
+  @Get("crawl-summary") async summary(@Req() req:any,@Param() p:any) {await this.site(req,p.orgId,p.websiteId);const scope={orgId:p.orgId,websiteId:p.websiteId};const [last,total,indexable]=await Promise.all([CrawlJob.findOne(scope).select("-executionId").sort({_id:-1}).lean(),WebsiteUrl.countDocuments(scope),WebsiteUrl.countDocuments({...scope,"data.indexable":true})]);return{last,total,indexable,notIndexable:total-indexable,limits:crawlSettings()};}
   @Get("crawls/:jobId/issues") async issues(@Req() req:any,@Param() p:any,@Query() query:any) {await this.detail(req,p);const {severity,type,...page}=parse(z.object({severity:z.enum(["Critical","High","Medium","Low","Opportunity"]).optional(),type:z.string().regex(/^[a-z_]+$/).max(100).optional(),cursor:idDto.optional(),limit:z.coerce.number().int().min(1).max(100).default(25)}).strict(),query);return paginate(TechnicalIssue,{orgId:p.orgId,websiteId:p.websiteId,jobId:p.jobId,...(severity?{severity}:{}),...(type?{type}:{})},page);}
   @Get("crawls/:jobId/robots") async robots(@Req() req:any,@Param() p:any) {await this.detail(req,p);return{items:await RobotsRecord.find({orgId:p.orgId,websiteId:p.websiteId,jobId:p.jobId}).lean()};}
   @Get("crawls/:jobId/sitemaps") async sitemaps(@Req() req:any,@Param() p:any) {await this.detail(req,p);return{items:await SitemapRecord.find({orgId:p.orgId,websiteId:p.websiteId,jobId:p.jobId}).lean()};}
