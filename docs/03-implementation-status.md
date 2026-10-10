@@ -26,7 +26,7 @@ Implemented MongoDB crawl jobs and snapshots, durable queued-job dispatch, separ
 
 Checkpoint `8f04bde7f13f74b474c6d71ad278e93de1c28bbb` passed all CI steps: https://github.com/vedavyasreddygajulapalli/ai-growth-os/actions/runs/38056707935 . This includes real MongoDB/Redis/BullMQ with deterministic page responses: queued crawl, nested sitemap discovery, persistent inventory/issues, filters/details, cancellation/retry and cross-tenant denial. Both production builds passed. Backend production dependency audit reported zero known vulnerabilities on 10 October 2026; this is not a security certification.
 
-A follow-up recovery guard expires running jobs whose heartbeat is older than ten minutes, fences late publication and releases the website for retry. Its dedicated integration regression still requires a new CI pass at this document revision.
+A follow-up recovery guard expires running jobs whose heartbeat is older than ten minutes, fences late publication and releases the website for retry. Its dedicated integration regression passed at commit `49f5c5da2b7cf2c6418bd59cccc1ee4b7c872fab`, together with all foundation/crawler tests and both production builds: https://github.com/vedavyasreddygajulapalli/ai-growth-os/actions/runs/38057001660 . Backend and frontend production dependency audits reported zero known vulnerabilities on 10 October 2026.
 
 Remaining M2 gates:
 - Provision/configure the independent worker and durable Redis. The optional paid `render.crawler.yaml` has not been applied; existing deployment submission remains disabled until configured.
