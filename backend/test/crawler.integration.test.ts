@@ -76,3 +76,33 @@ test("stale worker recovery releases the active slot and fences late publication
   assert.equal((await expireStaleCrawls(now)).modifiedCount,0);
   await CrawlJob.deleteOne({_id:fresh._id});
 });
+for (const action of ["cancel", "domain", "archive"] as const) {
+  test(`in-flight ${action} prevents late page publication`, {timeout:20000}, async()=>{
+    await Website.updateOne({_id:site},{$set:{status:"active",domain:"example.com",verificationStatus:"verified"}});
+    const website:any=await Website.findById(site).lean();
+    const started=await call(path()+"/crawls","POST",{version:website.version,mode:"single",startUrl:"https://example.com/"});
+    assert.equal(started.status,201,JSON.stringify(started.data));
+    const snapshot=JSON.stringify(await WebsiteUrl.find().sort({_id:1}).lean());
+    let release!:()=>void, reached!:()=>void;
+    const held=new Promise<void>(resolve=>{release=resolve;});
+    const fetching=new Promise<void>(resolve=>{reached=resolve;});
+    const controlled:Fetcher=async(...args)=>{if(new URL(args[0]).pathname==="/"){reached();await held;}return fixture(...args);};
+    const running=runCrawl(started.data._id,controlled);
+    let deadline:ReturnType<typeof setTimeout>|undefined;
+    try {
+      await Promise.race([fetching,new Promise<never>((_,reject)=>{deadline=setTimeout(()=>reject(Error("worker did not reach page fetch")),10000);})]);
+      if(action==="cancel") {
+        const current=await call(path()+"/crawls/"+started.data._id);
+        assert.equal((await call(path()+`/crawls/${started.data._id}/cancel`,"POST",{version:current.data.version})).status,200);
+      } else {
+        const changes=action==="domain"?{domain:"changed.example.com"}:{status:"archived"};
+        assert.equal((await call(path(),"PATCH",{version:website.version,...changes})).status,200);
+      }
+    } finally {clearTimeout(deadline);release();await running;}
+    const finished:any=await CrawlJob.findById(started.data._id).lean();
+    assert.equal(finished.status,action==="cancel"?"cancelled":"failed");
+    if(action!=="cancel")assert.equal(finished.error,"WEBSITE_CHANGED");
+    assert.equal(await CrawlPage.countDocuments({jobId:started.data._id}),0);
+    assert.equal(JSON.stringify(await WebsiteUrl.find().sort({_id:1}).lean()),snapshot);
+  });
+}
