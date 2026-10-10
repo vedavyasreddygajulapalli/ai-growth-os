@@ -3849,6 +3849,1041 @@
           }
         }
       }
+    },
+    "/organizations/{orgId}/websites/{websiteId}/crawls": {
+      "get": {
+        "summary": "List crawl jobs with cursor pagination",
+        "description": "Tenant-scoped, verified session required. Mutations require Owner/Admin/Marketing Manager/SEO Manager plus allowed Origin and X-Growth-Client.",
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          },
+          {
+            "name": "websiteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "201": {
+            "description": "Queued"
+          },
+          "401": {
+            "description": "Session required"
+          },
+          "403": {
+            "description": "Permission or origin denied"
+          },
+          "404": {
+            "description": "Unavailable in tenant"
+          },
+          "409": {
+            "description": "Conflict or invalid transition"
+          },
+          "422": {
+            "description": "Invalid fields"
+          },
+          "503": {
+            "description": "Worker not configured"
+          }
+        }
+      },
+      "post": {
+        "summary": "Queue a verified website crawl",
+        "description": "Tenant-scoped, verified session required. Mutations require Owner/Admin/Marketing Manager/SEO Manager plus allowed Origin and X-Growth-Client.",
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          },
+          {
+            "name": "websiteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "201": {
+            "description": "Queued"
+          },
+          "401": {
+            "description": "Session required"
+          },
+          "403": {
+            "description": "Permission or origin denied"
+          },
+          "404": {
+            "description": "Unavailable in tenant"
+          },
+          "409": {
+            "description": "Conflict or invalid transition"
+          },
+          "422": {
+            "description": "Invalid fields"
+          },
+          "503": {
+            "description": "Worker not configured"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "version"
+                ],
+                "properties": {
+                  "version": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "mode": {
+                    "type": "string",
+                    "enum": [
+                      "full",
+                      "sitemap",
+                      "single"
+                    ],
+                    "default": "full"
+                  },
+                  "maxPages": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 500,
+                    "default": 100
+                  },
+                  "startUrl": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "renderJs": {
+                    "type": "boolean",
+                    "default": false
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organizations/{orgId}/websites/{websiteId}/crawls/{jobId}": {
+      "get": {
+        "summary": "Read progress and job status",
+        "description": "Tenant-scoped, verified session required. Mutations require Owner/Admin/Marketing Manager/SEO Manager plus allowed Origin and X-Growth-Client.",
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          },
+          {
+            "name": "websiteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          },
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "201": {
+            "description": "Queued"
+          },
+          "401": {
+            "description": "Session required"
+          },
+          "403": {
+            "description": "Permission or origin denied"
+          },
+          "404": {
+            "description": "Unavailable in tenant"
+          },
+          "409": {
+            "description": "Conflict or invalid transition"
+          },
+          "422": {
+            "description": "Invalid fields"
+          },
+          "503": {
+            "description": "Worker not configured"
+          }
+        }
+      }
+    },
+    "/organizations/{orgId}/websites/{websiteId}/crawls/{jobId}/cancel": {
+      "post": {
+        "summary": "Cancel an active crawl with version check",
+        "description": "Tenant-scoped, verified session required. Mutations require Owner/Admin/Marketing Manager/SEO Manager plus allowed Origin and X-Growth-Client.",
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          },
+          {
+            "name": "websiteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          },
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "201": {
+            "description": "Queued"
+          },
+          "401": {
+            "description": "Session required"
+          },
+          "403": {
+            "description": "Permission or origin denied"
+          },
+          "404": {
+            "description": "Unavailable in tenant"
+          },
+          "409": {
+            "description": "Conflict or invalid transition"
+          },
+          "422": {
+            "description": "Invalid fields"
+          },
+          "503": {
+            "description": "Worker not configured"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "version"
+                ],
+                "properties": {
+                  "version": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organizations/{orgId}/websites/{websiteId}/crawls/{jobId}/retry": {
+      "post": {
+        "summary": "Retry a terminal failed/error/cancelled run",
+        "description": "Tenant-scoped, verified session required. Mutations require Owner/Admin/Marketing Manager/SEO Manager plus allowed Origin and X-Growth-Client.",
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          },
+          {
+            "name": "websiteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          },
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "201": {
+            "description": "Queued"
+          },
+          "401": {
+            "description": "Session required"
+          },
+          "403": {
+            "description": "Permission or origin denied"
+          },
+          "404": {
+            "description": "Unavailable in tenant"
+          },
+          "409": {
+            "description": "Conflict or invalid transition"
+          },
+          "422": {
+            "description": "Invalid fields"
+          },
+          "503": {
+            "description": "Worker not configured"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "version"
+                ],
+                "properties": {
+                  "version": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organizations/{orgId}/websites/{websiteId}/crawls/{jobId}/rerun": {
+      "post": {
+        "summary": "Create a new run from a terminal crawl",
+        "description": "Tenant-scoped, verified session required. Mutations require Owner/Admin/Marketing Manager/SEO Manager plus allowed Origin and X-Growth-Client.",
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          },
+          {
+            "name": "websiteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          },
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "201": {
+            "description": "Queued"
+          },
+          "401": {
+            "description": "Session required"
+          },
+          "403": {
+            "description": "Permission or origin denied"
+          },
+          "404": {
+            "description": "Unavailable in tenant"
+          },
+          "409": {
+            "description": "Conflict or invalid transition"
+          },
+          "422": {
+            "description": "Invalid fields"
+          },
+          "503": {
+            "description": "Worker not configured"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "version"
+                ],
+                "properties": {
+                  "version": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organizations/{orgId}/websites/{websiteId}/urls": {
+      "get": {
+        "summary": "Filter and sort paginated URL inventory",
+        "description": "Tenant-scoped, verified session required. Mutations require Owner/Admin/Marketing Manager/SEO Manager plus allowed Origin and X-Growth-Client.",
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          },
+          {
+            "name": "websiteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            }
+          },
+          {
+            "name": "statusCode",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "contentType",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "url",
+                "-url",
+                "statusCode",
+                "-updatedAt"
+              ]
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "crawled",
+                "blocked",
+                "error"
+              ]
+            }
+          },
+          {
+            "name": "indexable",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          },
+          {
+            "name": "inSitemap",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          },
+          {
+            "name": "hasIssue",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          },
+          {
+            "name": "redirect",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "201": {
+            "description": "Queued"
+          },
+          "401": {
+            "description": "Session required"
+          },
+          "403": {
+            "description": "Permission or origin denied"
+          },
+          "404": {
+            "description": "Unavailable in tenant"
+          },
+          "409": {
+            "description": "Conflict or invalid transition"
+          },
+          "422": {
+            "description": "Invalid fields"
+          },
+          "503": {
+            "description": "Worker not configured"
+          }
+        }
+      }
+    },
+    "/organizations/{orgId}/websites/{websiteId}/urls/{urlId}": {
+      "get": {
+        "summary": "Read page metadata, evidence and history",
+        "description": "Tenant-scoped, verified session required. Mutations require Owner/Admin/Marketing Manager/SEO Manager plus allowed Origin and X-Growth-Client.",
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          },
+          {
+            "name": "websiteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          },
+          {
+            "name": "urlId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "201": {
+            "description": "Queued"
+          },
+          "401": {
+            "description": "Session required"
+          },
+          "403": {
+            "description": "Permission or origin denied"
+          },
+          "404": {
+            "description": "Unavailable in tenant"
+          },
+          "409": {
+            "description": "Conflict or invalid transition"
+          },
+          "422": {
+            "description": "Invalid fields"
+          },
+          "503": {
+            "description": "Worker not configured"
+          }
+        }
+      }
+    },
+    "/organizations/{orgId}/websites/{websiteId}/crawl-summary": {
+      "get": {
+        "summary": "Read last crawl and indexability counts",
+        "description": "Tenant-scoped, verified session required. Mutations require Owner/Admin/Marketing Manager/SEO Manager plus allowed Origin and X-Growth-Client.",
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          },
+          {
+            "name": "websiteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "201": {
+            "description": "Queued"
+          },
+          "401": {
+            "description": "Session required"
+          },
+          "403": {
+            "description": "Permission or origin denied"
+          },
+          "404": {
+            "description": "Unavailable in tenant"
+          },
+          "409": {
+            "description": "Conflict or invalid transition"
+          },
+          "422": {
+            "description": "Invalid fields"
+          },
+          "503": {
+            "description": "Worker not configured"
+          }
+        }
+      }
+    },
+    "/organizations/{orgId}/websites/{websiteId}/crawls/{jobId}/issues": {
+      "get": {
+        "summary": "Read technical issues with severity/type filters",
+        "description": "Tenant-scoped, verified session required. Mutations require Owner/Admin/Marketing Manager/SEO Manager plus allowed Origin and X-Growth-Client.",
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          },
+          {
+            "name": "websiteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          },
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "name": "severity",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "Critical",
+                "High",
+                "Medium",
+                "Low",
+                "Opportunity"
+              ]
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "201": {
+            "description": "Queued"
+          },
+          "401": {
+            "description": "Session required"
+          },
+          "403": {
+            "description": "Permission or origin denied"
+          },
+          "404": {
+            "description": "Unavailable in tenant"
+          },
+          "409": {
+            "description": "Conflict or invalid transition"
+          },
+          "422": {
+            "description": "Invalid fields"
+          },
+          "503": {
+            "description": "Worker not configured"
+          }
+        }
+      }
+    },
+    "/organizations/{orgId}/websites/{websiteId}/crawls/{jobId}/robots": {
+      "get": {
+        "summary": "Read robots evidence",
+        "description": "Tenant-scoped, verified session required. Mutations require Owner/Admin/Marketing Manager/SEO Manager plus allowed Origin and X-Growth-Client.",
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          },
+          {
+            "name": "websiteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          },
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "201": {
+            "description": "Queued"
+          },
+          "401": {
+            "description": "Session required"
+          },
+          "403": {
+            "description": "Permission or origin denied"
+          },
+          "404": {
+            "description": "Unavailable in tenant"
+          },
+          "409": {
+            "description": "Conflict or invalid transition"
+          },
+          "422": {
+            "description": "Invalid fields"
+          },
+          "503": {
+            "description": "Worker not configured"
+          }
+        }
+      }
+    },
+    "/organizations/{orgId}/websites/{websiteId}/crawls/{jobId}/sitemaps": {
+      "get": {
+        "summary": "Read sitemap evidence",
+        "description": "Tenant-scoped, verified session required. Mutations require Owner/Admin/Marketing Manager/SEO Manager plus allowed Origin and X-Growth-Client.",
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          },
+          {
+            "name": "websiteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          },
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "201": {
+            "description": "Queued"
+          },
+          "401": {
+            "description": "Session required"
+          },
+          "403": {
+            "description": "Permission or origin denied"
+          },
+          "404": {
+            "description": "Unavailable in tenant"
+          },
+          "409": {
+            "description": "Conflict or invalid transition"
+          },
+          "422": {
+            "description": "Invalid fields"
+          },
+          "503": {
+            "description": "Worker not configured"
+          }
+        }
+      }
+    },
+    "/organizations/{orgId}/websites/{websiteId}/crawls/{jobId}/errors": {
+      "get": {
+        "summary": "Read paginated crawl errors",
+        "description": "Tenant-scoped, verified session required. Mutations require Owner/Admin/Marketing Manager/SEO Manager plus allowed Origin and X-Growth-Client.",
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          },
+          {
+            "name": "websiteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          },
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "201": {
+            "description": "Queued"
+          },
+          "401": {
+            "description": "Session required"
+          },
+          "403": {
+            "description": "Permission or origin denied"
+          },
+          "404": {
+            "description": "Unavailable in tenant"
+          },
+          "409": {
+            "description": "Conflict or invalid transition"
+          },
+          "422": {
+            "description": "Invalid fields"
+          },
+          "503": {
+            "description": "Worker not configured"
+          }
+        }
+      }
     }
   },
   "components": {

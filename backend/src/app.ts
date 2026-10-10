@@ -23,6 +23,7 @@ import {
   OrganizationsController,
   InvitationsController,
 } from "./organizations.controller";
+import { CrawlsController } from "./crawler/controller";
 import { WebsitesController } from "./websites.controller";
 @Catch()
 class ErrorFilter implements ExceptionFilter {
@@ -100,6 +101,7 @@ class HealthController {
     OrganizationsController,
     InvitationsController,
     WebsitesController,
+    CrawlsController,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }, {
     provide: "RESOURCE_LIFECYCLE", useValue: { async onApplicationShutdown() { closeRateLimitStore(); await mongoose.disconnect(); } },

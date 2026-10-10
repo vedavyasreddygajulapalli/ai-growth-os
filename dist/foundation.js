@@ -14,6 +14,8 @@
     invites: [],
     audit: [],
     auditFilters: {},
+    crawlSite: null, crawls: [], crawlSummary: null, crawlFocus: null,
+    crawlReport: null, urlItems: [], urlTotal: 0, urlPage: 1, urlFilters: {},
     sessions: [],
     securityEvents: [],
     error: "",
@@ -31,6 +33,8 @@
     "Sales User",
     "Viewer",
   ];
+  function clearCrawlState() { live.crawlSite=null; live.crawls=[]; live.crawlFocus=null; live.crawlSummary=null; live.crawlReport=null; live.urlItems=[]; live.urlFilters={}; live.urlPage=1; live.urlTotal=0; }
+  const canCrawl = () => ["Owner", "Admin", "Marketing Manager", "SEO Manager"].includes(live.org?.role);
   const isManager = () => ["Owner", "Admin"].includes(live.org?.role);
   const button = (label, act, primary = false) =>
     `<button type="button" class="btn ${primary ? "primary" : ""}" data-live="${act}">${esc(label)}</button>`;
@@ -60,6 +64,7 @@
       e.status = res.status;
       e.details = data.error?.details;
       if (res.status === 401) {
+        clearCrawlState();
         live.user = null;
         live.orgs = [];
         live.sessions = [];
@@ -91,8 +96,10 @@
       if (generation !== live.generation) return;
       live.user = user;
       live.orgs = organizations.items;
+      const previousOrg = live.org?._id;
       live.org =
         live.orgs.find((o) => o._id === live.org?._id) || live.orgs[0] || null;
+      if (previousOrg !== live.org?._id) clearCrawlState();
       await loadTab(generation);
     } catch (e) {
       if (generation !== live.generation) return;
@@ -112,6 +119,22 @@
     }
     if (!live.org) return;
     const base = orgPath("");
+    if (live.crawlSite && ["Crawls", "URL Inventory", "Crawl issues"].includes(live.tab)) {
+      const path = base + "/websites/" + live.crawlSite._id;
+      if (live.tab === "Crawls") {
+        const [jobs, summary] = await Promise.all([api(path + "/crawls"), api(path + "/crawl-summary")]);
+        if (generation === live.generation) { live.crawls = jobs.items; live.cursor = jobs.nextCursor; live.crawlSummary = summary; }
+      } else if (live.tab === "URL Inventory") {
+        const params = new URLSearchParams({ ...live.urlFilters, page: String(live.urlPage) });
+        const result = await api(path + "/urls?" + params);
+        if (generation === live.generation) { live.urlItems = result.items; live.urlTotal = result.total; }
+      } else if (live.crawlFocus) {
+        const prefix = path + "/crawls/" + live.crawlFocus;
+        const [issues, robots, sitemaps, errors] = await Promise.all([api(prefix + "/issues"), api(prefix + "/robots"), api(prefix + "/sitemaps"), api(prefix + "/errors")]);
+        if (generation === live.generation) live.crawlReport = { issues, robots, sitemaps, errors };
+      }
+      return;
+    }
     let data;
     if (live.tab === "Websites") {
       data = await api(base + "/websites");
@@ -347,15 +370,17 @@
       "Websites",
       "Account",
       ...(isManager() ? ["Team & roles", "Audit logs"] : []),
+      ...(live.crawlSite ? ["Crawls", "URL Inventory", "Crawl issues"] : []),
     ];
     if (!available.includes(live.tab)) live.tab = "Organization";
     let body = "";
     if (live.tab === "Organization")
       body = `<section class="card padded"><h3>${esc(live.org.name)}</h3><div class="knowledge"><span>Timezone</span><strong>${esc(live.org.timezone)}</strong></div><div class="knowledge"><span>Currency</span><strong>${esc(live.org.currency)}</strong></div><div class="knowledge"><span>Your role</span>${badge(live.org.role)}</div><div class="actions" style="margin-top:24px">${isManager() ? button("Edit preferences", "edit-org", true) : ""}${button("Switch workspace", "workspaces")}${button("Accept invitation", "accept-invite")}</div></section>`;
     if (live.tab === "Websites")
-      body = `<section class="card"><div class="card-head"><div><h2>Your websites</h2><p>Verify ownership before starting a crawl.</p></div>${isManager() ? button("Add website", "add-site", true) : ""}</div>${live.sites.length ? `<div class="table-scroll"><table><thead><tr><th>Website</th><th>CMS</th><th>Ownership</th><th>Status</th><th>Actions</th></tr></thead><tbody>${live.sites.map((s) => `<tr><td>${esc(s.name)}<small>${esc(s.domain)}</small></td><td>${esc(s.cmsType)}</td><td>${badge(s.verificationStatus)}</td><td>${badge(s.status)}</td><td><div class="actions">${button("View", "view-site:" + s._id)}${isManager() ? button("Edit", "edit-site:" + s._id) + (s.status === "active" ? button("Verify", "verify-site:" + s._id) : "") : ""}</div></td></tr>`).join("")}</tbody></table></div>` : '<div class="empty"><strong>No websites yet</strong>Add your first domain to start your website setup.</div>'}${live.cursor ? button("Load more", "more") : ""}</section>`;
+      body = `<section class="card"><div class="card-head"><div><h2>Your websites</h2><p>Verify ownership before starting a crawl.</p></div>${isManager() ? button("Add website", "add-site", true) : ""}</div>${live.sites.length ? `<div class="table-scroll"><table><thead><tr><th>Website</th><th>CMS</th><th>Ownership</th><th>Status</th><th>Actions</th></tr></thead><tbody>${live.sites.map((s) => `<tr><td>${esc(s.name)}<small>${esc(s.domain)}</small></td><td>${esc(s.cmsType)}</td><td>${badge(s.verificationStatus)}</td><td>${badge(s.status)}</td><td><div class="actions">${button("View", "view-site:" + s._id)}${button("Crawls", "open-crawls:" + s._id)}${isManager() ? button("Edit", "edit-site:" + s._id) + (s.status === "active" ? button("Verify", "verify-site:" + s._id) : "") : ""}</div></td></tr>`).join("")}</tbody></table></div>` : '<div class="empty"><strong>No websites yet</strong>Add your first domain to start your website setup.</div>'}${live.cursor ? button("Load more", "more") : ""}</section>`;
     if (live.tab === "Team & roles")
       body = `<section class="card padded"><div class="card-head" style="padding:0 0 20px"><h2>Your team</h2>${button("Invite member", "invite", true)}</div>${live.members.map((m) => `<div class="knowledge"><div><strong>${esc(m.user?.name || "Member")}</strong><small>${esc(m.user?.email || "")}</small></div>${badge(m.role)}<div class="actions">${m.role !== "Owner" && (live.org.role === "Owner" || m.role !== "Admin") ? button("Manage", "member:" + m._id) : ""}</div></div>`).join("")}<h3 style="margin-top:28px">Pending invitations</h3>${live.invites.length ? live.invites.map((i) => `<div class="knowledge"><div><strong>${esc(i.email)}</strong><small>${esc(i.role)} · Expires ${new Date(i.expiresAt).toLocaleDateString()}</small></div>${live.org.role === "Owner" || i.role !== "Admin" ? button("Revoke", "revoke:" + i._id) : ""}</div>`).join("") : '<p class="helper">No pending invitations.</p>'}<p class="helper">Invitations use a private link you share yourself. No email is sent automatically.</p></section>`;
+    if (["Crawls", "URL Inventory", "Crawl issues"].includes(live.tab)) body = crawlerPanel();
     if (live.tab === "Audit logs")
       body = `<section class="card"><div class="card-head"><div><h2>Workspace activity</h2><p>${Object.keys(live.auditFilters).length ? "Filtered workspace records" : "Saved server records"}</p></div><div class="actions">${button("Filter", "audit-filter")}${Object.keys(live.auditFilters).length ? button("Clear filters", "audit-clear") : ""}${button("Export JSON", "audit-export")}</div></div>${live.audit.length ? `<div class="table-scroll"><table><thead><tr><th>Action</th><th>Record</th><th>Actor</th><th>Time</th></tr></thead><tbody>${live.audit.map((a) => `<tr><td><button class="text-btn" data-live="audit:${a._id}">${esc(a.action)}</button></td><td>${esc(a.entityType)}</td><td>${esc(a.actorId)}</td><td>${esc(new Date(a.occurredAt).toLocaleString("en-IN", { timeZone: live.org.timezone }))}</td></tr>`).join("")}</tbody></table></div>` : '<div class="empty">No activity matches these filters.</div>'}${live.cursor ? button("Load more", "more") : ""}</section>`;
     return (
@@ -369,6 +394,18 @@
       body
     );
   }
+  function crawlerPanel() {
+    const site = live.crawlSite;
+    const heading = `<div class="card-head"><div><h2>${esc(site.name)}</h2><p>${esc(site.domain)}</p></div><div class="actions">${button("Websites", "tab:Websites")}${canCrawl() ? button("Start crawl", "start-crawl", true) : ""}</div></div>`;
+    if (live.tab === "Crawls") {
+      const summary = live.crawlSummary;
+      return `<section class="card">${heading}<div class="padded"><p class="helper">${summary ? `${summary.total} stored URLs · ${summary.indexable} indexable · ${summary.notIndexable} not indexable` : "No completed crawl yet."}</p>${site.verificationStatus !== "verified" ? '<p class="note">Verify website ownership before starting a crawl.</p>' : ""}</div>${live.crawls.length ? `<div class="table-scroll"><table><thead><tr><th>Crawl / status</th><th>Progress</th><th>Started / completed</th><th>Duration</th><th>Errors</th><th>Actions</th></tr></thead><tbody>${live.crawls.map(j => `<tr><td><small>${esc(j._id)}</small>${badge(j.status)}${j.error ? `<small>${esc(j.error)}</small>` : ""}</td><td><progress max="100" value="${j.progress || 0}" aria-label="Crawl progress"></progress><small>${j.progress || 0}% · ${j.crawled || 0}/${j.discovered || 0} pages</small><small>${j.successCount || 0} successful · ${j.redirectCount || 0} redirects</small>${j.lastUrl ? `<small>${esc(j.lastUrl)}</small>` : ""}${j.truncated ? '<small>Configured crawl limit reached</small>' : ""}</td><td><small>${esc(j.startedAt || "Queued")}</small><small>${esc(j.completedAt || "—")}</small></td><td>${Math.round((j.durationMs || (j.startedAt ? Date.now()-Date.parse(j.startedAt) : 0))/1000)}s</td><td>${j.errorCount || 0}</td><td><div class="actions">${button("Report", "crawl-report:" + j._id)}${canCrawl() ? (["queued","running"].includes(j.status) ? button("Cancel", "cancel-crawl:" + j._id) : button("Re-run", "rerun-crawl:" + j._id) + (["failed","completed_with_errors","cancelled"].includes(j.status) ? button("Retry", "retry-crawl:" + j._id) : "")) : ""}</div></td></tr>`).join("")}</tbody></table></div>` : '<div class="empty"><strong>No crawls yet</strong>Start a crawl of your verified website to discover its pages.</div>'}${live.cursor ? button("More crawls", "more-crawls") : ""}</section>`;
+    }
+    if (live.tab === "URL Inventory") return `<section class="card">${heading}<div class="card-head"><span>${live.urlTotal} matching URLs</span><div class="actions">${button("Filter URLs", "url-filter")}${button("Clear filters", "url-clear")}</div></div>${live.urlItems.length ? `<div class="table-scroll"><table><thead><tr><th>URL / title</th><th>Status</th><th>Indexability</th><th>Canonical</th><th>Content type</th><th>Sitemap</th><th>Incoming links</th><th>Last crawled</th></tr></thead><tbody>${live.urlItems.map(p => `<tr><td><button class="text-btn" data-live="url-detail:${p._id}">${esc(p.url)}</button><small>${esc(p.data?.title || "No title")}</small></td><td>${badge(String(p.data?.statusCode || p.status))}<small>${p.issues.length} issues</small></td><td>${badge(p.data?.indexable ? "Indexable" : "Not indexable")}</td><td>${esc(p.data?.canonical || "—")}</td><td>${esc(p.data?.contentType || "—")}</td><td>${p.inSitemap ? "Yes" : "No"}</td><td>${p.incomingLinks || 0}</td><td>${esc(p.data?.crawledAt || "—")}</td></tr>`).join("")}</tbody></table></div>` : '<div class="empty">No matching URLs. Complete a crawl or adjust the filters.</div>'}<div class="card-head"><span>Page ${live.urlPage}</span><div class="actions">${live.urlPage > 1 ? button("Previous", "urls-prev") : ""}${live.urlPage*25 < live.urlTotal ? button("Next", "urls-next") : ""}</div></div></section>`;
+    const report = live.crawlReport;
+    return `<section class="card">${heading}<div class="padded">${!report ? '<div class="empty">Open a crawl report from the Crawls tab.</div>' : `<h3>Technical issues</h3><p class="helper">Issues reflect this crawl's coverage. Orphan and duplicate content findings are candidates for review.</p>${report.issues.items.length ? report.issues.items.map(i => `<div class="knowledge"><div>${badge(i.severity)}<strong>${esc(i.type.replaceAll("_"," "))}</strong><small>${esc(i.url)}</small><p>${esc(i.why)}</p><p class="helper">${esc(i.recommendation)}</p></div></div>`).join("") : '<p class="helper">No issues recorded for this crawl.</p>'}${report.issues.nextCursor ? button("More issues", "more-issues") : ""}<h3>Robots.txt</h3>${report.robots.items.map(r => `<p>${badge(r.status)} ${esc(r.url)}</p><pre style="white-space:pre-wrap;overflow-wrap:anywhere">${esc(r.body || r.error || "No robots rules found")}</pre>`).join("") || '<p class="helper">Robots information is not available yet.</p>'}<h3>Sitemaps</h3>${report.sitemaps.items.map(m => `<details><summary>${esc(m.url)} · ${esc(m.status)} · ${m.urls?.length || 0} URLs</summary><pre style="white-space:pre-wrap;overflow-wrap:anywhere">${esc(JSON.stringify(m.urls || m.error, null, 2))}</pre></details>`).join("") || '<p class="helper">No sitemaps recorded.</p>'}<h3>Crawl errors</h3>${report.errors.items.map(e => `<p>${esc(e.url)} — ${esc(e.code)}</p>`).join("") || '<p class="helper">No crawl errors recorded.</p>'}${report.errors.nextCursor ? button("More errors", "more-crawl-errors") : ""}`}</div></section>`;
+  }
+  const crawlPath = suffix => orgPath("/websites/" + live.crawlSite._id + suffix);
   settings = function () {
     return live.active
       ? liveContent()
@@ -508,6 +545,7 @@
           live.invites = [];
           live.audit = [];
           live.auditFilters = {};
+          live.crawlSite = null; live.crawlReport = null; live.crawls = []; live.urlItems = [];
           live.tab = "Organization";
           closeModal();
           await refresh();
@@ -520,7 +558,8 @@
           break;
         case "sign-out":
           await api("/auth/logout", { method: "POST", body: {} });
-          live.user = null;
+          clearCrawlState();
+        live.user = null;
           live.org = null;
           live.orgs = [];
           live.sites = [];
@@ -534,6 +573,45 @@
           closeModal();
           render();
           break;
+        case "open-crawls":
+          live.crawlSite = live.sites.find(s => s._id === id); live.crawlFocus = null; live.crawlReport = null; live.urlItems = []; live.urlFilters = {}; live.urlPage = 1;
+          await changeTab("Crawls"); break;
+        case "start-crawl":
+          showForm("Start website crawl", select("Crawl mode", "mode", ["full", "sitemap", "single"], "full") + input("Maximum pages (1–500)", "maxPages", "100", "number") + input("Single-page URL (optional)", "startUrl", "", "url", false) + select("Render JavaScript", "renderJs", ["No", "Yes"], "No") + '<p class="helper">Ownership verification and robots restrictions are always enforced. JavaScript rendering requires an enabled browser worker.</p>', "Queue crawl", async data => {
+            const site = await api(orgPath("/websites/" + live.crawlSite._id));
+            await api(crawlPath("/crawls"), { method:"POST", body:{mode:data.mode,maxPages:Number(data.maxPages),renderJs:data.renderJs==="Yes",...(data.startUrl ? {startUrl:data.startUrl} : {}),version:site.version} });
+            closeModal(); await changeTab("Crawls"); notify("Crawl queued.");
+          }); break;
+        case "cancel-crawl": case "retry-crawl": case "rerun-crawl": {
+          const job = live.crawls.find(j => j._id === id), operation = key === "cancel-crawl" ? "cancel" : key === "retry-crawl" ? "retry" : "rerun";
+          showForm(operation === "cancel" ? "Cancel crawl" : "Queue a new crawl", '<p class="helper">' + (operation === "cancel" ? "Processing will stop. Previous completed inventory is retained." : "A new crawl will use the previous configuration. Existing history is retained.") + '</p>', "Confirm", async () => {
+            await api(crawlPath("/crawls/"+id+"/"+operation), {method:"POST",body:{version:job.version}});
+            closeModal(); await changeTab("Crawls");
+          }); break;
+        }
+        case "crawl-report": live.crawlFocus = id; live.crawlReport = null; await changeTab("Crawl issues"); break;
+        case "more-crawls": case "more-issues": case "more-crawl-errors": {
+          const target = key === "more-crawls" ? null : key === "more-issues" ? "issues" : "errors";
+          const cursor = target ? live.crawlReport[target].nextCursor : live.cursor;
+          if (!cursor) break; const gen = live.generation;
+          const result = await api(crawlPath("/crawls" + (target ? "/"+live.crawlFocus+"/"+target : "") + "?cursor="+cursor));
+          if (gen !== live.generation) return;
+          const items = target ? live.crawlReport[target].items : live.crawls;
+          const existing = new Set(items.map(x => x._id)); items.push(...result.items.filter(x => !existing.has(x._id)));
+          if (target) live.crawlReport[target].nextCursor=result.nextCursor; else live.cursor=result.nextCursor; render(); break;
+        }
+        case "urls-next": live.urlPage++; await changeTab("URL Inventory"); break;
+        case "urls-prev": live.urlPage=Math.max(1,live.urlPage-1); await changeTab("URL Inventory"); break;
+        case "url-clear": live.urlFilters={}; live.urlPage=1; await changeTab("URL Inventory"); break;
+        case "url-filter":
+          showForm("Filter URL inventory", input("Search URL or title", "search", live.urlFilters.search || "", "text", false) + input("HTTP status code", "statusCode", live.urlFilters.statusCode || "", "number", false) + input("Content type", "contentType", live.urlFilters.contentType || "", "text", false) + [ ["Indexable","indexable"],["In sitemap","inSitemap"],["Has issues","hasIssue"],["Redirect","redirect"] ].map(([label,name])=>select(label,name,["", "true","false"],live.urlFilters[name] || "")).join("") + select("Crawl status","status",["","crawled","blocked","error"],live.urlFilters.status||"") + select("Sort","sort",["-updatedAt","url","-url","statusCode"],live.urlFilters.sort||"-updatedAt"), "Apply", async data => {
+            live.urlFilters=Object.fromEntries(Object.entries(data).filter(([,v])=>v!=="")); live.urlPage=1; closeModal(); await changeTab("URL Inventory");
+          }); break;
+        case "url-detail": {
+          const gen=live.generation, item=await api(crawlPath("/urls/"+id)); if(gen!==live.generation)return;
+          const d=item.data;
+          modal("URL details", `<h3 style="overflow-wrap:anywhere">${esc(item.url)}</h3>${badge(item.status)}${[["Crawl information",{status:d.statusCode,requested:d.requestedUrl,final:d.finalUrl,redirects:d.redirectChain,responseMs:d.responseMs,pageSize:d.pageSize,crawledAt:d.crawledAt}], ["Metadata",{title:d.title,description:d.description,lang:d.lang,canonical:d.canonical,indexable:d.indexable,robots:d.metaRobots,openGraph:d.openGraph,twitter:d.twitter}], ["Headers",d.headers], ["Headings",d.headings], ["Structured data",d.schemaTypes], ["Internal links",d.links.filter(l=>l.internal)], ["External links (not checked)",d.links.filter(l=>!l.internal)], ["Images",d.images], ["Issues",item.issues], ["Recent crawl history",item.history]].map(([label,value])=>`<details><summary>${esc(label)}</summary><pre style="white-space:pre-wrap;overflow-wrap:anywhere">${esc(JSON.stringify(value,null,2))}</pre></details>`).join("")}`,"",true);break;
+        }
         case "view-site": {
           const gen = live.generation;
           const site = await api(orgPath("/websites/" + id));
@@ -760,6 +838,14 @@
         }),
     );
   }
+  let polling = false;
+  setInterval(async () => {
+    if (polling || !live.active || live.loading || live.tab !== "Crawls" || !live.crawlSite || !live.crawls.some(j => ["queued","running"].includes(j.status)) || document.querySelector("#live-form")) return;
+    polling = true; const gen = live.generation;
+    try { await loadTab(gen); if (gen === live.generation) render(); }
+    catch (e) { if (gen === live.generation) { live.error = e.message; render(); } }
+    finally { polling = false; }
+  }, 5000);
   render();
   const securityParams = new URLSearchParams(location.hash.split("?")[1] || "");
   const securityKind = securityParams.has("reset") ? "reset" : securityParams.has("verify") ? "verify" : null;

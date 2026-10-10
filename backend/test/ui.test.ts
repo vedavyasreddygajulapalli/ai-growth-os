@@ -172,3 +172,28 @@ test("password recovery form uses real endpoint and hides account existence", as
   assert.match(dom.window.document.querySelector("#overlay")!.textContent!, /If an eligible account exists/);
   dom.window.close();
 });
+
+test("crawler UI reads real endpoints, renders empty/progress states and hides write actions for Viewer", async () => {
+  for (const role of ["Owner", "Viewer"]) {
+    const calls:string[]=[];
+    const org={_id:"a".repeat(24),name:"Org",role,timezone:"UTC"};
+    const site={_id:"c".repeat(24),name:"Verified Site",domain:"example.com",verificationStatus:"verified",status:"active",cmsType:"Other",version:0};
+    const dom=setup(true,async (url:string)=>{
+      calls.push(url);let data:any;
+      if(url.endsWith("/auth/me"))data={name:"Member",emailVerifiedAt:"2026-10-10T00:00:00Z"};
+      else if(url.endsWith("/organizations"))data={items:[org]};
+      else if(url.endsWith("/websites"))data={items:[site]};
+      else if(url.endsWith("/crawls"))data={items:[{_id:"d".repeat(24),status:"running",progress:25,discovered:4,crawled:1,version:0}]};
+      else if(url.endsWith("/crawl-summary"))data={total:0,indexable:0,notIndexable:0};
+      else if(url.includes("/urls?"))data={items:[],total:0};
+      else throw Error(url);
+      return{ok:true,status:200,json:async()=>data};
+    });
+    click(dom,"live");await tick();click(dom,"tab:Websites");await tick();click(dom,"open-crawls:"+site._id);await tick();
+    assert.match(dom.window.document.body.textContent!,/running|25%/);
+    assert.equal(!!dom.window.document.querySelector('[data-live="start-crawl"]'),role==="Owner");
+    click(dom,"tab:URL Inventory");await tick();assert.match(dom.window.document.body.textContent!,/No matching URLs/);
+    click(dom,"url-filter");assert.ok(dom.window.document.querySelector('[name="statusCode"]'));
+    assert.ok(calls.some(x=>x.endsWith("/crawls")));dom.window.close();
+  }
+});

@@ -354,3 +354,6 @@ Foundation API p95 <500 ms for bounded reads and <1 s writes excluding auth hash
 - NestJS authorization: https://docs.nestjs.com/security/authorization
 - Mongoose 8 transactions: https://mongoosejs.com/docs/8.x/docs/transactions.html
 These support implementation choices; product behavior derives from the attached roadmap and PRD.
+
+## Implemented M2 storage mapping
+`backend/src/crawler/models.ts` is the implementation schema. crawl_jobs replaces the earlier conceptual website_crawls name. crawl_pages stores per-job snapshots (no duplicate crawl_snapshots collection); website_urls stores latest observed records. crawl_errors, discovered_links, robots_records, sitemap_records and technical_issues carry tenant/site/job scope. MongoDB queued jobs provide a durable dispatch outbox to BullMQ. The optional worker is separately deployable and current API submission remains disabled until configured. See 07-crawler-acceptance.md for safety, limits and acceptance gates.

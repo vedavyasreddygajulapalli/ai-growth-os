@@ -1,0 +1,33 @@
+# Optional M2 infrastructure blueprint. Review paid resources before applying.
+# Existing API/web are not recreated here. Wire their REDIS_URL only after worker acceptance.
+services:
+  - type: keyvalue
+    name: ai-growth-os-jobs
+    region: singapore
+    plan: starter
+    maxmemoryPolicy: noeviction
+    ipAllowList: []
+  - type: worker
+    name: ai-growth-os-crawler
+    runtime: node
+    region: singapore
+    plan: starter
+    branch: main
+    autoDeployTrigger: "off"
+    maxShutdownDelaySeconds: 300
+    buildCommand: npm ci --prefix backend --include=dev && npm run build --prefix backend
+    startCommand: npm run db:migrate --prefix backend && npm run worker --prefix backend
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false
+      - key: REDIS_URL
+        fromService:
+          name: ai-growth-os-jobs
+          type: keyvalue
+          property: connectionString
+      - key: CRAWLER_RENDER_JS
+        value: "false"

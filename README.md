@@ -34,3 +34,6 @@ Do not mark M1 complete until real database tests pass in the deployment environ
 
 ## Foundation hardening
 See `docs/06-foundation-operations.md` for Redis rate limiting, environment validation, readiness/liveness, retention/export policies, migrations and backup/restore procedures. CI runs real MongoDB workflows and shared Redis tests. Live email, hosting proxy settings, monitoring and restore rehearsal remain deployment acceptance gates; no production verification bypass exists.
+
+## Website crawler (M2)
+The real crawler implementation is in `backend/src/crawler/`. Run `npm run db:migrate --prefix backend`, start a Redis-compatible service with noeviction, then `npm run worker --prefix backend` independently of the API. Configure REDIS_URL and enable CRAWLER_ENABLED only after worker deployment. JavaScript rendering stays disabled until Chromium sandbox/security acceptance. See `docs/07-crawler-acceptance.md` and the optional `render.crawler.yaml`; that blueprint introduces paid resources and has not been applied. Crawl snapshots and current inventory are MongoDB-backed; the UI never seeds fake live crawler records.

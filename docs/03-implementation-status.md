@@ -50,3 +50,10 @@ Live email verification/password reset delivery with a configured provider; shar
 
 ## Remaining sequence
 M2 verified crawler and URL inventory → M3 Brand/Media → M4 Research/Strategy → M5 Content/Design → M6 WordPress → M7 SEO/Indexing → M8 CRM → M9 Analytics → M10 Assisted agents → M11 Billing → M12 production hardening. These have specifications, not completed backend implementations. Do not bypass M1 acceptance to seed more fake records or call the system production-ready.
+
+## M1/M2 phase update — 10 October, current work
+M1 hardening commit `024e661c900d768d319a8c69f243c68dfcbf73e1` passed all CI steps: https://github.com/vedavyasreddygajulapalli/ai-growth-os/actions/runs/38037993209 . Includes shared Redis test, real MongoDB integration, repeated migration bootstrap and both builds. Local unit/provider/UI tests pass; local MongoDB is blocked by an operating-environment file permission, not treated as passed.
+
+M1 — code checkpoint stable; remaining deployment acceptance: live email, explicit proxy topology/Redis configuration, backup restoration, live DNS ownership and mobile/browser visual acceptance. See operations document. M1 is not unconditionally production-certified.
+
+M2 — crawler/worker/models/APIs and connected UI implemented; final CI and live worker acceptance pending. No fake live data is inserted. The optional paid infrastructure blueprint has not been applied. The crawler stays disabled on the existing host until configured. M3 — next only after M1 and M2 acceptance gates are closed.

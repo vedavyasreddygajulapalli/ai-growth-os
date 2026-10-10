@@ -88,6 +88,7 @@ invitation.index(
 );
 const website = schema({
   orgId: { type: oid, required: true },
+  crawlRevision: { type: Number, default: 0 },
   name: { type: String, required: true },
   domain: { type: String, required: true },
   cmsType: {

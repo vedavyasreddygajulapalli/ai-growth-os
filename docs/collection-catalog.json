@@ -64,10 +64,10 @@
   },
   {
     "name": "website_urls",
-    "scope": "site",
-    "fields": "url:string!,urlHash:string!,httpStatus:int?,canonical:string?,robots:object,indexability:enum,lastCrawledAt:date?,sources:string[]",
-    "indexes": "orgId+websiteId+urlHash unique",
-    "lifecycle": "Archive stale URLs;do not delete content relationships"
+    "scope": "website",
+    "fields": "orgId:ObjectId!,websiteId:ObjectId!,createdAt:date,updatedAt:date,source:string,status:string; see backend/src/crawler/models.ts for exact schema",
+    "indexes": "orgId+websiteId+_id; model-specific unique job/url or website/url hashes",
+    "lifecycle": "Implemented M2. crawl_pages stores per-job snapshots; website_urls is latest observed inventory. Tenant/site read authorization is mandatory."
   },
   {
     "name": "integrations",
@@ -439,5 +439,54 @@
     "fields": "eventKey:string!,type:string!,payload:object,status:pending|sent|failed,attempt:int,nextAt:date",
     "indexes": "orgId+eventKey unique;status+nextAt",
     "lifecycle": "Transactional write with business change;worker delivers after commit"
+  },
+  {
+    "name": "crawl_jobs",
+    "scope": "website",
+    "fields": "orgId:ObjectId!,websiteId:ObjectId!,createdAt:date,updatedAt:date,source:string,status:string; see backend/src/crawler/models.ts for exact schema",
+    "indexes": "orgId+websiteId+_id; model-specific unique job/url or website/url hashes",
+    "lifecycle": "Implemented M2. crawl_pages stores per-job snapshots; website_urls is latest observed inventory. Tenant/site read authorization is mandatory."
+  },
+  {
+    "name": "crawl_pages",
+    "scope": "website",
+    "fields": "orgId:ObjectId!,websiteId:ObjectId!,createdAt:date,updatedAt:date,source:string,status:string; see backend/src/crawler/models.ts for exact schema",
+    "indexes": "orgId+websiteId+_id; model-specific unique job/url or website/url hashes",
+    "lifecycle": "Implemented M2. crawl_pages stores per-job snapshots; website_urls is latest observed inventory. Tenant/site read authorization is mandatory."
+  },
+  {
+    "name": "crawl_errors",
+    "scope": "website",
+    "fields": "orgId:ObjectId!,websiteId:ObjectId!,createdAt:date,updatedAt:date,source:string,status:string; see backend/src/crawler/models.ts for exact schema",
+    "indexes": "orgId+websiteId+_id; model-specific unique job/url or website/url hashes",
+    "lifecycle": "Implemented M2. crawl_pages stores per-job snapshots; website_urls is latest observed inventory. Tenant/site read authorization is mandatory."
+  },
+  {
+    "name": "discovered_links",
+    "scope": "website",
+    "fields": "orgId:ObjectId!,websiteId:ObjectId!,createdAt:date,updatedAt:date,source:string,status:string; see backend/src/crawler/models.ts for exact schema",
+    "indexes": "orgId+websiteId+_id; model-specific unique job/url or website/url hashes",
+    "lifecycle": "Implemented M2. crawl_pages stores per-job snapshots; website_urls is latest observed inventory. Tenant/site read authorization is mandatory."
+  },
+  {
+    "name": "robots_records",
+    "scope": "website",
+    "fields": "orgId:ObjectId!,websiteId:ObjectId!,createdAt:date,updatedAt:date,source:string,status:string; see backend/src/crawler/models.ts for exact schema",
+    "indexes": "orgId+websiteId+_id; model-specific unique job/url or website/url hashes",
+    "lifecycle": "Implemented M2. crawl_pages stores per-job snapshots; website_urls is latest observed inventory. Tenant/site read authorization is mandatory."
+  },
+  {
+    "name": "sitemap_records",
+    "scope": "website",
+    "fields": "orgId:ObjectId!,websiteId:ObjectId!,createdAt:date,updatedAt:date,source:string,status:string; see backend/src/crawler/models.ts for exact schema",
+    "indexes": "orgId+websiteId+_id; model-specific unique job/url or website/url hashes",
+    "lifecycle": "Implemented M2. crawl_pages stores per-job snapshots; website_urls is latest observed inventory. Tenant/site read authorization is mandatory."
+  },
+  {
+    "name": "technical_issues",
+    "scope": "website",
+    "fields": "orgId:ObjectId!,websiteId:ObjectId!,createdAt:date,updatedAt:date,source:string,status:string; see backend/src/crawler/models.ts for exact schema",
+    "indexes": "orgId+websiteId+_id; model-specific unique job/url or website/url hashes",
+    "lifecycle": "Implemented M2. crawl_pages stores per-job snapshots; website_urls is latest observed inventory. Tenant/site read authorization is mandatory."
   }
 ]
