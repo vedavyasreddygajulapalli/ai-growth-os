@@ -11,6 +11,7 @@ import { runCrawl } from "../src/crawler/engine";
 import { CrawlJob,CrawlPage,WebsiteUrl,TechnicalIssue,RobotsRecord,SitemapRecord } from "../src/crawler/models";
 import { crawlQueue,closeCrawlQueue,redisConnection,queueName } from "../src/crawler/queue";
 import { Fetcher } from "../src/crawler/safe-fetch";
+import { expireStaleCrawls, STALE_CRAWL_MS } from "../src/crawler/recovery";
 let db:MongoMemoryReplSet,app:any,base:string,cookie:string,org:string,site:string,job:any,worker:Worker;
 process.env.NODE_ENV="test";process.env.APP_ORIGINS="http://localhost:3000";process.env.CRAWLER_ENABLED="true";process.env.REDIS_URL=process.env.REDIS_TEST_URL||"redis://127.0.0.1:6379";
 let token="";setTestEmailTransport(async m=>{token=m.text.match(/verify=([a-f0-9]+)/)![1];});
@@ -61,4 +62,17 @@ test("cancel and retry preserve snapshots; cross-tenant access is denied",async(
   const count=await WebsiteUrl.countDocuments();await runCrawl(retry.data._id,fixture);assert.equal(await WebsiteUrl.countDocuments(),count);
   const foreign=await call("/auth/register","POST",{name:"Other Owner",email:"foreign@example.com",password:"Strong Passphrase 123!"});await call("/auth/email-verification","POST",{},foreign.cookie);await call("/auth/email-verification/complete","POST",{token},foreign.cookie);
   for(const endpoint of ["/crawls","/urls","/crawl-summary",`/crawls/${job._id}/issues`])assert.equal((await call(path()+endpoint,"GET",undefined,foreign.cookie)).status,404);
+});
+test("stale worker recovery releases the active slot and fences late publication",async()=>{
+  const now=new Date();
+  const stale=await CrawlJob.create({orgId:org,websiteId:site,status:"running",active:true,executionId:"lost-worker",heartbeatAt:new Date(now.getTime()-STALE_CRAWL_MS-1)});
+  const beforeCount=await WebsiteUrl.countDocuments();
+  assert.equal((await expireStaleCrawls(now)).modifiedCount,1);
+  const recovered=await CrawlJob.findById(stale._id).lean();
+  assert.equal(recovered?.status,"failed");assert.equal(recovered?.error,"WORKER_HEARTBEAT_EXPIRED");
+  assert.equal((await CrawlJob.updateOne({_id:stale._id,executionId:"lost-worker",status:"running"},{$set:{status:"completed"}})).matchedCount,0);
+  await runCrawl(String(stale._id),fixture);assert.equal(await WebsiteUrl.countDocuments(),beforeCount);
+  const fresh=await CrawlJob.create({orgId:org,websiteId:site,status:"running",active:true,heartbeatAt:now});
+  assert.equal((await expireStaleCrawls(now)).modifiedCount,0);
+  await CrawlJob.deleteOne({_id:fresh._id});
 });

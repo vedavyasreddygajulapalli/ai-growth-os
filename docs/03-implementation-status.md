@@ -1,59 +1,41 @@
-# Foundation increment — implementation and verification
+# AI Growth OS implementation status
 
-9 October 2026. This is an implementation handoff, not a production-readiness certification.
+Updated 10 October 2026. Code/CI evidence and live deployment acceptance are separate gates.
 
-## 10 October implementation update
+## M1 — implemented and CI verified; remaining deployment gates
 
-Email troubleshooting is paused by user request. M1 audit filters and a tenant-scoped, permission-checked JSON export have been added; see `05-audit-acceptance.md`. Backend compilation and JavaScript syntax checks pass. New tests are authored but full automated/live/browser acceptance is deferred. Previous verification evidence below describes earlier increments only. M1 remains open; M2 has not started.
+The approved visual system and ten-module navigation are preserved. The Next.js shell connects the existing UI to NestJS/Mongoose through a same-origin API proxy. No prototype records are copied into tenant data.
 
-## Account security update
+Implemented: registration/login/logout; email verification/resend and password reset/change; profile versioning; session/device listing, individual revocation and logout-all; account security history; organizations/preferences/switching; seven roles; invitations/acceptance/revocation; membership updates/removal and ownership transfer; websites with domain normalization, duplicate protection, edit/archive and DNS TXT verification; tenant-scoped redacted append-only audit records, search/filters and bounded JSON export.
 
-GitHub branch `m1-account-security`, commit `0419dde`: 17 real MongoDB integration tests and 10 unit/UI tests passed; backend and frontend production builds passed. Evidence: https://github.com/vedavyasreddygajulapalli/ai-growth-os/actions/runs/37973672202 . Email delivery uses a test-only in-memory transport in CI, not a live inbox. The final migration/cooldown/dependency update passed the same CI checks. Both dependency audits report zero known vulnerabilities as of this run; this is not a security certification.
+Security/operations: strict DTOs, transactional authorization, tenant isolation, optimistic versions, exact origins and CSRF protections, HttpOnly production-secure cookies, request IDs, safe error logging, secure headers, production environment checks, optional shared Redis throttling that fails closed, liveness/readiness, graceful shutdown, repeatable index migrations, retention dry-run/apply command, backup/restore procedure and monitoring guidance.
 
-Implemented email verification, password reset/change, profile versioning, device session listing/revocation, logout-all, account security history, verification-gated tenant routes, and transactional membership authorization checks. Account forms reuse approved styling. Exact new screen contracts, collections, deployment variables and acceptance are in `04-account-security-acceptance.md` and OpenAPI.
+CI evidence: M1 hardening commit `024e661c900d768d319a8c69f243c68dfcbf73e1` passed backend/frontend builds, unit/UI tests, shared Redis tests and real MongoDB integration including repeated migration bootstrap. Run: https://github.com/vedavyasreddygajulapalli/ai-growth-os/actions/runs/38037993209 . The M2 checkpoint below also reran the foundation suite successfully. Local MongoDB startup is blocked by the execution environment; no local integration pass is claimed.
 
-M1 remains OPEN. Live Atlas/provider/deployment, browser visual QA, shared proxy-aware rate limiting and operational gates are not complete. M2 has not started.
+Remaining deployment gates:
+- Live verification/reset email delivery and real account/session/invitation acceptance. Provider behavior is verified using a test-only transport; live inbox delivery remains unresolved.
+- Real DNS TXT ownership acceptance and mobile/desktop browser visual review.
+- Configure shared Redis throttling and verify the deployment proxy topology before multiple API instances.
+- Restore an isolated backup and verify operational alerts under deployment conditions. A written restore procedure is not a completed restore rehearsal.
 
-## Implemented
-- Existing approved visual system and ten-module navigation preserved; original prototype assets remain intact.
-- Next.js + TypeScript entry point with a same-origin `/api` proxy and an incremental legacy UI bridge. This is not yet a full React component migration or shadcn/Tailwind conversion; each real module must replace its legacy section without redesign.
-- NestJS + Mongoose API: email/password registration/login/logout/session; workspace create/list/switch/preferences; seven fixed roles; invitations with one-time manual-share links; membership edits/removal/ownership transfer; website create/read/edit/archive; DNS TXT verification; append-only redacted audit writes.
-- MongoDB schemas and indexes for the original seven foundation collections plus account tokens, email cooldowns and account security events. Sessions contain token hashes; passwords are salted scrypt hashes. Workspace writes and audits use transactions.
-- Strict DTO validation, request IDs, role and tenant checks, API throttling, origin/header CSRF checks, expiring HttpOnly cookies, version conflict checks.
-- Real-workspace UI reads/writes the API; it never copies prototype sample data into tenant records. Until connected, the existing hosted preview clearly reports the service unavailable.
-- 104 screen/shared-flow specifications, 63 target collections, expanded foundation OpenAPI document, connector workflows and milestone gates.
+M1 code is stable enough for M2 coding under the agreed email exception. Full live M1 acceptance is not claimed.
 
-## Verification completed
-| Check | Result |
-|---|---|
-| NestJS TypeScript build | Passed |
-| Next.js production build | Passed |
-| Domain safety/canonicalization contract | Passed |
-| Strict body/timezone/currency/version validation | Passed |
-| Role grant hierarchy | Passed |
-| Password hashing and cookie policy | Passed |
-| MongoDB index declarations | Passed (schema check only) |
-| Ten-module UI and unavailable-service state | Passed in jsdom |
-| Live adapter API reads and no browser persistence | Passed with stubbed API responses |
-| Form input retained after API validation error | Passed with stubbed API response |
-| Real MongoDB integration scenarios | Original nine plus eight account/ownership scenarios passed in GitHub CI; local MongoDB startup still blocked |
-| Browser visual/responsive QA | Not run; approved CSS/layout retained. DOM checks are not visual QA. |
-| Live Atlas / external backend / DNS verification | Not configured or end-to-end verified |
+## M2 — implemented and initial CI verified; remaining gates
 
-The nine integration scenarios are supplied in `backend/test/foundation.test.ts`: real session creation, unauthorized/CSRF rejection, organization/audit transaction, website duplicate/concurrency, invitation email/single-use/role checks, cross-tenant access, verification invalidation/audit redaction, owner protection/revocation, logout invalidation. The original local attempt did not reach assertions; GitHub CI now runs them successfully on a host that supports MongoDB. See the account update above for expanded coverage.
+Implemented MongoDB crawl jobs and snapshots, durable queued-job dispatch, separate BullMQ worker, exact-host URL discovery, robots/sitemap processing, safe bounded page fetches, metadata/link/image extraction, structured technical issues, current URL Inventory and historical details. Role/tenant checks, job versions, cancellation and retry/re-run are connected to the approved UI. Optional JavaScript rendering is disabled until its deployment security gate passes.
 
-## Required next action
-Connect an Atlas replica-set database and deploy the Node backend; set the frontend's server-only API_INTERNAL_URL and the backend's exact APP_ORIGINS. No credentials are included in this deliverable. Run integration tests and validate register → workspace → invite/accept → website → edit → audit → logout in the real deployment. Only then enable the hosted real-workspace path.
+Checkpoint `8f04bde7f13f74b474c6d71ad278e93de1c28bbb` passed all CI steps: https://github.com/vedavyasreddygajulapalli/ai-growth-os/actions/runs/38056707935 . This includes real MongoDB/Redis/BullMQ with deterministic page responses: queued crawl, nested sitemap discovery, persistent inventory/issues, filters/details, cancellation/retry and cross-tenant denial. Both production builds passed. Backend production dependency audit reported zero known vulnerabilities on 10 October 2026; this is not a security certification.
 
-## Remaining M1 gates
-Live email verification/password reset delivery with a configured provider; shared Redis-based rate limiting for multi-instance deployment; live account/session acceptance; additional permission-race testing under deployment load; migration rehearsal; audit retention/export policy; operational monitoring and tested backup/restore. Manual invitation links work at the code level but actual delivery is left to the user; live email delivery has not been exercised in this environment.
+A follow-up recovery guard expires running jobs whose heartbeat is older than ten minutes, fences late publication and releases the website for retry. Its dedicated integration regression still requires a new CI pass at this document revision.
 
-## Remaining sequence
-M2 verified crawler and URL inventory → M3 Brand/Media → M4 Research/Strategy → M5 Content/Design → M6 WordPress → M7 SEO/Indexing → M8 CRM → M9 Analytics → M10 Assisted agents → M11 Billing → M12 production hardening. These have specifications, not completed backend implementations. Do not bypass M1 acceptance to seed more fake records or call the system production-ready.
+Remaining M2 gates:
+- Provision/configure the independent worker and durable Redis. The optional paid `render.crawler.yaml` has not been applied; existing deployment submission remains disabled until configured.
+- Real verified-domain crawl through the browser, URL Inventory/detail/report, retry and cancellation.
+- Deployment outage recovery, archive/domain-change acceptance and desktop/mobile visual review.
+- Chromium sandbox/network acceptance only if JavaScript rendering is enabled.
 
-## M1/M2 phase update — 10 October, current work
-M1 hardening commit `024e661c900d768d319a8c69f243c68dfcbf73e1` passed all CI steps: https://github.com/vedavyasreddygajulapalli/ai-growth-os/actions/runs/38037993209 . Includes shared Redis test, real MongoDB integration, repeated migration bootstrap and both builds. Local unit/provider/UI tests pass; local MongoDB is blocked by an operating-environment file permission, not treated as passed.
+Do not label M2 complete based on the UI or CI alone. No production crawl records have been fabricated.
 
-M1 — code checkpoint stable; remaining deployment acceptance: live email, explicit proxy topology/Redis configuration, backup restoration, live DNS ownership and mobile/browser visual acceptance. See operations document. M1 is not unconditionally production-certified.
+## M3 — next
 
-M2 — crawler/worker/models/APIs and connected UI implemented; final CI and live worker acceptance pending. No fake live data is inserted. The optional paid infrastructure blueprint has not been applied. The crawler stays disabled on the existing host until configured. M3 — next only after M1 and M2 acceptance gates are closed.
+Brand & Media starts only after M1 and M2 acceptance gates close. Later milestone specifications do not imply implemented backend workflows. See `04-account-security-acceptance.md`, `05-audit-acceptance.md`, `06-foundation-operations.md` and `07-crawler-acceptance.md` for detailed gates.

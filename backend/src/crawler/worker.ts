@@ -6,6 +6,7 @@ import { runCrawl } from "./engine";
 import { CrawlJob } from "./models";
 import { crawlQueue, queueName, redisConnection, closeCrawlQueue } from "./queue";
 import { safeFetch } from "./safe-fetch";
+import { expireStaleCrawls } from "./recovery";
 async function main() {
   if (!process.env.MONGODB_URI || !process.env.REDIS_URL) throw Error("Worker database and queue settings required");
   await connectDatabase(process.env.MONGODB_URI);
@@ -24,7 +25,7 @@ async function main() {
   worker.on("error",()=>console.error("Crawl queue connection error"));
   worker.on("failed",async job=>{if(job)await CrawlJob.updateOne({_id:job.data.id,active:true},{$set:{status:"failed",active:false,error:"WORKER_FAILED",completedAt:new Date()},$inc:{version:1}}).catch(()=>{});});
   let dispatching=false;
-  const dispatch=async()=>{if(dispatching)return;dispatching=true;try{const jobs=await CrawlJob.find({status:"queued",active:true}).limit(100).lean();for(const job of jobs)await crawlQueue().add("crawl",{id:String(job._id)},{jobId:String(job._id)});}catch{console.error("Crawl dispatch unavailable");}finally{dispatching=false;}};
+  const dispatch=async()=>{if(dispatching)return;dispatching=true;try{await expireStaleCrawls();const jobs=await CrawlJob.find({status:"queued",active:true}).limit(100).lean();for(const job of jobs)await crawlQueue().add("crawl",{id:String(job._id)},{jobId:String(job._id)});}catch{console.error("Crawl dispatch unavailable");}finally{dispatching=false;}};
   const timer=setInterval(dispatch,5000);await dispatch();
   let stopping=false; const stop=async()=>{if(stopping)return;stopping=true;clearInterval(timer);await worker.close();await closeCrawlQueue();redis.disconnect();await mongoose.disconnect();};
   process.on("SIGTERM",()=>void stop());process.on("SIGINT",()=>void stop());

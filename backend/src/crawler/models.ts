@@ -14,7 +14,7 @@ export const CrawlJob = scoped("CrawlJob", "crawl_jobs", {
   successCount: { type: Number, default: 0 }, redirectCount: { type: Number, default: 0 }, errorCount: { type: Number, default: 0 },
   progress: { type: Number, default: 0 }, startedAt: Date, completedAt: Date, durationMs: Number,
   lastUrl: String, error: String, executionId: String, heartbeatAt: Date, truncated: Boolean,
-}, [[{ orgId: 1, websiteId: 1, active: 1 }, { unique: true, partialFilterExpression: { active: true } }]]);
+}, [[{ orgId: 1, websiteId: 1, active: 1 }, { unique: true, partialFilterExpression: { active: true } }], [{ status: 1, active: 1, heartbeatAt: 1 }]]);
 const evidence = { jobId: { type: oid, required: true }, source: String, version: { type: Number, default: 0 }, status: String };
 export const CrawlPage = scoped("CrawlPage", "crawl_pages", { ...evidence, url: String, urlHash: String, data: Schema.Types.Mixed, issues: [Schema.Types.Mixed], inSitemap: Boolean, incomingLinks: Number }, [[{ jobId: 1, urlHash: 1 }, { unique: true }]]);
 // Immutable per-crawl snapshots are crawl_pages; current inventory points to its latest successful write.
