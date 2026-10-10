@@ -11,29 +11,32 @@ The approved 10-module visual system is retained. The original static prototype 
 - `backend/`: NestJS API, validation, Mongoose schemas, transaction/audit services, integration tests.
 
 ## Run locally
-Requires Node 22+ and MongoDB replica set (Atlas or local). The API deliberately refuses to run without MongoDB; it has no in-memory fallback. A standalone MongoDB server without replica-set transactions is not sufficient.
+Requires Node 22+, a MongoDB replica set (Atlas or local), and Redis for crawler jobs and the full integration suite. The API deliberately refuses to run without MongoDB; it has no in-memory fallback. A standalone MongoDB server without replica-set transactions is not sufficient.
 
 1. `npm ci --prefix backend`
 2. Copy `backend/.env.example` to `backend/.env`, then set a restricted `MONGODB_URI`. Do not commit credentials.
-3. `npm run build --prefix backend`
+3. `npm run build --prefix backend`; in `backend/`, run `node --env-file=.env dist/migrate.js` to bootstrap indexes.
 4. In `backend/`, run `node --env-file=.env dist/main.js`.
 5. In another terminal: `npm ci --prefix web`, `npm run sync-ui --prefix web`, then `npm run dev --prefix web`.
 6. Open `http://localhost:3000`, choose **Open workspace**, register, request and complete email verification, create a workspace, add a website. Invite links are manual-share; no email is sent.
-7. `npm test --prefix backend` runs tests against a temporary real MongoDB replica set. It downloads the MongoDB binary on first run and requires a host that permits running MongoDB/listening sockets.
+7. Start an isolated Redis test service and set `REDIS_TEST_URL` (for example `redis://127.0.0.1:6379`), then run `npm test --prefix backend`. Tests use a temporary real MongoDB replica set plus Redis/BullMQ. MongoDB is downloaded on first run; the host must permit MongoDB and listening sockets. Do not use production Redis for tests.
 
 Next.js proxies `/api/*` to the trusted `API_INTERNAL_URL` (default `http://127.0.0.1:4000`). Use same-origin proxying in production so session cookies remain HttpOnly, Secure, SameSite=Lax. Backend checks exact `APP_ORIGINS` plus `X-Growth-Client`. Do not enable arbitrary CORS or put Atlas connection strings in public variables.
 
 ## Account security increment
 
-Email verification, password reset/change, account profile, device sessions, logout-all and account security history are implemented. Configure the server-only email variables in `backend/.env.example` and run `npm run db:migrate --prefix backend` before upgrading an existing database. See `docs/04-account-security-acceptance.md` for exact workflows and deployment gates. Real inbox delivery and live Atlas remain unverified.
+Email verification, password reset/change, account profile, device sessions, logout-all and account security history are implemented. Configure the server-only email variables in `backend/.env.example` and run `npm run db:migrate --prefix backend` before upgrading an existing database. See `docs/04-account-security-acceptance.md` for exact workflows and deployment gates. Live inbox delivery remains unverified. Render database readiness and index bootstrap were checked on 10 October 2026; full authenticated deployment acceptance remains open.
 
 ## Deployment
-Deploy `web/` to the roadmap's frontend host and `backend/` to a Node service, with Atlas replica set. Configure `MONGODB_URI`, `APP_ORIGINS`, `NODE_ENV=production`, `PORT`; bootstrap indexes under a migration/release job (`INIT_INDEXES=true` only for first bootstrap). Set frontend server-side `API_INTERNAL_URL` to the backend service. Current Sites-hosted static preview intentionally sets `apiEnabled:false` because no MongoDB/Node backend service has been configured there. Never change this flag to imply a connection that does not exist.
+The existing Render API and web services deploy the Node applications with an Atlas replica set. Configure `MONGODB_URI`, `APP_ORIGINS`, `NODE_ENV=production`, `PORT`; bootstrap indexes under a migration/release job (`INIT_INDEXES=true` only for first bootstrap). Set frontend server-side `API_INTERNAL_URL` to the backend service. The live preview is https://ai-growth-os-web-us4p.onrender.com/ . Choose **Open workspace** for real account workflows. The signed-out design preview is explicitly labeled sample data and does not prove backend completion.
 
-Do not mark M1 complete until real database tests pass in the deployment environment, live email verification/password reset are verified, and production security/operations gates in the specification are complete. M2 crawling, subsequent modules, external integrations, automated AI and billing have specifications but are not implemented in this increment.
+Do not mark M1 complete until real database tests pass in the deployment environment, live email verification/password reset are verified, and production security/operations gates in the specification are complete. M2 crawler code and connected UI are implemented and CI-tested, but live crawler acceptance requires its separate worker and Redis deployment. Subsequent milestones remain planned.
 
 ## Foundation hardening
 See `docs/06-foundation-operations.md` for Redis rate limiting, environment validation, readiness/liveness, retention/export policies, migrations and backup/restore procedures. CI runs real MongoDB workflows and shared Redis tests. Live email, hosting proxy settings, monitoring and restore rehearsal remain deployment acceptance gates; no production verification bypass exists.
 
 ## Website crawler (M2)
 The real crawler implementation is in `backend/src/crawler/`. Run `npm run db:migrate --prefix backend`, start a Redis-compatible service with noeviction, then `npm run worker --prefix backend` independently of the API. Configure REDIS_URL and enable CRAWLER_ENABLED only after worker deployment. JavaScript rendering stays disabled until Chromium sandbox/security acceptance. See `docs/07-crawler-acceptance.md` and the optional `render.crawler.yaml`; that blueprint introduces paid resources and has not been applied. Crawl snapshots and current inventory are MongoDB-backed; the UI never seeds fake live crawler records.
+
+## Verified deployment checkpoint
+Code commit `49f5c5da2b7cf2c6418bd59cccc1ee4b7c872fab` is live on both existing Render services. Its CI passed 19 unit/UI/operations tests, 22 MongoDB integration tests and both production builds: https://github.com/vedavyasreddygajulapalli/ai-growth-os/actions/runs/38057001660 . Render index migration completed; API readiness and the frontend-proxied readiness endpoint returned HTTP 200. This does not close live email, authenticated browser, DNS, backup/restore or crawler-worker acceptance gates. See the implementation-status document for newer test-only evidence.

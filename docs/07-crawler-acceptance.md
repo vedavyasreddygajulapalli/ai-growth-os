@@ -25,4 +25,6 @@ Local pure/unit/DOM tests cover normalization, unsafe addresses, robots, sitemap
 
 Initial integration/build CI passed at commit 8f04bde7f13f74b474c6d71ad278e93de1c28bbb: https://github.com/vedavyasreddygajulapalli/ai-growth-os/actions/runs/38056707935 . The follow-up stale-heartbeat regression and complete build/test suite passed at commit 49f5c5da2b7cf2c6418bd59cccc1ee4b7c872fab: https://github.com/vedavyasreddygajulapalli/ai-growth-os/actions/runs/38057001660 .
 
+Active-fetch cancellation, domain-change and archive fencing also passed against real MongoDB at test-only commit 691a93ba041dc6cc094d848278edf7dad09f9635: https://github.com/vedavyasreddygajulapalli/ai-growth-os/actions/runs/38057366546 . These tests confirm prior inventory remains unchanged when the in-flight run is invalidated.
+
 Before marking M2 complete: require green CI for the final commit, running worker/Redis deployment, a real verified-domain crawl through the browser, cancellation/retry and archived/domain-change behavior, desktop/mobile visual review, Chromium-specific acceptance if enabled, and worker outage recovery. Live acceptance has not yet run. M3 must not start until these gates are satisfied.

@@ -36,6 +36,12 @@ Remaining M2 gates:
 
 Do not label M2 complete based on the UI or CI alone. No production crawl records have been fabricated.
 
+## Latest deployed/tested checkpoint
+
+The API and web services are live at code commit `49f5c5da2b7cf2c6418bd59cccc1ee4b7c872fab`. Index migration completed on Render; both direct API readiness and readiness through the frontend proxy returned HTTP 200. The signed-out preview loaded in the browser with its approved layout and sample-data label; this is not authenticated/mobile workflow acceptance.
+
+Follow-up test-only commit `691a93ba041dc6cc094d848278edf7dad09f9635` passed CI, including active-fetch cancellation, domain changes and website archival preventing late snapshot/inventory publication: https://github.com/vedavyasreddygajulapalli/ai-growth-os/actions/runs/38057366546 . No application-code changes followed the deployed checkpoint.
+
 ## M3 — next
 
 Brand & Media starts only after M1 and M2 acceptance gates close. Later milestone specifications do not imply implemented backend workflows. See `04-account-security-acceptance.md`, `05-audit-acceptance.md`, `06-foundation-operations.md` and `07-crawler-acceptance.md` for detailed gates.
