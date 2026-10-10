@@ -23,14 +23,19 @@ async function sendToken(req: any, user: any, kind: "verify" | "reset") {
   }
   const token = randomToken();
   const tokenHash = digest(token);
-  await AuthToken.create({ userId: user._id, kind, tokenHash, authVersion: user.authVersion || 0,
-    expiresAt: new Date(Date.now() + (kind === "verify" ? 24 * 60 : 30) * 60000) });
   const link = `${process.env.PUBLIC_APP_URL || "http://localhost:3000"}/#settings?${kind}=${token}`;
   try {
+    // Persist the token and request audit together before contacting the provider.
+    // A database failure must never invalidate a link after successful delivery.
+    // Keep the external send outside the transaction: MongoDB may retry callbacks.
+    await transaction(async session => {
+      await AuthToken.create([{ userId: user._id, kind, tokenHash, authVersion: user.authVersion || 0,
+        expiresAt: new Date(Date.now() + (kind === "verify" ? 24 * 60 : 30) * 60000) }], { session });
+      await securityLog(req, user._id, `${kind}.email_requested`, session);
+    });
     await sendAccountEmail({ to: user.email, subject: kind === "verify" ? "Verify your AI Growth OS email" : "Reset your AI Growth OS password",
       text: `${kind === "verify" ? "Verify your email" : "Reset your password"}: ${link}\nThis link expires in ${kind === "verify" ? "24 hours" : "30 minutes"} and works only once. If you did not request it, ignore this message.`,
       key: `${kind}-${tokenHash}` });
-    await securityLog(req, user._id, `${kind}.email_requested`);
   } catch (error) {
     await AuthToken.deleteOne({ tokenHash });
     await EmailCooldown.deleteOne({ _id: slot, expiresAt: deadline });
