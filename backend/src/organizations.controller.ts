@@ -12,6 +12,7 @@ import {
   HttpCode,
 } from "@nestjs/common";
 import { z } from "zod";
+import { auditFiltersDto, auditFilter, auditPage } from "./audit-query";
 import {
   Organization,
   Membership,
@@ -363,7 +364,22 @@ export class OrganizationsController {
     @Query() query: any,
   ) {
     await access(req, orgId, managers);
-    return paginate(Audit, { orgId }, query);
+    const { filters, page } = auditPage(query);
+    return paginate(Audit, auditFilter(orgId, filters), page);
+  }
+  @Post(":orgId/audit-logs/export") @HttpCode(200)
+  async exportAudits(@Req() req: any, @Param("orgId") orgId: string, @Body() body: unknown) {
+    await access(req, orgId, managers);
+    const filters = parse(auditFiltersDto, body);
+    return transaction(async session => {
+      await access(req, orgId, managers, session);
+      const items = await Audit.find(auditFilter(orgId, filters)).sort({ _id: -1 })
+        .limit(1001).session(session).lean();
+      if (items.length > 1000) fail(422, "EXPORT_TOO_LARGE", "More than 1,000 records match. Narrow the date range or filters before exporting.");
+      await log(session, req, orgId, "audit.exported", "organization", orgId, null,
+        { filters, count: items.length });
+      return { schemaVersion: 1, orgId, exportedAt: new Date().toISOString(), filters, count: items.length, items };
+    });
   }
 }
 @Controller("invitations")

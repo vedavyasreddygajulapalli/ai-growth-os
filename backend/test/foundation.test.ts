@@ -296,6 +296,25 @@ test("cross-tenant ID access never leaks website data", async () => {
     404,
   );
 });
+test("audit filters and export retain tenant and manager permissions", async () => {
+  const path = `/organizations/${orgId}/audit-logs`;
+  const filtered = await call(path + "?action=website.created&limit=1", "GET", undefined, owner);
+  assert.equal(filtered.status, 200);
+  assert.equal(filtered.data.items.length, 1);
+  assert.equal(filtered.data.items[0].action, "website.created");
+  assert.equal((await call(path + "?orgId=forged", "GET", undefined, owner)).status, 422);
+  assert.equal((await call(path + "/export", "POST", {}, viewer)).status, 403);
+  assert.equal((await call(path + "/export", "POST", {}, outsider)).status, 404);
+  const exported = await call(path + "/export", "POST", { entityType: "website" }, owner);
+  assert.equal(exported.status, 200);
+  assert.ok(exported.data.count > 0);
+  assert.ok(exported.data.items.every((item: any) => item.orgId === orgId && item.entityType === "website"));
+  assert.equal(JSON.stringify(exported.data).includes("verificationToken"), false);
+  assert.equal(JSON.stringify(exported.data).includes("tokenHash"), false);
+  assert.ok(await Audit.findOne({ orgId, action: "audit.exported" }));
+  const empty = await call(path + "/export", "POST", { action: "missing.action" }, owner);
+  assert.equal(empty.data.count, 0);
+});
 test("domain changes invalidate verification; audit redacts verification secrets", async () => {
   await Website.updateOne(
     { _id: siteId },

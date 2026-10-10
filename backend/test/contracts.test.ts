@@ -99,3 +99,17 @@ test("Mongo schemas declare tenant uniqueness, one owner, expiring sessions", ()
       .some(([k, o]) => k.expiresAt === 1 && o.expireAfterSeconds === 0),
   );
 });
+
+// Written for the deferred acceptance pass.
+import { auditPage, auditFilter } from "../src/audit-query";
+test("audit filters reject tenant overrides, operators, malformed IDs and reversed dates", () => {
+  for (const query of [{ orgId: "forged" }, { actorId: { $ne: null } }, { action: ".*" },
+    { actorId: "bad-id" }, { from: "2026-10-11T00:00:00Z", to: "2026-10-10T00:00:00Z" },
+    { from: "not-a-date" }, { limit: 101 }]) assert.throws(() => auditPage(query));
+  const parsed = auditPage({ action: "website.updated", from: "2026-10-10T00:00:00Z", to: "2026-10-10T00:00:00.001Z", limit: "5" });
+  const filter = auditFilter("trusted-org", parsed.filters);
+  assert.equal(filter.orgId, "trusted-org");
+  assert.equal(filter.action, "website.updated");
+  assert.equal(parsed.page.limit, 5);
+  assert.equal(filter.occurredAt?.$gte?.toISOString(), "2026-10-10T00:00:00.000Z");
+});

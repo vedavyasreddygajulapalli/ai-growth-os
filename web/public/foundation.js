@@ -13,6 +13,7 @@
     members: [],
     invites: [],
     audit: [],
+    auditFilters: {},
     sessions: [],
     securityEvents: [],
     error: "",
@@ -73,6 +74,11 @@
     }
     return data;
   }
+  const auditQuery = (cursor) => {
+    const params = new URLSearchParams(live.auditFilters);
+    if (cursor) params.set("cursor", cursor);
+    return "?" + params.toString();
+  };
   const orgPath = (s) => `/organizations/${live.org._id}${s}`;
   async function refresh() {
     const generation = ++live.generation;
@@ -125,7 +131,7 @@
       }
     }
     if (live.tab === "Audit logs" && isManager()) {
-      data = await api(base + "/audit-logs");
+      data = await api(base + "/audit-logs" + auditQuery());
       if (generation === live.generation) {
         live.audit = data.items;
         live.cursor = data.nextCursor;
@@ -351,7 +357,7 @@
     if (live.tab === "Team & roles")
       body = `<section class="card padded"><div class="card-head" style="padding:0 0 20px"><h2>Your team</h2>${button("Invite member", "invite", true)}</div>${live.members.map((m) => `<div class="knowledge"><div><strong>${esc(m.user?.name || "Member")}</strong><small>${esc(m.user?.email || "")}</small></div>${badge(m.role)}<div class="actions">${m.role !== "Owner" && (live.org.role === "Owner" || m.role !== "Admin") ? button("Manage", "member:" + m._id) : ""}</div></div>`).join("")}<h3 style="margin-top:28px">Pending invitations</h3>${live.invites.length ? live.invites.map((i) => `<div class="knowledge"><div><strong>${esc(i.email)}</strong><small>${esc(i.role)} · Expires ${new Date(i.expiresAt).toLocaleDateString()}</small></div>${live.org.role === "Owner" || i.role !== "Admin" ? button("Revoke", "revoke:" + i._id) : ""}</div>`).join("") : '<p class="helper">No pending invitations.</p>'}<p class="helper">Invitations use a private link you share yourself. No email is sent automatically.</p></section>`;
     if (live.tab === "Audit logs")
-      body = `<section class="card"><div class="card-head"><h2>Workspace activity</h2><span class="subtle">Saved server records</span></div>${live.audit.length ? `<div class="table-scroll"><table><thead><tr><th>Action</th><th>Record</th><th>Actor</th><th>Time</th></tr></thead><tbody>${live.audit.map((a) => `<tr><td><button class="text-btn" data-live="audit:${a._id}">${esc(a.action)}</button></td><td>${esc(a.entityType)}</td><td>${esc(a.actorId)}</td><td>${esc(new Date(a.occurredAt).toLocaleString("en-IN", { timeZone: live.org.timezone }))}</td></tr>`).join("")}</tbody></table></div>` : '<div class="empty">No activity yet.</div>'}${live.cursor ? button("Load more", "more") : ""}</section>`;
+      body = `<section class="card"><div class="card-head"><div><h2>Workspace activity</h2><p>${Object.keys(live.auditFilters).length ? "Filtered workspace records" : "Saved server records"}</p></div><div class="actions">${button("Filter", "audit-filter")}${Object.keys(live.auditFilters).length ? button("Clear filters", "audit-clear") : ""}${button("Export JSON", "audit-export")}</div></div>${live.audit.length ? `<div class="table-scroll"><table><thead><tr><th>Action</th><th>Record</th><th>Actor</th><th>Time</th></tr></thead><tbody>${live.audit.map((a) => `<tr><td><button class="text-btn" data-live="audit:${a._id}">${esc(a.action)}</button></td><td>${esc(a.entityType)}</td><td>${esc(a.actorId)}</td><td>${esc(new Date(a.occurredAt).toLocaleString("en-IN", { timeZone: live.org.timezone }))}</td></tr>`).join("")}</tbody></table></div>` : '<div class="empty">No activity matches these filters.</div>'}${live.cursor ? button("Load more", "more") : ""}</section>`;
     return (
       header(
         "A workspace that works your way.",
@@ -501,6 +507,7 @@
           live.members = [];
           live.invites = [];
           live.audit = [];
+          live.auditFilters = {};
           live.tab = "Organization";
           closeModal();
           await refresh();
@@ -520,6 +527,7 @@
           live.members = [];
           live.invites = [];
           live.audit = [];
+          live.auditFilters = {};
           live.sessions = [];
           live.securityEvents = [];
           live.generation++;
@@ -661,6 +669,46 @@
             },
           );
           break;
+        case "audit-filter": {
+          const f = live.auditFilters;
+          showForm("Filter workspace activity",
+            '<p class="helper">Action, record type and actor use exact matches. Dates include the full day in UTC.</p>' +
+            input("Action (for example website.updated)", "action", f.action || "", "text", false) +
+            input("Record type (for example website)", "entityType", f.entityType || "", "text", false) +
+            input("Actor ID", "actorId", f.actorId || "", "text", false) +
+            input("From date (UTC)", "from", f.from?.slice(0, 10) || "", "date", false) +
+            input("Through date (UTC)", "to", f.to?.slice(0, 10) || "", "date", false),
+            "Apply filters", async data => {
+              const filters = Object.fromEntries(Object.entries(data).map(([k, v]) => [k, v.trim()]).filter(([, v]) => v));
+              if (filters.from) filters.from += "T00:00:00.000Z";
+              if (filters.to) filters.to += "T23:59:59.999Z";
+              const gen = live.generation, orgId = live.org._id;
+              const result = await api(orgPath("/audit-logs?") + new URLSearchParams(filters));
+              if (gen !== live.generation || orgId !== live.org?._id) return;
+              live.auditFilters = filters; live.audit = result.items; live.cursor = result.nextCursor;
+              closeModal(); render();
+            });
+          break;
+        }
+        case "audit-clear":
+          live.auditFilters = {};
+          await changeTab("Audit logs");
+          break;
+        case "audit-export":
+          showForm("Export workspace activity",
+            '<p class="helper">Download up to 1,000 matching records as JSON, including before/after values. The export is recorded in workspace activity. Keep the downloaded file private.</p>',
+            "Download JSON", async () => {
+              const gen = live.generation, orgId = live.org._id;
+              const result = await api(orgPath("/audit-logs/export"), { method: "POST", body: live.auditFilters });
+              if (gen !== live.generation || orgId !== live.org?._id) return;
+              const url = URL.createObjectURL(new Blob([JSON.stringify(result, null, 2)], { type: "application/json" }));
+              const link = document.createElement("a");
+              link.href = url; link.download = `workspace-audit-${new Date().toISOString().slice(0, 10)}.json`;
+              document.body.appendChild(link); link.click(); link.remove();
+              setTimeout(() => URL.revokeObjectURL(url), 1000);
+              closeModal(); notify("Audit export downloaded.");
+            });
+          break;
         case "audit": {
           const a = live.audit.find((a) => a._id === id);
           modal(
@@ -672,17 +720,20 @@
           break;
         }
         case "more": {
-          const isSites = live.tab === "Websites";
-          const r = await api(
-            orgPath(
-              (isSites ? "/websites" : "/audit-logs") +
-                "?cursor=" +
-                live.cursor,
-            ),
-          );
-          live[isSites ? "sites" : "audit"].push(...r.items);
-          live.cursor = r.nextCursor;
-          render();
+          if (!live.cursor || live.loading) break;
+          const isSites = live.tab === "Websites", gen = live.generation;
+          const path = orgPath(isSites ? "/websites?cursor=" + live.cursor : "/audit-logs" + auditQuery(live.cursor));
+          live.loading = true;
+          try {
+            const r = await api(path);
+            if (gen !== live.generation) return;
+            const records = live[isSites ? "sites" : "audit"];
+            const existing = new Set(records.map(item => item._id));
+            records.push(...r.items.filter(item => !existing.has(item._id)));
+            live.cursor = r.nextCursor;
+          } finally {
+            if (gen === live.generation) { live.loading = false; render(); }
+          }
           break;
         }
       }

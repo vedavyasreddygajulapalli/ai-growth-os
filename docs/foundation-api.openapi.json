@@ -2608,6 +2608,53 @@
               "maximum": 100,
               "default": 25
             }
+          },
+          {
+            "name": "action",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Exact match"
+          },
+          {
+            "name": "entityType",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Exact match"
+          },
+          {
+            "name": "actorId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Exact match"
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "description": "Inclusive UTC ISO timestamp"
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "description": "Inclusive UTC ISO timestamp"
           }
         ]
       }
@@ -3622,6 +3669,139 @@
             }
           }
         ]
+      }
+    },
+    "/organizations/{orgId}/audit-logs/export": {
+      "post": {
+        "summary": "Export up to 1000 matching redacted audit records as JSON",
+        "operationId": "export_workspace_audit_logs",
+        "description": "Owner/Admin only. Tenant-scoped, transactional audit.exported event. Rejects more than 1000 matches with EXPORT_TOO_LARGE; never truncates. Requires Origin and X-Growth-Client.",
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "action": {
+                    "type": "string"
+                  },
+                  "entityType": {
+                    "type": "string"
+                  },
+                  "actorId": {
+                    "type": "string"
+                  },
+                  "from": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "to": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "401": {
+            "description": "Session required"
+          },
+          "403": {
+            "description": "Permission or origin denied"
+          },
+          "404": {
+            "description": "Workspace unavailable"
+          },
+          "422": {
+            "description": "Invalid filter or export limit exceeded"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "500": {
+            "description": "Database or audit write failed"
+          },
+          "200": {
+            "description": "JSON export snapshot",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "schemaVersion",
+                    "orgId",
+                    "exportedAt",
+                    "filters",
+                    "count",
+                    "items"
+                  ],
+                  "properties": {
+                    "schemaVersion": {
+                      "type": "integer",
+                      "enum": [
+                        1
+                      ]
+                    },
+                    "orgId": {
+                      "type": "string"
+                    },
+                    "exportedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "filters": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "action": {
+                          "type": "string"
+                        },
+                        "entityType": {
+                          "type": "string"
+                        },
+                        "actorId": {
+                          "type": "string"
+                        },
+                        "from": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "to": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      }
+                    },
+                    "count": {
+                      "type": "integer",
+                      "maximum": 1000
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     }
   },
