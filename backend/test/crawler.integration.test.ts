@@ -68,7 +68,7 @@ test("stale worker recovery releases the active slot and fences late publication
   const stale=await CrawlJob.create({orgId:org,websiteId:site,status:"running",active:true,executionId:"lost-worker",heartbeatAt:new Date(now.getTime()-STALE_CRAWL_MS-1)});
   const beforeCount=await WebsiteUrl.countDocuments();
   assert.equal((await expireStaleCrawls(now)).modifiedCount,1);
-  const recovered=await CrawlJob.findById(stale._id).lean();
+  const recovered=await CrawlJob.findById(stale._id).lean<{status:string;error:string}>();
   assert.equal(recovered?.status,"failed");assert.equal(recovered?.error,"WORKER_HEARTBEAT_EXPIRED");
   assert.equal((await CrawlJob.updateOne({_id:stale._id,executionId:"lost-worker",status:"running"},{$set:{status:"completed"}})).matchedCount,0);
   await runCrawl(String(stale._id),fixture);assert.equal(await WebsiteUrl.countDocuments(),beforeCount);
