@@ -43,7 +43,7 @@ export class SeoController {
       if(!sameHost(schema.url,site.domain))fail(409,'DOMAIN_CHANGED','Update the schema draft for the current website domain.');
       const item:any=await ContentItem.findOne({_id:d.contentId,orgId:site.orgId,websiteId:site._id,version:d.contentVersion,status:'published',remoteOrigin:cms.origin,remoteId:{$type:'number'}}).session(session);
       if(!item)fail(409,'PUBLISH_TARGET_CHANGED','Choose a currently published WordPress page from this website.');
-      const schemaUrl=new URL(schema.url),targetUrl=new URL(item.liveUrl);
+      if(!item.liveUrl)fail(409,'PUBLISH_TARGET_CHANGED','The selected WordPress page has no verified live URL.');const schemaUrl=new URL(schema.url),targetUrl=new URL(item.liveUrl);
       if(schemaUrl.origin!==targetUrl.origin||schemaUrl.pathname.replace(/\/+$/,'')!==targetUrl.pathname.replace(/\/+$/,''))fail(422,'SCHEMA_TARGET_MISMATCH','Schema URL must match the selected published page URL.');
       const before=schema.toObject();
       const [job]=await PublishJob.create([{orgId:site.orgId,websiteId:site._id,contentId:item._id,revision:item.publishedRevision||item.revision,contentVersion:item.version,operation:'schema',schemaId:schema._id,schemaVersion:schema.version+1,remoteId:item.remoteId,requestedBy:req.user._id,connectionVersion:cms.version,websiteVersion:site.version,status:'queued',runAt:new Date(),version:0,key:'schema:'+String(schema._id)+':'+schema.version+':'+randomUUID()}],{session});
