@@ -93,3 +93,11 @@ M5/M6 now provide the manual V1 development flow: scoped content editing/history
 - Search Console, rankings and AI visibility remain explicitly disconnected; no search-engine indexing or ranking claims.
 - Added MongoDB integration coverage for empty evidence, summary counts, cross-workspace rejection and domain changes. Execution evidence is pending CI for this checkpoint.
 - Remaining M7: issue assignment/ignore/recheck workflow, indexing/provider workflows and schema drafts. M8 has not started. No production completion claimed; deploy after the M7/M8 development pair.
+
+### M7 development — issue workflow
+- Previous overview checkpoint CI 38151319246 completed successfully.
+- Added MongoDB issue triage with assignment, open/in-progress/ignored status, mandatory reason, optimistic versions and transactional authorization/audit.
+- Crawl report Issue workflow action uses existing forms and badges. Read-only roles can inspect status but cannot change it.
+- Recheck consumes a newer completed crawl; it does not itself queue a crawl. Resolution requires full untruncated successful crawl coverage, a successful HTML page and no matching issue. Missing/blocked/error pages cannot resolve issues; domain changes invalidate recheck.
+- Tests added for conservative resolution, DTO injection, invalid assignee, Viewer denial, concurrent conflict and tenant isolation. Latest MongoDB execution awaits CI; local tests do not establish production acceptance.
+- Remaining M7: workflow filtering/dashboard, provider integrations, schema draft lifecycle. No automatic fixes or ranking/indexing claims. M8 remains next after M7 development.

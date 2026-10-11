@@ -153,3 +153,27 @@ test('SEO summary uses finished domain-matched evidence and rejects another work
   await Website.updateOne({_id:target._id},{$set:{domain:'changed.example.com'}});
   assert.equal((await call(endpoint)).data.crawl,null);
 });
+
+import {Membership} from '../src/database';
+test('SEO workflow validates assignment, protects writes and resolves only from newer complete evidence',async()=>{
+ const target=await Website.create({orgId:org,name:'Workflow fixture',verificationToken:'test-only',domain:'workflow.example.com',cmsType:'Other',status:'active'});
+ const old=await CrawlJob.create({orgId:org,websiteId:target._id,domain:target.domain,status:'completed',active:false,completedAt:new Date(Date.now()-10000),config:{mode:'full'}});
+ const evidence=await TechnicalIssue.create({orgId:org,websiteId:target._id,jobId:old._id,url:'https://workflow.example.com/',type:'missing_title',severity:'High'});
+ const endpoint=`/organizations/${org}/websites/${target._id}/seo/issues/${evidence._id}`;
+ const body={version:0,action:'in_progress',assigneeId:null,reason:'Review title'};
+ assert.equal((await call(endpoint+'/transition','POST',{...body,status:'resolved'})).status,422);
+ assert.equal((await call(endpoint+'/transition','POST',{...body,assigneeId:new mongoose.Types.ObjectId().toString()})).status,422);
+ const owner=await Membership.findOne({orgId:org,role:'Owner'});
+ await Membership.updateOne({_id:owner!._id},{$set:{role:'Viewer'}});
+ try { assert.equal((await call(endpoint)).status,200);assert.equal((await call(endpoint+'/transition','POST',body)).status,403); }
+ finally {await Membership.updateOne({_id:owner!._id},{$set:{role:'Owner'}});}
+ const races=await Promise.all([call(endpoint+'/transition','POST',body),call(endpoint+'/transition','POST',body)]);
+ assert.deepEqual(races.map(r=>r.status).sort(),[201,409]);
+ assert.equal((await call(endpoint+'/transition','POST',{...body,version:1,action:'recheck'})).status,409);
+ const next=await CrawlJob.create({orgId:org,websiteId:target._id,domain:target.domain,status:'completed',active:false,startedAt:new Date(),completedAt:new Date(),config:{mode:'full'}});
+ await CrawlPage.create({orgId:org,websiteId:target._id,jobId:next._id,url:evidence.url,urlHash:'workflow',status:'crawled',data:{statusCode:200,contentType:'text/html'}});
+ const resolved=await call(endpoint+'/transition','POST',{...body,version:1,action:'recheck'});
+ assert.equal(resolved.status,201);assert.equal(resolved.data.status,'resolved');assert.equal(resolved.data.checkedJobId,String(next._id));
+ const foreign=(await call('/organizations','POST',{name:'Issue foreign',timezone:'UTC',currency:'USD'})).data._id;
+ assert.equal((await call(`/organizations/${foreign}/websites/${target._id}/seo/issues/${evidence._id}`)).status,404);
+});

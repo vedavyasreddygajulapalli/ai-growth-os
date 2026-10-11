@@ -37,3 +37,14 @@ test("free execution enforces small crawl budgets without changing external work
   assert.throws(()=>crawlSettings({CRAWLER_ENABLED:"true"}));
   assert.throws(()=>crawlSettings({CRAWLER_EXECUTION:"unknown"}));
 });
+
+import {canResolve} from '../src/seo/recheck';
+test('SEO resolution requires complete fresh page evidence and absence of the issue',()=>{
+ const job={status:'completed',config:{mode:'full'},truncated:false};
+ const page={status:'crawled',data:{statusCode:200,contentType:'text/html'}};
+ assert.equal(canResolve(job,page,false),true);
+ for(const j of [{...job,truncated:true},{...job,status:'completed_with_errors'},{...job,config:{mode:'single'}}])assert.equal(canResolve(j,page,false),false);
+ assert.equal(canResolve(job,null,false),false);assert.equal(canResolve(job,page,true),false);
+ assert.equal(canResolve(job,{...page,status:'blocked'},false),false);
+ assert.equal(canResolve(job,{...page,data:{statusCode:404,contentType:'text/html'}},false),false);
+});

@@ -558,5 +558,12 @@
     "fields": "checksum,assetId,slug,status,remoteId,error",
     "indexes": "unique orgId/websiteId/origin/checksum",
     "lifecycle": "Durable upload mapping; uncertain uploads never blindly retried"
+  },
+  {
+    "name": "seo_issue_workflows",
+    "scope": "organization + website",
+    "fields": "issueId,status,assigneeId,reason,version,checkedJobId,checkedAt,updatedBy,createdAt,updatedAt",
+    "indexes": "orgId+websiteId+issueId unique",
+    "lifecycle": "Mutable triage alongside immutable crawl issue evidence; changes audited; resolution only through evidence recheck."
   }
 ]

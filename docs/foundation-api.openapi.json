@@ -8621,6 +8621,139 @@
           }
         }
       }
+    },
+    "/organizations/{orgId}/websites/{websiteId}/seo/issues/{issueId}": {
+      "get": {
+        "summary": "Read immutable issue evidence and its workflow",
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          },
+          {
+            "name": "websiteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          },
+          {
+            "name": "issueId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "evidence, workflow, active assignees (first 200 names)"
+          },
+          "404": {
+            "description": "Scoped website or issue unavailable"
+          }
+        }
+      }
+    },
+    "/organizations/{orgId}/websites/{websiteId}/seo/issues/{issueId}/transition": {
+      "post": {
+        "summary": "Assign, reopen, ignore or recheck an issue",
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          },
+          {
+            "name": "websiteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          },
+          {
+            "name": "issueId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          }
+        ],
+        "description": "Owner/Admin/Marketing Manager/SEO Manager only. Transactions serialize website and membership writes. Resolution requires a newer complete untruncated full crawl, a successful HTML page, and absence of matching issue. Does not change the remote website.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "version",
+                  "action",
+                  "assigneeId",
+                  "reason"
+                ],
+                "properties": {
+                  "version": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "action": {
+                    "enum": [
+                      "open",
+                      "in_progress",
+                      "ignored",
+                      "recheck"
+                    ]
+                  },
+                  "assigneeId": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 1000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Updated versioned workflow"
+          },
+          "403": {
+            "description": "Role forbidden"
+          },
+          "409": {
+            "description": "Version conflict or fresh evidence required"
+          },
+          "422": {
+            "description": "Invalid fields or assignee"
+          }
+        }
+      }
     }
   },
   "components": {
