@@ -22,10 +22,10 @@ Backend TypeScript and frontend production builds are required. Local MongoDB st
 - WordPress credentials are supplied through the website's authenticated connection form, never committed to the repository.
 
 ## Remaining M5 / M6 gates — not complete
-- WordPress media upload/mapping and featured image support; selected media currently represents internal references only, not uploaded remote assets.
+- Inline media/gallery publishing and custom layout media. Featured-image upload and mapping are implemented in the follow-up below; ordinary media references remain internal.
 - Rich Gutenberg/layout round-tripping. Import supports safe text blocks with explicit formatting acceptance; arbitrary HTML/layouts are not supported.
 - Registered SEO-plugin meta adapters; SEO title/description are local editorial metadata, not a claim of Yoast/RankMath synchronization.
-- Design intelligence/template expansion and refresh-candidate workflow from the full PRD.
+- Design intelligence/template expansion and advanced refresh signals from the full PRD. Age-based refresh candidates and draft refresh are implemented below.
 - Full editor keyboard/mobile visual acceptance and additional scheduling/recovery stress tests.
 - Secure server key configuration, real WordPress application credentials, live publish/update/reconcile acceptance, real AI provider acceptance, and deployment of this pair after the remaining implementation gates.
 
@@ -42,3 +42,5 @@ Implemented: explicit featured-image selection (uploaded PNG/JPEG/WebP only), st
 Implemented: age-based refresh candidates (90-day default, configurable API threshold), with an explicit explanation that this is not traffic/ranking intelligence. Beginning a refresh creates an audited, unapproved draft revision and keeps the live remote mapping. WordPress remains unchanged until a newly approved publish request.
 
 Pending: expanded design intelligence/templates, inline-media/layout round-tripping, registered SEO-plugin adapters, live WordPress/AI acceptance and the combined deployment. Do not mark the whole pair complete from this checkpoint.
+
+Follow-up evidence: code commit `64f2266f8a9f6becba80c6e720e78183920c7acc`, CI https://github.com/vedavyasreddygajulapalli/ai-growth-os/actions/runs/38116873267. Both builds and all 30 unit/UI plus 38 MongoDB/Redis integration tests passed, zero skips. Featured-image publishing uses mocked WordPress responses in these tests; no live upload or deployment is claimed.
