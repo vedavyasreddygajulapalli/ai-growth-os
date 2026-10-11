@@ -321,6 +321,88 @@
         if (!live.user) authForm();
       });
   }
+  const knowledge = { key: "", site: "", kind: "", catalog: {}, rows: [], cursor: null, search: "", status: "", loading: false, error: "", sequence: 0 };
+  const knowledgePage = () => ["brand","research","strategy"].includes(state.page);
+  const knowledgeWrite = () => ["Owner","Admin","Marketing Manager","SEO Manager","Content Writer"].includes(live.org?.role);
+  const knowledgePath = () => orgPath("/websites/"+knowledge.site+"/knowledge");
+  async function loadKnowledge(more=false) {
+    const seq=++knowledge.sequence, scope=live.org?._id, page=state.page;
+    knowledge.loading=true;knowledge.error="";render();
+    try {
+      const sites=await api(orgPath("/websites?limit=100"));
+      if(seq!==knowledge.sequence||scope!==live.org?._id||page!==state.page)return;
+      live.sites=sites.items.filter(s=>s.status==="active");
+      if(!live.sites.some(s=>s._id===knowledge.site))knowledge.site=live.sites[0]?._id||"";
+      if(!knowledge.site){knowledge.rows=[];knowledge.catalog={};return;}
+      const definitions=await api(knowledgePath()+"/catalog");
+      if(seq!==knowledge.sequence||scope!==live.org?._id||page!==state.page)return;
+      knowledge.catalog=definitions.catalog;
+      if(knowledge.catalog[knowledge.kind]?.module!==page)knowledge.kind=Object.keys(knowledge.catalog).find(k=>knowledge.catalog[k].module===page);
+      const params=new URLSearchParams({kind:knowledge.kind,...(knowledge.search?{search:knowledge.search}:{}),...(knowledge.status?{status:knowledge.status}:{}),...(more&&knowledge.cursor?{cursor:knowledge.cursor}:{})});
+      const result=await api(knowledgePath()+"?"+params);
+      if(seq!==knowledge.sequence||scope!==live.org?._id||page!==state.page)return;
+      knowledge.rows=more?[...knowledge.rows,...result.items]:result.items;knowledge.cursor=result.nextCursor;
+    } catch(e){if(seq===knowledge.sequence)knowledge.error=e.message;}
+    finally {if(seq===knowledge.sequence){knowledge.loading=false;render();}}
+  }
+  function knowledgeContent(){
+    const key=live.org._id+":"+state.page;
+    if(knowledge.key!==key){knowledge.key=key;knowledge.rows=[];knowledge.cursor=null;knowledge.search="";knowledge.status="";knowledge.site="";queueMicrotask(()=>loadKnowledge());return header("Your knowledge workspace","Loading saved records…");}
+    const title=modules.find(m=>m[0]===state.page)[1];
+    const d=knowledge.catalog[knowledge.kind];
+    const toolbar=`<section class="card padded"><div class="actions">${button("Choose website","knowledge-site")}${state.page==="brand"?button("Brand Memory","knowledge-memory"):button("Research context","knowledge-context")+button("Coverage gaps","knowledge-gaps")+(state.page==="strategy"?button("Planning calendar","knowledge-calendar"):"")}${button("Filter","knowledge-filter")}${button("Refresh","knowledge-refresh")}</div><p class="helper">${esc(live.sites.find(s=>s._id===knowledge.site)?.name||"Add a website in Settings to begin.")}</p></section>`;
+    const tabsHtml=`<div class="tabs">${Object.entries(knowledge.catalog).filter(([,v])=>v.module===state.page).map(([k,v])=>`<button data-live="knowledge-tab:${k}" class="${knowledge.kind===k?"active":""}">${esc(v.label)}</button>`).join("")}</div>`;
+    const rows=knowledge.rows;
+    return header(title,state.page==="brand"?"Trusted business knowledge, with sources and approvals.":"Evidence-backed research and a plan your team can act on.")+toolbar+tabsHtml+errorBox(knowledge.error)+(knowledge.loading?'<section class="card padded" role="status"><div class="skeleton-bar"></div><p>Loading saved records…</p></section>':`<section class="card"><div class="card-head"><div><h2>${esc(d?.label||title)}</h2><p>Saved workspace records</p></div>${knowledge.site&&knowledgeWrite()?button("Add record","knowledge-new",true)+(knowledge.kind==="media"?button("Upload file","knowledge-upload"):""):""}</div>${rows.length?`<div class="table-scroll"><table><thead><tr><th>Name</th><th>Status</th><th>Updated</th><th>Actions</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(r.title)}<small>${esc(r.data.dueDate||r.data.reviewDate||r.data.source||"")}</small></td><td>${badge(r.status)}</td><td>${esc(new Date(r.updatedAt).toLocaleDateString())}</td><td><div class="actions">${button("View","knowledge-view:"+r._id)}${knowledgeWrite()?button("Edit","knowledge-edit:"+r._id)+(r.status!=="archived"?button("Archive","knowledge-archive:"+r._id):""):""}</div></td></tr>`).join("")}</tbody></table></div>`:'<div class="empty"><strong>No records yet</strong>Create a record or change your filters. No sample data is used.</div>'}${knowledge.cursor?button("Load more","knowledge-more"):""}</section>`);
+  }
+  function knowledgeForm(record){
+    const kind=record?.kind||knowledge.kind,d=knowledge.catalog[kind],path=knowledgePath(),scope=live.org._id;
+    const canApprove=["Owner","Admin","Marketing Manager"].includes(live.org.role);
+    const statuses=["draft","in_review",...(canApprove?["approved"]:[]),"in_progress","completed"];
+    const content=input("Name","title",record?.title||"")+select("Status","status",statuses,record?.status||"draft")+d.fields.map(f=>{
+      const value=record?.data?.[f.key]??"";
+      return f.type==="long"?`<label class="field"><span>${esc(f.label)}</span><textarea name="${f.key}" maxlength="8000">${esc(value)}</textarea></label>`:input(f.label,f.key,value,f.type==="url"?"url":f.type==="number"?"number":f.type==="date"?"date":"text",false);
+    }).join("")+input("Related record IDs (comma separated)","references",record?.references?.join(", ")||"","text",false);
+    showForm((record?"Edit ":"Add ")+d.label,content,"Save record",async values=>{
+      if(scope!==live.org?._id)throw Error("Workspace changed. Reopen the form.");
+      const data={};for(const f of d.fields)if(values[f.key]!=="")data[f.key]=f.type==="number"?Number(values[f.key]):values[f.key];
+      await api(path+"/"+(record?record._id:"records/"+kind),{method:record?"PATCH":"POST",body:{title:values.title,status:values.status,data,references:values.references.split(",").map(s=>s.trim()).filter(Boolean),...(record?{version:record.version}:{})}});
+      closeModal();await loadKnowledge();notify("Record saved.");
+    });
+  }
+  async function knowledgeAction(key,id){
+    if(key==="knowledge-refresh")return loadKnowledge();
+    if(key==="knowledge-tab"){knowledge.kind=id;knowledge.cursor=null;return loadKnowledge();}
+    if(key==="knowledge-more")return loadKnowledge(true);
+    if(key==="knowledge-new")return knowledgeForm();
+    if(key==="knowledge-upload")return showForm("Upload media",'<label class="field"><span>PNG, JPEG, WebP or PDF · up to 2 MB</span><input name="asset" type="file" accept="image/png,image/jpeg,image/webp,application/pdf" required></label><p class="helper">Files are stored privately with your website. Videos can be added as linked assets.</p>',"Upload",async()=>{
+      const file=document.querySelector('[name="asset"]').files[0];if(!file||file.size>2*1024*1024)throw Error("Choose a file up to 2 MB.");
+      const base64=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result).split(",")[1]);reader.onerror=()=>reject(Error("File could not be read."));reader.readAsDataURL(file);});
+      await api(knowledgePath()+"/upload",{method:"POST",body:{name:file.name,type:file.type,base64}});closeModal();await loadKnowledge();notify("File uploaded.");
+    });
+    if(key==="knowledge-site")return showForm("Choose website",`<label class="field"><span>Website</span><select name="site">${live.sites.map(s=>`<option value="${esc(s._id)}" ${s._id===knowledge.site?"selected":""}>${esc(s.name)}</option>`).join("")}</select></label>`,"Open",async data=>{knowledge.site=data.site;knowledge.cursor=null;closeModal();await loadKnowledge();});
+    if(key==="knowledge-filter")return showForm("Filter records",input("Search names","search",knowledge.search,"text",false)+select("Status","status",["","draft","in_review","approved","in_progress","completed","archived"],knowledge.status),"Apply",async data=>{knowledge.search=data.search;knowledge.status=data.status;knowledge.cursor=null;closeModal();await loadKnowledge();});
+    if(key==="knowledge-calendar")return showForm("Planning calendar",input("From","from",new Date().toISOString().slice(0,10),"date")+input("To","to",new Date(Date.now()+30*86400000).toISOString().slice(0,10),"date"),"Show tasks",async data=>{
+      const result=await api(knowledgePath()+"/calendar?"+new URLSearchParams(data));
+      modal("Planning calendar",result.items.map(t=>`<div class="knowledge"><div><strong>${esc(t.title)}</strong><small>${esc(t.data.dueDate)} · ${esc(t.status)}</small></div></div>`).join("")||'<div class="empty">No tasks due in this period.</div>',"",true);
+    });
+    if(!knowledge.site)throw Error("Add a website in Settings first.");
+    const seq=knowledge.sequence,path=knowledgePath();
+    if(key==="knowledge-gaps"){
+      const result=await api(path+"/gaps");if(seq!==knowledge.sequence)return;
+      modal("Content coverage candidates",`<p class="helper">${esc(result.method)}</p><p>${result.sampledPages} pages sampled${result.truncated?" · Coverage limit reached":""}</p>${result.items.map(r=>`<div class="knowledge"><div><strong>${esc(r.title)}</strong><p>${esc(r.reason)}</p><small>${esc(r.recommendation)}</small><small>Source: ${esc(r.recordId)}</small></div></div>`).join("")||'<div class="empty">No candidates. Add topics/keywords and complete a crawl to compare coverage.</div>'}`,"",true);return;
+    }
+    if(key==="knowledge-memory"||key==="knowledge-context"){
+      const result=await api(path+(key==="knowledge-memory"?"/memory":"/context"));if(seq!==knowledge.sequence)return;
+      const items=result.items||result.memory?.items||[];
+      modal(key==="knowledge-memory"?"Approved Brand Memory":"Research context",`<p class="helper">${esc(result.policy||result.coverage)}</p>${items.length?items.map(r=>`<div class="knowledge"><div><strong>${esc(r.title)}</strong><small>${esc(r.kind)} · version ${r.version} · ${esc(r._id)}</small></div></div>`).join(""):'<div class="empty">No approved, current brand knowledge yet.</div>'}${result.pages?`<h3>Crawled pages</h3>${result.pages.map(p=>`<div class="knowledge"><div><strong>${esc(p.data?.title||p.url)}</strong><small>${esc(p.url)}</small></div></div>`).join("")||'<p class="helper">Complete a crawl to add page evidence.</p>'}<h3>Competitors</h3>${result.competitors.map(c=>`<p>${esc(c.title)} — ${esc(c.data.url||"")}</p>`).join("")||'<p class="helper">Add competitor records in Brand & Knowledge.</p>'}`:""}`,"",true);return;
+    }
+    const r=await api(path+"/"+id);if(seq!==knowledge.sequence)return;
+    if(key==="knowledge-edit")return knowledgeForm(r);
+    if(key==="knowledge-view")return modal(r.title,`${badge(r.status)}${r.fileId?`<p><a class="btn" href="/api/v1${esc(path)}/${esc(r._id)}/download">Download file</a></p>`:""}<p class="helper">Record ID: ${esc(r._id)} · Version ${r.version}</p>${knowledge.catalog[r.kind].fields.map(f=>`<div class="knowledge"><div><small>${esc(f.label)}</small><p style="white-space:pre-wrap;overflow-wrap:anywhere">${esc(r.data[f.key]??"Not provided")}</p></div></div>`).join("")}<p class="helper">Related records: ${esc(r.references.join(", ")||"None")}</p>`,"",true);
+    if(key==="knowledge-archive")return showForm("Archive record",`<p>Archive ${esc(r.title)}? It will be excluded from Brand Memory.</p>`,"Archive",async()=>{await api(path+"/"+id,{method:"PATCH",body:{title:r.title,status:"archived",data:r.data,references:r.references,version:r.version}});closeModal();await loadKnowledge();notify("Record archived.");});
+  }
+
   function liveContent() {
     if (live.loading)
       return (
@@ -357,6 +439,7 @@
         errorBox(live.error) +
         `<section class="card padded"><h3>Welcome, ${esc(live.user.name)}</h3><p class="helper">You do not belong to a workspace yet.</p><div class="actions">${button("Create workspace", "create-org", true)}${button("Accept invitation", "accept-invite")}</div></section>`
       );
+    if (knowledgePage()) return knowledgeContent();
     if (state.page !== "settings")
       return (
         header(
@@ -465,6 +548,7 @@
   async function run(a) {
     const [key, id] = a.split(":");
     try {
+      if(key.startsWith("knowledge-")) return await knowledgeAction(key,id);
       switch (key) {
         case "live":
           live.active = true;

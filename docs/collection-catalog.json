@@ -488,5 +488,26 @@
     "fields": "orgId:ObjectId!,websiteId:ObjectId!,createdAt:date,updatedAt:date,source:string,status:string; see backend/src/crawler/models.ts for exact schema",
     "indexes": "orgId+websiteId+_id; model-specific unique job/url or website/url hashes",
     "lifecycle": "Implemented M2. crawl_pages stores per-job snapshots; website_urls is latest observed inventory. Tenant/site read authorization is mandatory."
+  },
+  {
+    "name": "knowledge_records",
+    "scope": "organization + website",
+    "fields": "kind,title,status,data,references,source,version,updatedBy,timestamps; optional protected file metadata",
+    "indexes": "orgId/websiteId/kind/_id; scoped singletonKey unique partial",
+    "lifecycle": "Private persistent records; archive auditable; production lifecycle and orphan cleanup gate remains"
+  },
+  {
+    "name": "brand_media.files",
+    "scope": "organization + website",
+    "fields": "MongoDB GridFS bytes/metadata; owner record required for authenticated access",
+    "indexes": "GridFS defaults",
+    "lifecycle": "Private persistent records; archive auditable; production lifecycle and orphan cleanup gate remains"
+  },
+  {
+    "name": "brand_media.chunks",
+    "scope": "organization + website",
+    "fields": "MongoDB GridFS bytes/metadata; owner record required for authenticated access",
+    "indexes": "GridFS defaults",
+    "lifecycle": "Private persistent records; archive auditable; production lifecycle and orphan cleanup gate remains"
   }
 ]

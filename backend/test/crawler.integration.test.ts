@@ -127,7 +127,7 @@ test("embedded mode enforces API budgets and starts and stops the real child wor
     const health=await call("/health/ready");assert.equal(health.data.crawler.ready,true);
     // Isolated fixture: the real child must dispatch and refuse a private target.
     // Production website DTOs do not allow creating this target.
-    const unsafeSite=await Website.create({orgId:org,name:"Unsafe fixture",domain:"127.0.0.1",cmsType:"Other",status:"active",verificationStatus:"verified"});
+    const unsafeSite=await Website.create({orgId:org,name:"Unsafe fixture",verificationToken:"test-only",domain:"127.0.0.1",cmsType:"Other",status:"active",verificationStatus:"verified"});
     const unsafe=await CrawlJob.create({orgId:org,websiteId:unsafeSite._id,domain:"127.0.0.1",status:"queued",active:true,source:"test",config:{mode:"single",maxPages:1,renderJs:false,startUrl:"http://127.0.0.1/"}});
     let rejected:any;
     for(let i=0;i<100;i++){rejected=await CrawlJob.findById(unsafe._id).lean();if(!rejected.active)break;await new Promise(r=>setTimeout(r,100));}

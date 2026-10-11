@@ -1,6 +1,6 @@
 # AI Growth OS implementation status
 
-Updated 10 October 2026. Code/CI evidence and live deployment acceptance are separate gates.
+Updated 11 October 2026. Code/CI evidence and live deployment acceptance are separate gates.
 
 ## M1 — implemented and CI verified; remaining deployment gates
 
@@ -40,11 +40,19 @@ Do not label M2 complete based on the UI or CI alone. No production crawl record
 
 The API and web services are live at code commit `49f5c5da2b7cf2c6418bd59cccc1ee4b7c872fab`. Index migration completed on Render; both direct API readiness and readiness through the frontend proxy returned HTTP 200. The signed-out preview loaded in the browser with its approved layout and sample-data label; this is not authenticated/mobile workflow acceptance.
 
-Follow-up test-only commit `691a93ba041dc6cc094d848278edf7dad09f9635` passed CI, including active-fetch cancellation, domain changes and website archival preventing late snapshot/inventory publication: https://github.com/vedavyasreddygajulapalli/ai-growth-os/actions/runs/38057366546 . No application-code changes followed the deployed checkpoint.
+Follow-up test-only commit `691a93ba041dc6cc094d848278edf7dad09f9635` passed CI, including active-fetch cancellation, domain changes and website archival preventing late snapshot/inventory publication: https://github.com/vedavyasreddygajulapalli/ai-growth-os/actions/runs/38057366546 . The following development work has not yet been deployed.
 
-## M3 — next
+## Development-first sequence (supersedes earlier live-gate ordering)
 
-Brand & Media starts only after M1 and M2 acceptance gates close. Later milestone specifications do not imply implemented backend workflows. See `04-account-security-acceptance.md`, `05-audit-acceptance.md`, `06-foundation-operations.md` and `07-crawler-acceptance.md` for detailed gates.
+User authorized M2 free mode → M3 + M4 → one deployment/check; subsequent paired milestones follow the uploaded roadmap. Deep live email/DNS/worker, device, backup and performance gates remain recorded for later checkpoints/M12. No paid infrastructure was authorized.
+
+## M3 / M4 — development implementation; verification in progress
+
+Added tenant/website-scoped structured records for business profile, services/products, audiences, competitors, voice, claims, proof, sources, media, design, projects, keywords, topics/clusters, keyword groups, findings, opportunities, recommendations and tasks. Existing Brand, Research and Strategy navigation is reused. Forms, tables, filtering, pagination, details, approvals, archiving confirmation and version conflicts use authenticated APIs. Brand Memory includes approved unexpired records with provenance. Private MongoDB GridFS uploads support PNG/JPEG/WebP/PDF up to 2 MB and 100 files per website; videos use linked assets.
+
+Research context reuses Brand Memory, competitor records and crawl metadata. Coverage analysis produces explicitly labelled exact-phrase candidates, not semantic completeness or measured ranking claims. Calendar uses saved task due dates. Keyword metrics remain optional/manual with source fields; no provider metrics are fabricated.
+
+Local unit/UI tests and both builds have passed during development. New MongoDB/Redis integration CI is pending at this revision, and these screens are not deployed. This is not a production-complete claim. See `08-brand-research-acceptance.md` for exact scope and remaining gates.
 
 ## Free testing profile — 11 October (India time)
 

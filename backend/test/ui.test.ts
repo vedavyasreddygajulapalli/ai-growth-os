@@ -203,3 +203,26 @@ test("crawler UI reads real endpoints, renders empty/progress states and hides w
     assert.ok(calls.some(x=>x.endsWith("/crawls")));dom.window.close();
   }
 });
+
+test("Brand UI uses saved data, preserves ten modules, and restricts Viewer mutations",async()=>{
+ const org={_id:"a".repeat(24),name:"Saved workspace",role:"Viewer"};
+ const site={_id:"b".repeat(24),name:"Saved website",status:"active"};
+ const fetcher=async(url:string)=>{
+  let data:any;
+  if(url.endsWith("/auth/me"))data={name:"Viewer",emailVerifiedAt:"2026-01-01"};
+  else if(url.endsWith("/organizations"))data={items:[org]};
+  else if(url.includes("/websites?"))data={items:[site]};
+  else if(url.endsWith("/knowledge/catalog"))data={catalog:{business:{label:"Business profile",module:"brand",fields:[]}}};
+  else if(url.includes("/knowledge?"))data={items:[{_id:"c".repeat(24),title:"Persisted business",kind:"business",status:"draft",data:{},updatedAt:"2026-01-01"}],nextCursor:null};
+  else throw Error(url);
+  return {ok:true,status:200,json:async()=>data};
+ };
+ const dom=setup(true,fetcher);click(dom,"live");await tick();
+ runInContext('navigate("brand")',dom.getInternalVMContext());await tick();await tick();
+ const text=dom.window.document.querySelector(".page")!.textContent!;
+ assert.match(text,/Persisted business/);assert.doesNotMatch(text,/Acme Studio|86/);
+ assert.equal(dom.window.document.querySelectorAll(".nav a").length,10);
+ assert.equal(dom.window.document.querySelector('[data-live="knowledge-new"]'),null);
+ assert.equal(dom.window.document.querySelector('[data-live^="knowledge-edit:"]'),null);
+ dom.window.close();
+});

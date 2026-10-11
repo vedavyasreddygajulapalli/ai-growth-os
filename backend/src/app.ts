@@ -1,3 +1,4 @@
+import { KnowledgeController } from "./knowledge/controller";
 import { embeddedCrawlerReady, stopEmbeddedCrawler } from "./crawler/embedded";
 import { crawlSettings } from "./crawler/settings";
 import "reflect-metadata";
@@ -104,6 +105,7 @@ class HealthController {
     InvitationsController,
     WebsitesController,
     CrawlsController,
+    KnowledgeController,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }, {
     provide: "RESOURCE_LIFECYCLE", useValue: { async beforeApplicationShutdown() { await stopEmbeddedCrawler(); }, async onApplicationShutdown() { closeRateLimitStore(); await mongoose.disconnect(); } },
@@ -121,6 +123,7 @@ export async function createApp() {
     .map((x) => x.trim());
   if (process.env.TRUST_PROXY) app.getHttpAdapter().getInstance().set("trust proxy", process.env.TRUST_PROXY.split(",").map(s => s.trim()));
   app.use(helmet());
+  app.use("/api/v1/organizations/:orgId/websites/:websiteId/knowledge/upload", express.json({ limit: "3mb" }));
   app.use(express.json({ limit: "64kb" }));
   app.use(cookieParser());
   app.use((req: any, res: any, next: any) => {

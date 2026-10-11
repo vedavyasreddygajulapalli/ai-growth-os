@@ -13,7 +13,7 @@ export function startEmbeddedCrawler() {
     if (stopping) return;
     // Parsing stays off the API event loop. Do not pass account/email secrets.
     const env: NodeJS.ProcessEnv = {};
-    for (const name of ["PATH", "NODE_ENV", "MONGODB_URI", "REDIS_URL", "CRAWLER_ENABLED", "CRAWLER_EXECUTION", "CRAWLER_RENDER_JS", "NODE_EXTRA_CA_CERTS"])
+    for (const name of ["PATH", "NODE_ENV", "MONGODB_URI", "REDIS_URL", "CRAWLER_ENABLED", "CRAWLER_EXECUTION", "CRAWLER_EXECUTION_MODE", "CRAWLER_RENDER_JS", "NODE_EXTRA_CA_CERTS"])
       if (process.env[name] !== undefined) env[name] = process.env[name];
     child = fork(join(__dirname, "worker.js"), [], { env, execArgv: ["--max-old-space-size=128"], stdio: ["ignore", "inherit", "inherit", "ipc"] });
     child.on("message", message => {

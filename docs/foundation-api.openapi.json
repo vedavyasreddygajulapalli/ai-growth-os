@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "AI Growth OS Foundation API",
-    "version": "0.2.0",
-    "description": "Implemented foundation only. Future module needs are in screen-catalog.json. MongoDB replica set required."
+    "version": "0.3.0",
+    "description": "Implemented foundation, crawler and M3/M4 development workflows. MongoDB replica set required. Deployment acceptance tracked separately."
   },
   "servers": [
     {
@@ -3737,24 +3737,6 @@
           }
         },
         "responses": {
-          "401": {
-            "description": "Session required"
-          },
-          "403": {
-            "description": "Permission or origin denied"
-          },
-          "404": {
-            "description": "Workspace unavailable"
-          },
-          "422": {
-            "description": "Invalid filter or export limit exceeded"
-          },
-          "429": {
-            "description": "Rate limited"
-          },
-          "500": {
-            "description": "Database or audit write failed"
-          },
           "200": {
             "description": "JSON export snapshot",
             "content": {
@@ -3820,6 +3802,24 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Session required"
+          },
+          "403": {
+            "description": "Permission or origin denied"
+          },
+          "404": {
+            "description": "Workspace unavailable"
+          },
+          "422": {
+            "description": "Invalid filter or export limit exceeded"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "500": {
+            "description": "Database or audit write failed"
           }
         }
       }
@@ -4884,6 +4884,1398 @@
           }
         }
       }
+    },
+    "/organizations/{orgId}/websites/{websiteId}/knowledge": {
+      "get": {
+        "summary": "List structured records",
+        "description": "Verified session and active organization membership required. Writes: Owner/Admin/Marketing Manager/SEO Manager/Content Writer; approval: Owner/Admin/Marketing Manager. Origin and X-Growth-Client required on mutations. Every query is website-scoped.",
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          },
+          {
+            "name": "websiteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "business",
+                "services",
+                "products",
+                "audiences",
+                "competitors",
+                "voice",
+                "claims",
+                "proof",
+                "sources",
+                "media",
+                "design",
+                "projects",
+                "keywords",
+                "topics",
+                "groups",
+                "findings",
+                "opportunities",
+                "recommendations",
+                "tasks"
+              ]
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/KnowledgeRecord"
+                      }
+                    },
+                    "nextCursor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Session required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Role/origin denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Tenant-qualified record unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Duplicate/version/transition conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid fields",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected service failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organizations/{orgId}/websites/{websiteId}/knowledge/catalog": {
+      "get": {
+        "summary": "Get field and status catalog",
+        "description": "Verified session and active organization membership required. Writes: Owner/Admin/Marketing Manager/SEO Manager/Content Writer; approval: Owner/Admin/Marketing Manager. Origin and X-Growth-Client required on mutations. Every query is website-scoped.",
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          },
+          {
+            "name": "websiteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Session required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Role/origin denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Tenant-qualified record unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Duplicate/version/transition conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid fields",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected service failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organizations/{orgId}/websites/{websiteId}/knowledge/memory": {
+      "get": {
+        "summary": "Read approved, unexpired Brand Memory",
+        "description": "Verified session and active organization membership required. Writes: Owner/Admin/Marketing Manager/SEO Manager/Content Writer; approval: Owner/Admin/Marketing Manager. Origin and X-Growth-Client required on mutations. Every query is website-scoped.",
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          },
+          {
+            "name": "websiteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Session required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Role/origin denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Tenant-qualified record unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Duplicate/version/transition conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid fields",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected service failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organizations/{orgId}/websites/{websiteId}/knowledge/context": {
+      "get": {
+        "summary": "Read saved brand, competitor and crawl research context",
+        "description": "Verified session and active organization membership required. Writes: Owner/Admin/Marketing Manager/SEO Manager/Content Writer; approval: Owner/Admin/Marketing Manager. Origin and X-Growth-Client required on mutations. Every query is website-scoped.",
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          },
+          {
+            "name": "websiteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Session required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Role/origin denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Tenant-qualified record unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Duplicate/version/transition conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid fields",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected service failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organizations/{orgId}/websites/{websiteId}/knowledge/gaps": {
+      "get": {
+        "summary": "Get bounded exact-phrase coverage candidates",
+        "description": "Verified session and active organization membership required. Writes: Owner/Admin/Marketing Manager/SEO Manager/Content Writer; approval: Owner/Admin/Marketing Manager. Origin and X-Growth-Client required on mutations. Every query is website-scoped.",
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          },
+          {
+            "name": "websiteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Session required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Role/origin denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Tenant-qualified record unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Duplicate/version/transition conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid fields",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected service failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organizations/{orgId}/websites/{websiteId}/knowledge/calendar": {
+      "get": {
+        "summary": "Read due-date agenda",
+        "description": "Verified session and active organization membership required. Writes: Owner/Admin/Marketing Manager/SEO Manager/Content Writer; approval: Owner/Admin/Marketing Manager. Origin and X-Growth-Client required on mutations. Every query is website-scoped.",
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          },
+          {
+            "name": "websiteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Session required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Role/origin denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Tenant-qualified record unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Duplicate/version/transition conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid fields",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected service failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organizations/{orgId}/websites/{websiteId}/knowledge/{id}": {
+      "get": {
+        "summary": "Get scoped record",
+        "description": "Verified session and active organization membership required. Writes: Owner/Admin/Marketing Manager/SEO Manager/Content Writer; approval: Owner/Admin/Marketing Manager. Origin and X-Growth-Client required on mutations. Every query is website-scoped.",
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          },
+          {
+            "name": "websiteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KnowledgeRecord"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Session required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Role/origin denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Tenant-qualified record unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Duplicate/version/transition conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid fields",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected service failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "summary": "Replace editable fields with version check",
+        "description": "Verified session and active organization membership required. Writes: Owner/Admin/Marketing Manager/SEO Manager/Content Writer; approval: Owner/Admin/Marketing Manager. Origin and X-Growth-Client required on mutations. Every query is website-scoped.",
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          },
+          {
+            "name": "websiteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KnowledgeRecord"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Session required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Role/origin denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Tenant-qualified record unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Duplicate/version/transition conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid fields",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected service failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KnowledgeUpdate"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organizations/{orgId}/websites/{websiteId}/knowledge/upload": {
+      "post": {
+        "summary": "Upload private media (2 MB; 100 files per website)",
+        "description": "Verified session and active organization membership required. Writes: Owner/Admin/Marketing Manager/SEO Manager/Content Writer; approval: Owner/Admin/Marketing Manager. Origin and X-Growth-Client required on mutations. Every query is website-scoped.",
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          },
+          {
+            "name": "websiteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KnowledgeRecord"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Session required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Role/origin denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Tenant-qualified record unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Duplicate/version/transition conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid fields",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected service failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "name",
+                  "type",
+                  "base64"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "image/png",
+                      "image/jpeg",
+                      "image/webp",
+                      "application/pdf"
+                    ]
+                  },
+                  "base64": {
+                    "type": "string",
+                    "maxLength": 2800000,
+                    "contentEncoding": "base64"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organizations/{orgId}/websites/{websiteId}/knowledge/{id}/download": {
+      "get": {
+        "summary": "Download private attachment",
+        "description": "Verified session and active organization membership required. Writes: Owner/Admin/Marketing Manager/SEO Manager/Content Writer; approval: Owner/Admin/Marketing Manager. Origin and X-Growth-Client required on mutations. Every query is website-scoped.",
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          },
+          {
+            "name": "websiteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Private attachment; no inline rendering",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Session required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Role/origin denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Tenant-qualified record unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Duplicate/version/transition conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid fields",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected service failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organizations/{orgId}/websites/{websiteId}/knowledge/records/{kind}": {
+      "post": {
+        "summary": "Create structured record",
+        "description": "Verified session and active organization membership required. Writes: Owner/Admin/Marketing Manager/SEO Manager/Content Writer; approval: Owner/Admin/Marketing Manager. Origin and X-Growth-Client required on mutations. Every query is website-scoped.",
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          },
+          {
+            "name": "websiteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "business",
+                "services",
+                "products",
+                "audiences",
+                "competitors",
+                "voice",
+                "claims",
+                "proof",
+                "sources",
+                "media",
+                "design",
+                "projects",
+                "keywords",
+                "topics",
+                "groups",
+                "findings",
+                "opportunities",
+                "recommendations",
+                "tasks"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KnowledgeRecord"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Session required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Role/origin denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Tenant-qualified record unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Duplicate/version/transition conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid fields",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected service failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KnowledgeWrite"
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -5615,6 +7007,944 @@
         "required": [
           "items"
         ]
+      },
+      "KnowledgeData_business": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "industry": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "positioning": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "valueProposition": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "differentiators": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "markets": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "locations": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "goals": {
+            "type": "string",
+            "maxLength": 8000
+          }
+        }
+      },
+      "KnowledgeData_services": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "features": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "benefits": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "pains": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "audiences": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "keywords": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 2048,
+            "description": "HTTP(S) only; no URL credentials"
+          },
+          "pricing": {
+            "type": "string",
+            "maxLength": 8000
+          }
+        }
+      },
+      "KnowledgeData_products": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "features": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "benefits": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "pains": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "audiences": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "keywords": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 2048,
+            "description": "HTTP(S) only; no URL credentials"
+          },
+          "pricing": {
+            "type": "string",
+            "maxLength": 8000
+          }
+        }
+      },
+      "KnowledgeData_audiences": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "persona": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "role": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "industry": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "pains": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "needs": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "objections": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "motivations": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "intent": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "funnel": {
+            "type": "string",
+            "maxLength": 200
+          }
+        }
+      },
+      "KnowledgeData_competitors": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 2048,
+            "description": "HTTP(S) only; no URL credentials"
+          },
+          "positioning": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "strengths": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "weaknesses": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "trackedUrls": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 8000
+          }
+        }
+      },
+      "KnowledgeData_voice": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "tone": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "personality": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "vocabulary": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "preferred": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "banned": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "writing": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "formatting": {
+            "type": "string",
+            "maxLength": 8000
+          }
+        }
+      },
+      "KnowledgeData_claims": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "claim": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "evidence": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "sourceUrl": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 2048,
+            "description": "HTTP(S) only; no URL credentials"
+          },
+          "usage": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "restrictions": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "reviewDate": {
+            "type": "string",
+            "format": "date"
+          }
+        }
+      },
+      "KnowledgeData_proof": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "proofType": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "result": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "sourceUrl": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 2048,
+            "description": "HTTP(S) only; no URL credentials"
+          },
+          "permission": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "reviewDate": {
+            "type": "string",
+            "format": "date"
+          }
+        }
+      },
+      "KnowledgeData_sources": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "sourceType": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 2048,
+            "description": "HTTP(S) only; no URL credentials"
+          },
+          "content": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "freshness": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "reviewDate": {
+            "type": "string",
+            "format": "date"
+          }
+        }
+      },
+      "KnowledgeData_media": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 2048,
+            "description": "HTTP(S) only; no URL credentials"
+          },
+          "mediaType": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "folder": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "tags": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "alt": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "caption": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "rights": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "usage": {
+            "type": "string",
+            "maxLength": 8000
+          }
+        }
+      },
+      "KnowledgeData_design": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "logoUrl": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 2048,
+            "description": "HTTP(S) only; no URL credentials"
+          },
+          "colors": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "typography": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "imageStyle": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "buttons": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "do": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "dont": {
+            "type": "string",
+            "maxLength": 8000
+          }
+        }
+      },
+      "KnowledgeData_projects": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "researchType": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "market": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "audience": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "owner": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 8000
+          }
+        }
+      },
+      "KnowledgeData_keywords": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "source": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "volume": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1000000000000
+          },
+          "difficulty": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "intent": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "relevance": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "brandFit": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "targetUrl": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 2048,
+            "description": "HTTP(S) only; no URL credentials"
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 8000
+          }
+        }
+      },
+      "KnowledgeData_topics": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "intent": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "keywords": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "pillarUrl": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 2048,
+            "description": "HTTP(S) only; no URL credentials"
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 8000
+          }
+        }
+      },
+      "KnowledgeData_groups": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "keywords": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "intent": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 8000
+          }
+        }
+      },
+      "KnowledgeData_findings": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "finding": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "evidence": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "sourceUrl": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 2048,
+            "description": "HTTP(S) only; no URL credentials"
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 8000
+          }
+        }
+      },
+      "KnowledgeData_opportunities": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "evidence": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "impact": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "effort": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "priority": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "action": {
+            "type": "string",
+            "maxLength": 8000
+          }
+        }
+      },
+      "KnowledgeData_recommendations": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "rationale": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "evidence": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "impact": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "effort": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "priority": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "owner": {
+            "type": "string",
+            "maxLength": 200
+          }
+        }
+      },
+      "KnowledgeData_tasks": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "owner": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "priority": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "dueDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "outcome": {
+            "type": "string",
+            "maxLength": 8000
+          }
+        }
+      },
+      "KnowledgeWrite": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "title"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 200
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "in_review",
+              "approved",
+              "in_progress",
+              "completed",
+              "archived"
+            ],
+            "default": "draft"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/KnowledgeData_business"
+              },
+              {
+                "$ref": "#/components/schemas/KnowledgeData_services"
+              },
+              {
+                "$ref": "#/components/schemas/KnowledgeData_products"
+              },
+              {
+                "$ref": "#/components/schemas/KnowledgeData_audiences"
+              },
+              {
+                "$ref": "#/components/schemas/KnowledgeData_competitors"
+              },
+              {
+                "$ref": "#/components/schemas/KnowledgeData_voice"
+              },
+              {
+                "$ref": "#/components/schemas/KnowledgeData_claims"
+              },
+              {
+                "$ref": "#/components/schemas/KnowledgeData_proof"
+              },
+              {
+                "$ref": "#/components/schemas/KnowledgeData_sources"
+              },
+              {
+                "$ref": "#/components/schemas/KnowledgeData_media"
+              },
+              {
+                "$ref": "#/components/schemas/KnowledgeData_design"
+              },
+              {
+                "$ref": "#/components/schemas/KnowledgeData_projects"
+              },
+              {
+                "$ref": "#/components/schemas/KnowledgeData_keywords"
+              },
+              {
+                "$ref": "#/components/schemas/KnowledgeData_topics"
+              },
+              {
+                "$ref": "#/components/schemas/KnowledgeData_groups"
+              },
+              {
+                "$ref": "#/components/schemas/KnowledgeData_findings"
+              },
+              {
+                "$ref": "#/components/schemas/KnowledgeData_opportunities"
+              },
+              {
+                "$ref": "#/components/schemas/KnowledgeData_recommendations"
+              },
+              {
+                "$ref": "#/components/schemas/KnowledgeData_tasks"
+              }
+            ],
+            "description": "Must match the record kind returned by catalog; unknown fields rejected."
+          },
+          "references": {
+            "type": "array",
+            "maxItems": 50,
+            "items": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          }
+        }
+      },
+      "KnowledgeUpdate": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "title",
+          "version"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 200
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "in_review",
+              "approved",
+              "in_progress",
+              "completed",
+              "archived"
+            ],
+            "default": "draft"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/KnowledgeData_business"
+              },
+              {
+                "$ref": "#/components/schemas/KnowledgeData_services"
+              },
+              {
+                "$ref": "#/components/schemas/KnowledgeData_products"
+              },
+              {
+                "$ref": "#/components/schemas/KnowledgeData_audiences"
+              },
+              {
+                "$ref": "#/components/schemas/KnowledgeData_competitors"
+              },
+              {
+                "$ref": "#/components/schemas/KnowledgeData_voice"
+              },
+              {
+                "$ref": "#/components/schemas/KnowledgeData_claims"
+              },
+              {
+                "$ref": "#/components/schemas/KnowledgeData_proof"
+              },
+              {
+                "$ref": "#/components/schemas/KnowledgeData_sources"
+              },
+              {
+                "$ref": "#/components/schemas/KnowledgeData_media"
+              },
+              {
+                "$ref": "#/components/schemas/KnowledgeData_design"
+              },
+              {
+                "$ref": "#/components/schemas/KnowledgeData_projects"
+              },
+              {
+                "$ref": "#/components/schemas/KnowledgeData_keywords"
+              },
+              {
+                "$ref": "#/components/schemas/KnowledgeData_topics"
+              },
+              {
+                "$ref": "#/components/schemas/KnowledgeData_groups"
+              },
+              {
+                "$ref": "#/components/schemas/KnowledgeData_findings"
+              },
+              {
+                "$ref": "#/components/schemas/KnowledgeData_opportunities"
+              },
+              {
+                "$ref": "#/components/schemas/KnowledgeData_recommendations"
+              },
+              {
+                "$ref": "#/components/schemas/KnowledgeData_tasks"
+              }
+            ],
+            "description": "Must match the record kind returned by catalog; unknown fields rejected."
+          },
+          "references": {
+            "type": "array",
+            "maxItems": 50,
+            "items": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "KnowledgeRecord": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{24}$"
+          },
+          "orgId": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{24}$"
+          },
+          "websiteId": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{24}$"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "business",
+              "services",
+              "products",
+              "audiences",
+              "competitors",
+              "voice",
+              "claims",
+              "proof",
+              "sources",
+              "media",
+              "design",
+              "projects",
+              "keywords",
+              "topics",
+              "groups",
+              "findings",
+              "opportunities",
+              "recommendations",
+              "tasks"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "in_review",
+              "approved",
+              "in_progress",
+              "completed",
+              "archived"
+            ]
+          },
+          "data": {
+            "type": "object"
+          },
+          "references": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          },
+          "source": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          },
+          "updatedBy": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{24}$"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "fileId": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{24}$"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "fileType": {
+            "type": "string"
+          },
+          "fileBytes": {
+            "type": "integer"
+          }
+        }
       }
     }
   }

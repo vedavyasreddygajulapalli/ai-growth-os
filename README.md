@@ -43,3 +43,9 @@ Code commit `49f5c5da2b7cf2c6418bd59cccc1ee4b7c872fab` is live on both existing 
 
 ## Free crawler testing mode
 The existing API can supervise the crawler using `CRAWLER_EXECUTION=embedded`, `CRAWLER_ENABLED=true`, `CRAWLER_RENDER_JS=false` and a private `REDIS_URL`. This profile caps crawls at 20 pages, one concurrent job and five sitemap files. Real results remain in MongoDB; the approved UI is unchanged apart from permitted form values. Free hosting can sleep and free Redis can reset, so queued/interrupted jobs may wait or require retry. Do not use this profile as proof of reliable unattended production crawling. See the free-to-paid migration steps in `docs/07-crawler-acceptance.md`.
+
+### M3/M4 development workspace
+
+Brand & Knowledge, Research and Strategy now have authenticated, website-scoped MongoDB record workflows using the approved UI. The field catalog and acceptance scope are in `docs/08-brand-research-acceptance.md`. Run the same migrations and build/test commands; no new external credentials are needed. Media uploads are stored privately in MongoDB GridFS (2 MB/file, 100 uploads/website), while larger/video assets may be linked. External keyword metrics are not generated or fabricated.
+
+Deployment cadence follows the development-first roadmap: M3+M4, M5+M6, M7+M8, M9+M10, separate M11, then M12 final acceptance. A successful code gate is distinct from live production acceptance.
