@@ -38,3 +38,7 @@ Render may sleep or restart the free API, and free Key Value loses its contents 
 To move to paid: stop new submissions (CRAWLER_ENABLED=false), let active jobs finish or cancel them, stop the embedded child, provision the dedicated worker and durable Redis, set CRAWLER_EXECUTION_MODE=dedicated on API/worker and the same private REDIS_URL, start the worker, verify readiness/crawl acceptance, then enable submissions. No account/data/UI migration is needed. Never upgrade a free Redis instance with active jobs: its queue state is lost on upgrade. Keep the existing MongoDB data. The dedicated worker remains available with npm run worker --prefix backend.
 
 Added regression coverage: enforced API/default limits, JS prohibition, capability-driven form values, real child process startup/stop, Redis global concurrency and dispatch of an isolated unsafe target rejected by the SSRF fetcher. CI/live results must be recorded after execution; local MongoDB remains unavailable in this execution environment.
+
+## Free-mode evidence — 11 October 2026
+
+CI run 38102116778 passes the real MongoDB/Redis child-process startup/shutdown, global concurrency, API limit and private-target rejection test. The earlier fixture failure was a missing test-only website verificationToken, corrected without changing production verification rules. Render API and web are live at ba9affba990d3b4eb0a8ba834b50ea82bfa89f75. Direct/proxied readiness reports embedded crawler ready. Authenticated live verified-domain crawling is still a later acceptance gate.

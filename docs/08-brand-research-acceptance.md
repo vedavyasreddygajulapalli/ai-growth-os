@@ -32,10 +32,12 @@ Each list has website selection, title/status filters, cursor pagination, explic
 - Upload private bytes, download through authorized route; reject invalid/mismatched/oversized media.
 - Keep all ten navigation entries, saved UI data and Viewer restrictions.
 
-These tests are implemented. Record successful CI evidence in implementation-status only after the actual run passes.
+All 25 unit/UI and 30 integration tests passed in CI run 38102116778 for code commit ba9affba990d3b4eb0a8ba834b50ea82bfa89f75. This includes scoped persisted writes, uploads/downloads, approval/version checks, named editor choices, crawl-source import and the real free child worker. Backend and frontend production builds passed.
 
 ## Deployment checkpoint and remaining limits
 
 Deploy once after the M3/M4 code gate is green, run migrations/readiness and exercise one primary workflow for each with an authenticated account. No verified account is invented or bypassed for acceptance. Keep free crawler deployment opt-in. Live DNS/email, production persistent Redis/dedicated worker and broad mobile/security/performance checks remain later gates.
 
 Current research is a manual/evidence workflow plus deterministic crawl-metadata coverage, not a live external keyword data service. Linked media URLs are stored, never fetched by the API. Uploaded files are limited to development sizes; video upload/transcoding, malware scanning, object-storage lifecycle and crash-orphan GridFS cleanup remain hardening work. Media folder/tag/usage values are stored metadata, not an automatic downstream usage tracker. Brand-source file text extraction and automatic competitor crawling are not claimed. Calendar is a date-range agenda rather than a drag-and-drop scheduler. These limits must remain visible in future milestone acceptance.
+
+Checkpoint outcome: both Render services live, migrations complete, direct/proxied readiness HTTP 200 with embedded crawler ready. Browser is signed out; primary authenticated live M3/M4 workflows remain an explicit acceptance gate. No live email or real-domain crawl acceptance is inferred from CI.

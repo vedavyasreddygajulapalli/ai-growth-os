@@ -46,14 +46,25 @@ Follow-up test-only commit `691a93ba041dc6cc094d848278edf7dad09f9635` passed CI,
 
 User authorized M2 free mode → M3 + M4 → one deployment/check; subsequent paired milestones follow the uploaded roadmap. Deep live email/DNS/worker, device, backup and performance gates remain recorded for later checkpoints/M12. No paid infrastructure was authorized.
 
-## M3 / M4 — development implementation; verification in progress
+## M3 / M4 — development code verified and deployed; live user acceptance remaining
 
 Added tenant/website-scoped structured records for business profile, services/products, audiences, competitors, voice, claims, proof, sources, media, design, projects, keywords, topics/clusters, keyword groups, findings, opportunities, recommendations and tasks. Existing Brand, Research and Strategy navigation is reused. Forms, tables, filtering, pagination, details, approvals, archiving confirmation and version conflicts use authenticated APIs. Brand Memory includes approved unexpired records with provenance. Private MongoDB GridFS uploads support PNG/JPEG/WebP/PDF up to 2 MB and 100 files per website; videos use linked assets.
 
 Research context reuses Brand Memory, competitor records and crawl metadata. Coverage analysis produces explicitly labelled exact-phrase candidates, not semantic completeness or measured ranking claims. Calendar uses saved task due dates. Keyword metrics remain optional/manual with source fields; no provider metrics are fabricated.
 
-Local unit/UI tests and both builds have passed during development. New MongoDB/Redis integration CI is pending at this revision, and these screens are not deployed. This is not a production-complete claim. See `08-brand-research-acceptance.md` for exact scope and remaining gates.
+Code commit `ba9affba990d3b4eb0a8ba834b50ea82bfa89f75` passed backend/frontend builds, 25 unit/UI tests and 30 MongoDB/Redis integration tests (no skips): https://github.com/vedavyasreddygajulapalli/ai-growth-os/actions/runs/38102116778 . Both services were deployed once at this checkpoint. This is not a production-complete claim. See `08-brand-research-acceptance.md` for exact scope and remaining gates.
 
 ## Free testing profile — 11 October (India time)
 
-User approved a free temporary crawler setup with unchanged visual design. A private free Render Key Value instance is provisioned in Singapore (no external IP access; noeviction). Added an opt-in supervised API child process, 20-page/one-job/no-JS limits, bounded sitemap/runtime budgets, capability-driven values in the existing form, and a documented transition to dedicated paid infrastructure. No new paid service is authorized or created. Local compilation and unit/UI tests pass; the new child-process MongoDB/Redis integration test and deployment checks remain pending at this source revision. This does not close authenticated live crawl/email acceptance.
+User approved a free temporary crawler setup with unchanged visual design. A private free Render Key Value instance is provisioned in Singapore (no external IP access; noeviction). Added an opt-in supervised API child process, 20-page/one-job/no-JS limits, bounded sitemap/runtime budgets, capability-driven values in the existing form, and a documented transition to dedicated paid infrastructure. No new paid service is authorized or created. The real child-process MongoDB/Redis integration test passed in CI. Free mode is now enabled on the existing API using the private free Key Value instance; direct and proxied readiness report embedded crawler ready. This does not close authenticated live crawl/email acceptance.
+
+## Combined M3/M4 deployment checkpoint — 11 October 2026
+
+- Code: `ba9affba990d3b4eb0a8ba834b50ea82bfa89f75`.
+- API deployment `dep-db5eetd9fdbs73cj4sj0`: live. Web deployment `dep-db5ef3flk1mc739nb420`: live.
+- MongoDB migration/index command completed in Render startup logs at 01:34:38 UTC.
+- Direct API and web-proxied `/api/v1/health/ready`: HTTP 200, `status: ready`, `crawler: {mode: embedded, ready: true}`.
+- Browser preview loads the approved ten-module shell, labels preview records as sample data, and opens the real workspace sign-in gate without a service-unavailable error.
+- Authenticated live M3/M4 write/read workflows were not exercised: the browser has no signed-in verified account. No user credentials were requested, invented or bypassed. The equivalent API workflows passed with isolated real MongoDB data in CI.
+- Broad responsive/device, real-domain crawl, live email, load/security, malware scanning, backup/restore and operational acceptance remain open.
+- Next ordered development phase: M5 Content & AI CMS, then M6 WordPress; next deployment checkpoint after that pair. No M5/M6 implementation is claimed in this checkpoint.
