@@ -11,6 +11,8 @@ import {snapshot} from './scope';
 import {importWordPress} from './import';
 import {versionDto} from './contracts';
 import {wordpress,seal,cmsError} from './wordpress';
+import {SeoSchemaDraft} from '../seo/models';
+const sameJson=(a:any,b:any):boolean=>JSON.stringify(a,Object.keys(a||{}).sort())===JSON.stringify(b,Object.keys(b||{}).sort());
 const publicConnection=(c:any)=>c?{_id:c._id,origin:c.origin,username:c.username,status:c.status,version:c.version,checkedAt:c.checkedAt,capabilities:c.capabilities}:null;
 @Controller('organizations/:orgId/websites/:websiteId/cms')
 @UseGuards(AuthGuard,VerifiedGuard)
@@ -43,6 +45,29 @@ export class CmsController{
   const job=await PublishJob.findOne({_id:key,orgId:org,websiteId:site,status:'needs_review'});if(!job)fail(409,'JOB_CHANGED','This job no longer needs reconciliation.');
   const c=await CmsConnection.findOne({orgId:org,websiteId:site,status:'connected',version:job.connectionVersion}).select('+encryptedSecret');
   if(!c||website.version!==job.websiteVersion||website.verificationStatus!=='verified')fail(409,'CMS_CONNECTION_CHANGED','Restore and verify the original connection before checking its outcome.');
+  if(job.operation==='schema'){
+   const metaKey=process.env.CMS_SCHEMA_META_KEY||'';if(!/^[a-z][a-z0-9_]{2,63}$/.test(metaKey))fail(503,'CMS_SCHEMA_META_UNSUPPORTED','Registered WordPress schema meta is not configured.');
+   const schema:any=await SeoSchemaDraft.findOne({_id:job.schemaId,orgId:org,websiteId:site,status:'publishing',version:job.schemaVersion,publicationJobId:job._id});if(!schema)fail(409,'JOB_CHANGED','Schema publication state changed.');
+   const content:any=await ContentItem.findOne({_id:job.contentId,orgId:org,websiteId:site,version:job.contentVersion,status:'published'});if(!content||content.remoteId!==job.remoteId)fail(409,'VERSION_CONFLICT','The published WordPress target changed.');
+   const endpoint=(content.type==='page'?'pages':'posts')+'/'+content.remoteId+'?context=edit';let remote:any;
+   try{remote=await wordpress(c,endpoint);}catch(e){fail(502,cmsError(e),'Remote schema outcome could not be read. No write or retry was made.');}
+   if(!remote.meta||!Object.prototype.hasOwnProperty.call(remote.meta,metaKey))fail(409,'CMS_SCHEMA_META_UNSUPPORTED','The WordPress REST meta adapter is not exposed for this post type.');
+   const applied=sameJson(remote.meta[metaKey],schema.jsonLd);
+   return transaction(async session=>{
+    const currentSite=await scope(req,org,site,publishers,session);
+    if(currentSite.version!==job.websiteVersion||!await CmsConnection.exists({_id:c._id,version:job.connectionVersion,status:'connected'}).session(session))fail(409,'CMS_CONNECTION_CHANGED','Connection changed.');
+    const currentSchema:any=await SeoSchemaDraft.findOne({_id:job.schemaId,orgId:org,websiteId:site,status:'publishing',version:job.schemaVersion,publicationJobId:job._id}).session(session);
+    const currentContent:any=await ContentItem.findOne({_id:job.contentId,orgId:org,websiteId:site,status:'published',version:job.contentVersion}).session(session);
+    if(!currentSchema||!currentContent)fail(409,'VERSION_CONFLICT','Schema or target changed during reconciliation.');
+    const before=currentSchema.toObject();currentSchema.status='approved';currentSchema.publicationJobId=undefined;currentSchema.updatedBy=req.user._id;
+    if(applied){currentSchema.lastPublishedAt=new Date();currentSchema.lastPublishedJobId=job._id;currentContent.remoteModified=remote.modified_gmt;currentContent.version++;await currentContent.save({session});}
+    currentSchema.version++;await currentSchema.save({session});
+    const resolved=await PublishJob.findOneAndUpdate({_id:job._id,status:'needs_review',version:job.version},{$set:{status:applied?'completed':'reconciled',finishedAt:new Date()},$inc:{version:1}},{new:true,session});
+    if(!resolved)fail(409,'JOB_CHANGED','Job changed.');
+    await log(session,req,org,'seo.schema.publication_reconciled','seo_schema',currentSchema._id,before,{...currentSchema.toObject(),applied,jobId:job._id});
+    return {message:applied?'Confirmed structured data in WordPress.':'WordPress does not contain the approved structured data. No retry was made; the approved draft is available for a new reviewed request.',applied,job:resolved,schema:currentSchema};
+   });
+  }
   const item=await ContentItem.findOne({_id:job.contentId,orgId:org,websiteId:site});if(!item)fail(404,'NOT_FOUND','Content unavailable.');
   const endpoint=item.type==='page'?'pages':'posts';let results:any[];
   try{results=job.remoteId||item.remoteId?[await wordpress(c,endpoint+'/'+(job.remoteId||item.remoteId)+'?context=edit')]:await wordpress(c,endpoint+'?context=edit&slug='+encodeURIComponent(item.slug));}catch(e){fail(502,cmsError(e),'Remote outcome could not be read. No publishing retry was made.');}
