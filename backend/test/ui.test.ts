@@ -272,6 +272,8 @@ test("SEO workspace uses scoped crawl evidence and shows providers as disconnect
   else if(url.endsWith("/seo/summary"))data={crawl:{id:"c".repeat(24),status:"completed",completedAt:"2026-10-11T00:00:00Z",truncated:false},auditedPages:33,indexable:24,notIndexable:4,unknown:5,issues:[],providers:{}};
   else if(url.endsWith("/seo/providers"))data={items:[{key:"search_console",label:"Google Search Console",data:"Search performance",connection:"OAuth authorization required",status:"disconnected",property:null,version:null,metricsAvailable:false},{key:"rankings",label:"Keyword rankings",data:"Ranking observations",connection:"Provider authorization required",status:"disconnected",property:null,version:null,metricsAvailable:false},{key:"ai_visibility",label:"AI visibility",data:"Citation observations",connection:"Provider authorization required",status:"disconnected",property:null,version:null,metricsAvailable:false}]};
   else if(url.endsWith("/seo/schema"))data={items:[]};
+  else if(url.endsWith("/seo/publish-targets"))data={items:[],available:false,reason:"WordPress schema publication is not configured."};
+  else if(url.endsWith("/cms/jobs"))data={items:[]};
   else if(url.endsWith("/seo/providers/search_console/connect")&&opts.method==="POST"){data={key:"search_console",status:"authorization_required",property:"sc-domain:saved.example.com",version:0,notice:"Authorization is not connected yet. No provider data is available until a verified provider authorization flow is configured."};}
   else throw Error("Unexpected request "+url);
   return {ok:true,status:200,json:async()=>data};
