@@ -6706,7 +6706,13 @@
                     "type": "string",
                     "format": "uuid"
                   }
-                }
+                },
+                "required": [
+                  "idempotencyKey",
+                  "title",
+                  "slug",
+                  "type"
+                ]
               }
             }
           }
@@ -6914,7 +6920,13 @@
                     "type": "integer",
                     "minimum": 0
                   }
-                }
+                },
+                "required": [
+                  "version",
+                  "title",
+                  "slug",
+                  "type"
+                ]
               }
             }
           }
@@ -6998,7 +7010,11 @@
                   "allowSelfApproval": {
                     "type": "boolean"
                   }
-                }
+                },
+                "required": [
+                  "version",
+                  "action"
+                ]
               }
             }
           }
@@ -7120,7 +7136,11 @@
                   "revision": {
                     "type": "integer"
                   }
-                }
+                },
+                "required": [
+                  "version",
+                  "revision"
+                ]
               }
             }
           }
@@ -7251,7 +7271,11 @@
                       }
                     }
                   }
-                }
+                },
+                "required": [
+                  "name",
+                  "blocks"
+                ]
               }
             }
           }
@@ -7332,7 +7356,12 @@
                   "instruction": {
                     "type": "string"
                   }
-                }
+                },
+                "required": [
+                  "version",
+                  "operation",
+                  "instruction"
+                ]
               }
             }
           }
@@ -7408,7 +7437,10 @@
                     "type": "integer",
                     "minimum": 0
                   }
-                }
+                },
+                "required": [
+                  "version"
+                ]
               }
             }
           }
@@ -7518,7 +7550,11 @@
                     "type": "integer",
                     "minimum": 0
                   }
-                }
+                },
+                "required": [
+                  "username",
+                  "applicationPassword"
+                ]
               }
             }
           }
@@ -7578,7 +7614,10 @@
                     "type": "integer",
                     "minimum": 0
                   }
-                }
+                },
+                "required": [
+                  "version"
+                ]
               }
             }
           }
@@ -7742,7 +7781,11 @@
                     "type": "string",
                     "format": "date-time"
                   }
-                }
+                },
+                "required": [
+                  "version",
+                  "operation"
+                ]
               }
             }
           }
@@ -7810,7 +7853,10 @@
                     "type": "integer",
                     "minimum": 0
                   }
-                }
+                },
+                "required": [
+                  "version"
+                ]
               }
             }
           }
@@ -7930,8 +7976,8 @@
                 "additionalProperties": false,
                 "required": [
                   "remoteId",
-                  "type",
-                  "acceptSimplifiedFormatting"
+                  "acceptSimplifiedFormatting",
+                  "type"
                 ],
                 "properties": {
                   "remoteId": {

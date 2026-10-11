@@ -72,3 +72,5 @@ User approved a free temporary crawler setup with unchanged visual design. A pri
 ## M5 / M6 — development in progress
 
 Content library/editor, versioned review/approval, optional AI proposals, encrypted WordPress connection, safe queued draft/publish/schedule/cancel and read-only uncertain-outcome reconciliation are implemented in this checkpoint. Approved UI patterns/navigation remain unchanged. See [acceptance and remaining gates](09-content-wordpress-acceptance.md). Media publishing/import, richer design/refresh workflows and live integration acceptance remain; this is not M5/M6 completion. M7 has not started.
+
+M5/M6 checkpoint evidence: commit `ae83aef2e00aa709d769f8eade5e95ea432cdd69`, CI run https://github.com/vedavyasreddygajulapalli/ai-growth-os/actions/runs/38113853672 — both builds, 30 unit/UI and 36 MongoDB/Redis integration tests passed, zero skips. Safe-block remote import is now persisted and origin-bound. No M5/M6 deployment was performed; the existing preview remains the earlier M3/M4 deployment. Remaining implementation and live gates are listed in the M5/M6 acceptance document.

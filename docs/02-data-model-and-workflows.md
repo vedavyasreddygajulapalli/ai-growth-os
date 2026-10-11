@@ -357,3 +357,11 @@ These support implementation choices; product behavior derives from the attached
 
 ## Implemented M2 storage mapping
 `backend/src/crawler/models.ts` is the implementation schema. crawl_jobs replaces the earlier conceptual website_crawls name. crawl_pages stores per-job snapshots (no duplicate crawl_snapshots collection); website_urls stores latest observed records. crawl_errors, discovered_links, robots_records, sitemap_records and technical_issues carry tenant/site/job scope. MongoDB queued jobs provide a durable dispatch outbox to BullMQ. The optional worker is separately deployable and current API submission remains disabled until configured. See 07-crawler-acceptance.md for safety, limits and acceptance gates.
+
+### M5/M6 implemented development mapping (11 October 2026)
+
+Current `/content` routes use `content_items`, immutable `content_versions`, approved `content_templates`, `content_ai_requests`, encrypted `cms_connections` and durable `publish_jobs`. Approval decisions are recorded in append-only audit entries and bound to the item's immutable revision; the broader `content_approvals` catalog remains a target for richer review history. The implementation does not yet claim the entire WordPress integration contract above.
+
+HTTP requests validate scope/role/version and queue MongoDB jobs. The supervised or dedicated worker dispatches through BullMQ, checks authorization again, writes WordPress, then records the result. Unknown external outcomes stay blocked until read-only reconciliation identifies the exact content/revision marker. Known failures before any write can be retried by submitting the still-approved revision again. Imported and synchronized content retain their remote origin; changing a website domain does not authorize writing old remote IDs at a new origin. Draft sync cannot downgrade a live post.
+
+Remote import is a local-only, idempotent operation with explicit simplified-formatting acceptance. Arbitrary HTML, custom blocks and media are not silently round-tripped. See `09-content-wordpress-acceptance.md` for pending media, design, refresh and live integration gates.
