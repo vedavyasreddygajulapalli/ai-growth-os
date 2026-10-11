@@ -16,7 +16,7 @@
     auditFilters: {},
     crawlSite: null, crawls: [], crawlSummary: null, crawlFocus: null,
     crawlReport: null, urlItems: [], urlTotal: 0, urlPage: 1, urlFilters: {},
-    seoSite: null, seoSummary: null, seoProviders: [], seoDrafts: [], seoTab: "Overview", seoLoading: false, seoLoaded: false,
+    seoSite: null, seoSummary: null, seoProviders: [], seoDrafts: [], seoTargets: [], seoTargetStatus: null, seoJobs: [], seoTab: "Overview", seoLoading: false, seoLoaded: false,
     sessions: [],
     securityEvents: [],
     error: "",
@@ -591,11 +591,11 @@
       live.sites=sites.items;
       const site=(live.seoSite&&sites.items.find(s=>s._id===live.seoSite._id&&s.status==="active"))||sites.items.find(s=>s.status==="active");
       live.seoSite=site||null;live.seoLoaded=true;
-      if(!site){live.seoSummary=null;live.seoProviders=[];live.seoDrafts=[];return;}
+      if(!site){live.seoSummary=null;live.seoProviders=[];live.seoDrafts=[];live.seoTargets=[];live.seoTargetStatus=null;live.seoJobs=[];return;}
       live.crawlSite=site;const path=orgPath("/websites/"+site._id+"/seo");
-      const result=await Promise.all([api(path+"/summary"),api(path+"/providers"),api(path+"/schema")]);
+      const result=await Promise.all([api(path+"/summary"),api(path+"/providers"),api(path+"/schema"),api(path+"/publish-targets"),api(orgPath("/cms/jobs"))]);
       if(generation!==live.generation||orgId!==(live.org&&live.org._id)||(live.seoSite&&live.seoSite._id)!==site._id)return;
-      live.seoSummary=result[0];live.seoProviders=result[1].items;live.seoDrafts=result[2].items;
+      live.seoSummary=result[0];live.seoProviders=result[1].items;live.seoDrafts=result[2].items;live.seoTargets=result[3].items;live.seoTargetStatus=result[3];live.seoJobs=(result[4].items||[]).filter(j=>j.operation==="schema");
     } catch(e){if(generation===live.generation)live.error=e.message;}
     finally{if(generation===live.generation){live.seoLoading=false;render();}}
   }
