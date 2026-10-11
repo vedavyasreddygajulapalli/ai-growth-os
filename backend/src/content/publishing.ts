@@ -15,8 +15,8 @@ export async function processPublication(id:string){
   await transaction(async session=>{
    const user=await User.findOne({_id:job.requestedBy,status:'active',emailVerifiedAt:{$ne:null}}).session(session);if(!user)throw Error('CMS_PERMISSION_CHANGED');req={user,requestId:'publish-'+String(job._id)};
    const site=await scope(req,String(job.orgId),String(job.websiteId),publishers,session);if(site.version!==job.websiteVersion||site.verificationStatus!=='verified')throw Error('CMS_WEBSITE_CHANGED');
-   connection=await CmsConnection.findOne({orgId:job.orgId,websiteId:job.websiteId,status:'connected',version:job.connectionVersion}).select('+encryptedSecret').session(session);if(!connection)throw Error('CMS_CONNECTION_CHANGED');
-   item=await ContentItem.findOne({_id:job.contentId,orgId:job.orgId,websiteId:job.websiteId,revision:job.revision,approvedRevision:job.revision,status:'scheduled'}).session(session);if(!item)throw Error('CMS_APPROVAL_CHANGED');item.status='publishing';item.version++;await item.save({session});
+   connection=await CmsConnection.findOne({orgId:job.orgId,websiteId:job.websiteId,status:'connected',version:job.connectionVersion}).select('+encryptedSecret').session(session);if(!connection||connection.origin!=='https://'+site.domain)throw Error('CMS_CONNECTION_CHANGED');
+   item=await ContentItem.findOne({_id:job.contentId,orgId:job.orgId,websiteId:job.websiteId,revision:job.revision,approvedRevision:job.revision,status:'scheduled'}).session(session);if(!item)throw Error('CMS_APPROVAL_CHANGED');if(item.remoteId&&item.remoteOrigin!==connection.origin)throw Error('CMS_REMOTE_ORIGIN_CHANGED');item.status='publishing';item.version++;await item.save({session});
   });
   const endpoint=item.type==='page'?'pages':'posts',marker=publicationMarker(item._id,job.revision);
   let remote:any;
@@ -37,7 +37,7 @@ export async function processPublication(id:string){
   if(remote.status!==(job.operation==='publish'?'publish':'draft'))throw Error('CMS_OUTCOME_UNKNOWN');
   await transaction(async session=>{
    const before=await ContentItem.findById(item._id).session(session);
-   const saved=await ContentItem.findOneAndUpdate({_id:item._id,orgId:job.orgId,websiteId:job.websiteId,revision:job.revision,status:'publishing'},{$set:{status:job.operation==='publish'?'published':'approved',remoteId:remote.id,remoteModified:remote.modified_gmt,liveUrl:remote.link,publishedRevision:job.operation==='publish'?job.revision:undefined},$inc:{version:1}},{new:true,session});if(!saved)throw Error('CMS_LOCAL_CONFLICT');
+   const saved=await ContentItem.findOneAndUpdate({_id:item._id,orgId:job.orgId,websiteId:job.websiteId,revision:job.revision,status:'publishing'},{$set:{status:job.operation==='publish'?'published':'approved',remoteId:remote.id,remoteOrigin:connection.origin,remoteModified:remote.modified_gmt,liveUrl:remote.link,publishedRevision:job.operation==='publish'?job.revision:undefined},$inc:{version:1}},{new:true,session});if(!saved)throw Error('CMS_LOCAL_CONFLICT');
    await PublishJob.updateOne({_id:job._id},{$set:{status:'completed',remoteId:remote.id,finishedAt:new Date()},$inc:{version:1}},{session});await log(session,req,String(job.orgId),'content.synced','content',item._id,before,saved);
   });
  }catch(e){const error=cmsError(e);await transaction(async session=>{await PublishJob.updateOne({_id:job._id},{$set:{status:mutationAttempted?'needs_review':'failed',error,finishedAt:new Date()},$inc:{version:1}},{session});await ContentItem.updateOne({_id:job.contentId,orgId:job.orgId,websiteId:job.websiteId,revision:job.revision,status:{$in:['scheduled','publishing']}},{$set:{status:'approved'},$inc:{version:1}},{session});await log(session,req||{user:{_id:job.requestedBy},requestId:'publish-'+job._id},String(job.orgId),'publish.failed','publish_job',job._id,null,{websiteId:job.websiteId,error,uncertain:mutationAttempted});});}

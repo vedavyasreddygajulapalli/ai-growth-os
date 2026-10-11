@@ -32,7 +32,7 @@ import {setTestWpTransport} from '../src/content/wordpress';
 import {processPublication,publicationMarker} from '../src/content/publishing';
 process.env.CRAWLER_ENABLED='true';process.env.REDIS_URL='redis://localhost:6379';
 async function makeApproved(slug:string){let r=await call('/content','POST',{title:'Test '+slug,slug,type:'post',blocks:[{type:'paragraph',text:'Approved body'}],idempotencyKey:randomUUID()});assert.equal(r.status,201,JSON.stringify(r.data));
- for(const action of ['draft','review','approve']){r=await call('/content/'+r.data._id+'/transition','POST',{action,version:r.data.version,...(action==='approve'?{allowSelfApproval:true,reason:'Owner accepts this test revision'}:{})});assert.equal(r.status,201,JSON.stringify(r.data));}return r.data;}
+ for(const action of ['draft','review','approve']){if(action==='approve')assert.equal((await call('/content/'+r.data._id+'/transition','POST',{action,version:r.data.version})).status,403);r=await call('/content/'+r.data._id+'/transition','POST',{action,version:r.data.version,...(action==='approve'?{allowSelfApproval:true,reason:'Owner accepts this test revision'}:{})});assert.equal(r.status,201,JSON.stringify(r.data));}return r.data;}
 test('content persistence, one-time create, version history and tenant permissions',async()=>{
  const body={title:'Content test',slug:'content-test',type:'post',idempotencyKey:randomUUID()};
  assert.equal((await call('/content','POST',body,'viewer')).status,403);
@@ -68,7 +68,7 @@ test('unknown publishing outcome is reconciled without repeating a remote mutati
  assert.equal((await PublishJob.findById(queued.data._id))!.status,'reconciled');setTestWpTransport();
 });
 test('draft sync cannot unpublish a remote post and revoked membership prevents writes',async()=>{
- const item=await makeApproved('live-post');await ContentItem.updateOne({_id:item._id},{$set:{remoteId:123,remoteModified:'known'}});let writes=0;
+ const item=await makeApproved('live-post');await ContentItem.updateOne({_id:item._id},{$set:{remoteId:123,remoteOrigin:'https://example.com',remoteModified:'known'}});let writes=0;
  setTestWpTransport(async(_c,_p,method)=>{if(method==='POST')writes++;return {id:123,status:'publish',modified_gmt:'known',content:{raw:publicationMarker(item._id,item.revision)}};});
  const q=await call('/cms/'+item._id+'/publish','POST',{version:item.version,operation:'draft'});assert.equal(q.status,201);await processPublication(q.data._id);
  assert.equal(writes,0);assert.equal((await PublishJob.findById(q.data._id))!.error,'CMS_PUBLISHED_DRAFT_FORBIDDEN');
@@ -83,4 +83,13 @@ test('AI proposal requires explicit version-fenced application and cannot be reu
  assert.equal((await ContentItem.findById(item._id))!.status,'approved');
  const applied=await call('/content/'+item._id+'/ai/'+proposal.data.id+'/apply','POST',{version:item.version});assert.equal(applied.status,201,JSON.stringify(applied.data));assert.equal(applied.data.status,'draft');assert.equal(applied.data.approvedRevision,undefined);
  assert.equal((await call('/content/'+item._id+'/ai/'+proposal.data.id+'/apply','POST',{version:applied.data.version})).status,409);setTestDraftProvider();
+});
+
+test('remote import is persisted, idempotent and requires explicit formatting acceptance',async()=>{
+ setTestWpTransport(async()=>({id:250,slug:'remote-import',title:{raw:'Remote article'},content:{raw:'<p>Actual remote content</p>'},modified_gmt:'2026-10-11T00:00:00',link:'https://example.com/remote-import'}));
+ const body={remoteId:250,type:'post',acceptSimplifiedFormatting:true};
+ assert.equal((await call('/cms/import','POST',body,'viewer')).status,403);
+ assert.equal((await call('/cms/import','POST',{remoteId:250,type:'post'})).status,422);
+ const r=await call('/cms/import','POST',body);assert.equal(r.status,201,JSON.stringify(r.data));assert.equal(r.data.status,'draft');assert.equal(r.data.remoteOrigin,'https://example.com');
+ assert.equal((await call('/cms/import','POST',body)).data._id,r.data._id);assert.equal(await ContentVersion.countDocuments({contentId:r.data._id}),1);setTestWpTransport();
 });

@@ -17,3 +17,7 @@ test('WordPress credentials are encrypted and cannot move across tenants or webs
  assert.equal(cmsError(Error('secret-provider-response')),'CMS_REQUEST_FAILED');
 });
 test('reconciliation markers distinguish approved revisions',()=>{assert.notEqual(publicationMarker('a',1),publicationMarker('a',2));});
+import {importWordPress} from '../src/content/import';
+test('WordPress import strips executable markup and preserves supported block order',()=>{
+ const d=importWordPress({title:{raw:'Imported'},slug:'imported',content:{raw:'<h1>Heading</h1><p>Hello <strong>world</strong></p><script>attack()</script><ul><li>One</li><li>Two</li></ul>'}},'post');assert.deepEqual(d.blocks,[{type:'heading',level:2,text:'Heading'},{type:'paragraph',text:'Hello world'},{type:'list',text:'One\nTwo'}]);assert.ok(!renderBlocks(d.blocks).includes('attack'));
+});

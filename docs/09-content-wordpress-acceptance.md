@@ -5,6 +5,7 @@
 - Draft autosave, optimistic conflicts, immutable content revisions, restore-as-draft, review/change/approve/archive transitions. Edits clear approval. Independent review is the default; Owner self-approval requires an explicit exception and audited reason for that revision.
 - AI provider abstraction, disabled by default. Requests use approved tenant knowledge, bounded input/output, daily development budget and explicit proposal application. AI never approves or publishes.
 - WordPress application credentials encrypted with AES-256-GCM and tenant/site AAD, HTTPS-only verified domain, public DNS checks, pinned socket address, no redirects, timeout and response bounds. Credential projections/audits exclude secrets.
+- Idempotent remote post/page import into a local draft, with explicit acceptance of simplified formatting and no implicit remote write.
 - WordPress post/page draft sync, approved publishing/scheduling, queued cancellation and publishing history. MongoDB is the job source; BullMQ/Redis dispatch runs in the existing supervised worker. No additional paid infrastructure is provisioned.
 - Worker rechecks membership, verification, website/connection versions and approval revision. Published posts cannot be downgraded by draft sync. Remote modified timestamps protect against overwriting newer edits.
 - Uncertain POST outcomes require read-only reconciliation; matching content/revision markers bind the result. No blind retry. A confirmed remote draft can be published using a new request against the same remote ID. No matching result stays blocked for manual investigation.
@@ -22,10 +23,12 @@ Backend TypeScript and frontend production builds are required. Local MongoDB st
 
 ## Remaining M5 / M6 gates — not complete
 - WordPress media upload/mapping and featured image support; selected media currently represents internal references only, not uploaded remote assets.
-- Persisted remote import and rich Gutenberg/layout round-tripping; remote browsing is read-only. Current safe blocks intentionally do not support arbitrary HTML/layouts.
+- Rich Gutenberg/layout round-tripping. Import supports safe text blocks with explicit formatting acceptance; arbitrary HTML/layouts are not supported.
 - Registered SEO-plugin meta adapters; SEO title/description are local editorial metadata, not a claim of Yoast/RankMath synchronization.
 - Design intelligence/template expansion and refresh-candidate workflow from the full PRD.
 - Full editor keyboard/mobile visual acceptance and additional scheduling/recovery stress tests.
 - Secure server key configuration, real WordPress application credentials, live publish/update/reconcile acceptance, real AI provider acceptance, and deployment of this pair after the remaining implementation gates.
 
 Do not label this checkpoint M5/M6 complete or start M7 on this evidence. Existing deployment remains the M3/M4 checkpoint until a separately recorded deployment succeeds.
+
+CI run 38113634527 on commit `4352a3644eec7a49b4157540186a8c586d3d654e` passed 29 unit/UI tests and 35 MongoDB/Redis integration tests, zero skips, and both builds. Subsequent remote-import and origin-binding changes require a fresh CI result.

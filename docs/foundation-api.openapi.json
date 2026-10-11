@@ -7879,6 +7879,80 @@
           }
         }
       }
+    },
+    "/organizations/{orgId}/websites/{websiteId}/cms/import": {
+      "post": {
+        "summary": "Import remote content as local draft with explicit formatting acceptance",
+        "tags": [
+          "Content and WordPress"
+        ],
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "websiteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful operation"
+          },
+          "403": {
+            "description": "Permission or independent review required"
+          },
+          "409": {
+            "description": "Version, approval or remote outcome conflict"
+          },
+          "422": {
+            "description": "Strict DTO validation failure"
+          },
+          "503": {
+            "description": "Integration configuration unavailable"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "remoteId",
+                  "type",
+                  "acceptSimplifiedFormatting"
+                ],
+                "properties": {
+                  "remoteId": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "type": {
+                    "enum": [
+                      "post",
+                      "page"
+                    ]
+                  },
+                  "acceptSimplifiedFormatting": {
+                    "const": true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
