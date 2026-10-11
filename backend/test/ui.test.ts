@@ -226,3 +226,24 @@ test("Brand UI uses saved data, preserves ten modules, and restricts Viewer muta
  assert.equal(dom.window.document.querySelector('[data-live^="knowledge-edit:"]'),null);
  dom.window.close();
 });
+test("Brand editor submits scoped data with named evidence choices and retains API validation errors",async()=>{
+ const org={_id:"a".repeat(24),name:"Saved workspace",role:"Owner"},site={_id:"b".repeat(24),name:"Saved website",status:"active"};let payload:any;
+ const fetcher=async(url:string,opts:any)=>{
+  let data:any;
+  if(url.endsWith("/auth/me"))data={name:"Owner",emailVerifiedAt:"2026-01-01"};
+  else if(url.endsWith("/organizations"))data={items:[org]};
+  else if(url.includes("/websites?"))data={items:[site]};
+  else if(url.endsWith("/knowledge/catalog"))data={catalog:{business:{label:"Business profile",module:"brand",fields:[{key:"industry",label:"Industry",type:"text"}]}}};
+  else if(url.endsWith("/knowledge/options"))data={records:[{_id:"c".repeat(24),title:"Approved evidence",kind:"business"}],users:[]};
+  else if(url.endsWith("/knowledge/records/business")){payload=JSON.parse(opts.body);return {ok:false,status:422,json:async()=>({error:{message:"Check industry"}})};}
+  else if(url.includes("/knowledge?"))data={items:[],nextCursor:null};else throw Error(url);
+  return {ok:true,status:200,json:async()=>data};
+ };
+ const dom=setup(true,fetcher);click(dom,"live");await tick();runInContext('navigate("brand")',dom.getInternalVMContext());await tick();await tick();click(dom,"knowledge-new");await tick();
+ const doc=dom.window.document;(doc.querySelector('[name="title"]') as HTMLInputElement).value="Saved business";
+ (doc.querySelector('[name="industry"]') as HTMLInputElement).value="Technology";
+ const ref=doc.querySelector('[name="references"] option') as HTMLOptionElement;assert.match(ref.textContent!,/Approved evidence/);ref.selected=true;
+ doc.querySelector('form')!.dispatchEvent(new dom.window.Event("submit",{bubbles:true,cancelable:true}));await tick();
+ assert.deepEqual(payload,{title:"Saved business",status:"draft",data:{industry:"Technology"},references:["c".repeat(24)]});
+ assert.match(doc.querySelector('#live-error')!.textContent!,/Check industry/);assert.equal((doc.querySelector('[name="title"]') as HTMLInputElement).value,"Saved business");dom.window.close();
+});

@@ -59,3 +59,13 @@ test("private media bytes persist and downloads are fenced by website and member
  const downloaded=await fetch(base+site+"/knowledge/"+file.data._id+"/download",{headers:{Cookie:"growth_session=viewer"}});
  assert.equal(downloaded.status,200);assert.match(downloaded.headers.get("content-disposition")!,/attachment/);assert.equal(await downloaded.text(),"%PDF-1.7 test");
 });
+import {WebsiteUrl} from "../src/crawler/models";
+test("crawler source imports retain provenance, are idempotent, and stay out of approved memory",async()=>{
+ const page:any=await WebsiteUrl.create({orgId:org,websiteId:site,jobId:new mongoose.Types.ObjectId(),url:"https://example.com/about",status:"crawled",data:{title:"About the business",description:"Actual crawl metadata"}});
+ const first=await call("/import-page","POST",{pageId:String(page._id)});assert.equal(first.status,201);assert.equal(first.data.status,"draft");assert.match(first.data.source,/^crawl:/);
+ assert.equal((await call("/import-page","POST",{pageId:String(page._id)})).data._id,first.data._id);
+ assert.equal((await call("/import-page","POST",{pageId:String(page._id)},"owner",otherSite)).status,404);
+ const options=await call("/options?current="+first.data._id);assert.ok(options.data.users.some((u:any)=>u.name==="owner"));assert.ok(options.data.records.some((r:any)=>r._id===first.data._id));
+ assert.equal((await call("/memory")).data.items.some((r:any)=>r._id===first.data._id),false);
+ const agenda=await call("/calendar?from=2026-12-01&to=2027-01-02");assert.equal(agenda.data.items.length,1);
+});

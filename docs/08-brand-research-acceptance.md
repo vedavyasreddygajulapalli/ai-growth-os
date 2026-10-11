@@ -17,6 +17,7 @@ All members can read within their active organization and active website. Owner/
 - Voice/design: structured brand guidelines, logo URL, colors, type, image/button rules and do/don't guidance.
 - Claims/proof/sources: evidence, usage restrictions, source URLs, review date/freshness. Brand Memory includes approved, unexpired brand records only and retains IDs/versions; bounded at 500 with explicit truncation.
 - Media: private uploads, authenticated attachment downloads, linked assets/videos, folder/tags/alt/caption/rights/usage metadata. Files never execute inline; no public bucket. Signature checks are format checks, not malware scanning.
+- Knowledge sources can import actual crawled titles/descriptions as draft records with snapshot provenance, idempotently. Full-page text extraction is not implied.
 - Research: projects, optional sourced keyword measurements, topics/clusters, groups, findings, opportunities, context from M2/M3 and exact-phrase coverage candidates.
 - Strategy: evidence-linked recommendations, impact/effort/confidence/priority, assigned tasks and date-range planning calendar.
 

@@ -3,7 +3,7 @@ import { coverageCandidates } from "./analysis";
 import { Body, Controller, Get, Param, Patch, Post, Query, Req, Res, UseGuards } from "@nestjs/common";
 import { z } from "zod";
 import { AuthGuard, VerifiedGuard, access } from "../security";
-import { Website, Membership, transaction, log } from "../database";
+import { Website, Membership, User, transaction, log } from "../database";
 import { fail, parse, recordId, id } from "../contracts";
 import { WebsiteUrl } from "../crawler/models";
 import { catalog, dataSchema, statuses } from "./catalog";
@@ -40,6 +40,26 @@ export class KnowledgeController {
     const bucket=mediaBucket();if(!await bucket.find({_id:record.fileId,"metadata.orgId":org,"metadata.websiteId":site}).hasNext())fail(404,"NOT_FOUND","File unavailable.");
     res.setHeader("Content-Type","application/octet-stream");res.setHeader("Content-Disposition","attachment; filename*=UTF-8''"+encodeURIComponent(record.fileName||"asset"));res.setHeader("X-Content-Type-Options","nosniff");
     const stream=bucket.openDownloadStream(record.fileId);stream.on("error",()=>res.destroy());res.on("close",()=>stream.destroy());stream.pipe(res);
+  }
+  @Post("import-page") async importPage(@Req() req:any,@Param("orgId") org:string,@Param("websiteId") site:string,@Body() body:any){
+    await this.scope(req,org,site,writers);const d=parse(z.object({pageId:id}).strict(),body);
+    return transaction(async session=>{
+      await this.scope(req,org,site,writers,session);
+      const page=await WebsiteUrl.findOne({_id:d.pageId,orgId:org,websiteId:site,status:"crawled"}).session(session).lean<{_id:unknown;jobId:unknown;url:string;data?:{title?:string;description?:string}}>();if(!page)fail(404,"NOT_FOUND","Crawled page unavailable.");
+      const source="crawl:"+String(page._id)+":"+String(page.jobId);
+      const existing=await KnowledgeRecord.findOne({orgId:org,websiteId:site,source}).session(session);if(existing)return existing;
+      const [r]=await KnowledgeRecord.create([{orgId:org,websiteId:site,kind:"sources",title:String(page.data?.title||page.url).slice(0,200),source,data:{sourceType:"Crawler metadata",url:page.url,content:String(page.data?.description||"").slice(0,8000),freshness:"Imported from crawl "+String(page.jobId)+"; metadata only, not full page text."},updatedBy:req.user._id}],{session});
+      await log(session,req,org,"knowledge.imported","sources",r._id,null,r);return r;
+    });
+  }
+  @Get("options") async options(@Req() req:any,@Param("orgId") org:string,@Param("websiteId") site:string,@Query() query:any){
+    await this.scope(req,org,site,writers);
+    const q=parse(z.object({current:id.optional()}).strict(),query);
+    const current=q.current?await KnowledgeRecord.findOne({_id:q.current,orgId:org,websiteId:site}).lean():null;
+    const selected=current?await KnowledgeRecord.find({_id:{$in:current.references},orgId:org,websiteId:site}).select("title kind status").lean():[];
+    const [records,members]=await Promise.all([KnowledgeRecord.find({orgId:org,websiteId:site,status:{$ne:"archived"}}).select("title kind").sort({title:1}).limit(201).lean(),Membership.find({orgId:org,status:"active"}).select("userId").limit(201).lean()]);
+    const users=await User.find({_id:{$in:members.slice(0,200).map(m=>m.userId)},status:"active"}).select("name").sort({name:1}).lean();
+    return {records:[...records.slice(0,200),...selected.filter(s=>!records.slice(0,200).some(r=>String(r._id)===String(s._id)))],users,truncated:records.length>200||members.length>200};
   }
   @Get("catalog") async definitions(@Req() req:any,@Param("orgId") org:string,@Param("websiteId") site:string){await this.scope(req,org,site);return {catalog,statuses};}
   @Get("memory") async memory(@Req() req:any,@Param("orgId") org:string,@Param("websiteId") site:string){
