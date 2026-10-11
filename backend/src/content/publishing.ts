@@ -6,19 +6,45 @@ import {scope,publishers} from './scope';
 import {renderBlocks} from './contracts';
 import {ensureFeaturedMedia} from './media';
 import {wordpress,cmsError} from './wordpress';
+import {SeoSchemaDraft} from '../seo/models';
+const sameJson=(a:any,b:any):boolean=>JSON.stringify(a,Object.keys(a||{}).sort())===JSON.stringify(b,Object.keys(b||{}).sort());
 export const publicationMarker=(id:unknown,revision:number)=>`<!-- growth-os:${id}:revision:${revision} -->`;
 let queue:Queue|undefined;
 const jobs=()=>queue ||= new Queue('growth-publishing',{connection:redisConnection(),defaultJobOptions:{attempts:1,removeOnComplete:{count:100},removeOnFail:{count:100}}});
 export async function processPublication(id:string){
  const job=await PublishJob.findOneAndUpdate({_id:id,status:'queued',runAt:{$lte:new Date()}},{$set:{status:'running',startedAt:new Date()},$inc:{attempts:1,version:1}},{new:true});if(!job)return;
- let req:any,item:any,connection:any,mutationAttempted=false;
+ let req:any,item:any,schema:any,connection:any,mutationAttempted=false;
  try{
   await transaction(async session=>{
    const user=await User.findOne({_id:job.requestedBy,status:'active',emailVerifiedAt:{$ne:null}}).session(session);if(!user)throw Error('CMS_PERMISSION_CHANGED');req={user,requestId:'publish-'+String(job._id)};
    const site=await scope(req,String(job.orgId),String(job.websiteId),publishers,session);if(site.version!==job.websiteVersion||site.verificationStatus!=='verified')throw Error('CMS_WEBSITE_CHANGED');
    connection=await CmsConnection.findOne({orgId:job.orgId,websiteId:job.websiteId,status:'connected',version:job.connectionVersion}).select('+encryptedSecret').session(session);if(!connection||connection.origin!=='https://'+site.domain)throw Error('CMS_CONNECTION_CHANGED');
+   if(job.operation==='schema'){schema=await SeoSchemaDraft.findOne({_id:job.schemaId,orgId:job.orgId,websiteId:job.websiteId,version:job.schemaVersion,status:'publishing',publicationJobId:job._id}).session(session);if(!schema)throw Error('CMS_APPROVAL_CHANGED');item=await ContentItem.findOne({_id:job.contentId,orgId:job.orgId,websiteId:job.websiteId,version:job.contentVersion,status:'published'}).session(session);if(!item||item.remoteOrigin!==connection.origin||item.remoteId!==job.remoteId)throw Error('CMS_REMOTE_ORIGIN_CHANGED');return;}
    item=await ContentItem.findOne({_id:job.contentId,orgId:job.orgId,websiteId:job.websiteId,revision:job.revision,approvedRevision:job.revision,status:'scheduled'}).session(session);if(!item)throw Error('CMS_APPROVAL_CHANGED');if(item.remoteId&&item.remoteOrigin!==connection.origin)throw Error('CMS_REMOTE_ORIGIN_CHANGED');item.status='publishing';item.version++;await item.save({session});
   });
+  if(job.operation==='schema'){
+   const metaKey=process.env.CMS_SCHEMA_META_KEY||'';
+   if(!/^[a-z][a-z0-9_]{2,63}$/.test(metaKey))throw Error('CMS_SCHEMA_META_UNSUPPORTED');
+   const endpoint=(item.type==='page'?'pages':'posts')+'/'+item.remoteId+'?context=edit';
+   const remote:any=await wordpress(connection,endpoint);
+   if(remote.modified_gmt!==item.remoteModified)throw Error('CMS_REMOTE_CONFLICT');
+   if(!remote.meta||!Object.prototype.hasOwnProperty.call(remote.meta,metaKey))throw Error('CMS_SCHEMA_META_UNSUPPORTED');
+   if(!sameJson(remote.meta[metaKey],schema.jsonLd)){
+    mutationAttempted=true;
+    await wordpress(connection,(item.type==='page'?'pages':'posts')+'/'+item.remoteId,'POST',{meta:{[metaKey]:schema.jsonLd}});
+   }
+   const checked:any=await wordpress(connection,endpoint);
+   if(!sameJson(checked.meta?.[metaKey],schema.jsonLd))throw Error('CMS_OUTCOME_UNKNOWN');
+   await transaction(async session=>{
+    const savedSchema=await SeoSchemaDraft.findOneAndUpdate({_id:schema._id,orgId:job.orgId,websiteId:job.websiteId,status:'publishing',version:job.schemaVersion,publicationJobId:job._id},{$set:{status:'approved',lastPublishedAt:new Date(),lastPublishedJobId:job._id,updatedBy:job.requestedBy},$unset:{publicationJobId:1},$inc:{version:1}},{new:true,session});
+    if(!savedSchema)throw Error('CMS_LOCAL_CONFLICT');
+    const savedContent=await ContentItem.findOneAndUpdate({_id:item._id,orgId:job.orgId,websiteId:job.websiteId,status:'published',version:job.contentVersion,remoteModified:item.remoteModified},{$set:{remoteModified:checked.modified_gmt},$inc:{version:1}},{new:true,session});
+    if(!savedContent)throw Error('CMS_LOCAL_CONFLICT');
+    await PublishJob.updateOne({_id:job._id,status:'running'},{$set:{status:'completed',remoteId:item.remoteId,finishedAt:new Date()},$inc:{version:1}},{session});
+    await log(session,req,String(job.orgId),'seo.schema.published','seo_schema',schema._id,schema,savedSchema);
+   });
+   return;
+  }
   const endpoint=item.type==='page'?'pages':'posts',marker=publicationMarker(item._id,job.revision);
   let remote:any;
   if(item.remoteId){remote=await wordpress(connection,endpoint+'/'+item.remoteId+'?context=edit');if(remote.modified_gmt!==item.remoteModified)throw Error('CMS_REMOTE_CONFLICT');}
@@ -44,7 +70,7 @@ export async function processPublication(id:string){
    const saved=await ContentItem.findOneAndUpdate({_id:item._id,orgId:job.orgId,websiteId:job.websiteId,revision:job.revision,status:'publishing'},{$set:{status:job.operation==='publish'?'published':'approved',remoteId:remote.id,remoteOrigin:connection.origin,remoteModified:remote.modified_gmt,liveUrl:remote.link,publishedRevision:job.operation==='publish'?job.revision:undefined},$inc:{version:1}},{new:true,session});if(!saved)throw Error('CMS_LOCAL_CONFLICT');
    await PublishJob.updateOne({_id:job._id},{$set:{status:'completed',remoteId:remote.id,finishedAt:new Date()},$inc:{version:1}},{session});await log(session,req,String(job.orgId),'content.synced','content',item._id,before,saved);
   });
- }catch(e){const error=cmsError(e);await transaction(async session=>{await PublishJob.updateOne({_id:job._id},{$set:{status:mutationAttempted?'needs_review':'failed',error,finishedAt:new Date()},$inc:{version:1}},{session});await ContentItem.updateOne({_id:job.contentId,orgId:job.orgId,websiteId:job.websiteId,revision:job.revision,status:{$in:['scheduled','publishing']}},{$set:{status:'approved'},$inc:{version:1}},{session});await log(session,req||{user:{_id:job.requestedBy},requestId:'publish-'+job._id},String(job.orgId),'publish.failed','publish_job',job._id,null,{websiteId:job.websiteId,error,uncertain:mutationAttempted});});}
+ }catch(e){const error=cmsError(e);await transaction(async session=>{if(job.operation==='schema'&&!mutationAttempted)await SeoSchemaDraft.updateOne({_id:job.schemaId,orgId:job.orgId,websiteId:job.websiteId,status:'publishing',version:job.schemaVersion,publicationJobId:job._id},{$set:{status:'approved'},$unset:{publicationJobId:1},$inc:{version:1}},{session});await PublishJob.updateOne({_id:job._id},{$set:{status:mutationAttempted?'needs_review':'failed',error,finishedAt:new Date()},$inc:{version:1}},{session});await ContentItem.updateOne({_id:job.contentId,orgId:job.orgId,websiteId:job.websiteId,revision:job.revision,status:{$in:['scheduled','publishing']}},{$set:{status:'approved'},$inc:{version:1}},{session});await log(session,req||{user:{_id:job.requestedBy},requestId:'publish-'+job._id},String(job.orgId),'publish.failed','publish_job',job._id,null,{websiteId:job.websiteId,error,uncertain:mutationAttempted});});}
 }
 export async function startPublishingWorker(){
  const worker=new Worker('growth-publishing',async j=>processPublication(String(j.data.id)),{connection:redisConnection(),concurrency:1,maxStalledCount:0});worker.on('error',()=>console.error('Publishing queue unavailable'));
