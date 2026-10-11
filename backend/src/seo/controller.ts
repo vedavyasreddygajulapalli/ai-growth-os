@@ -1,11 +1,13 @@
+import {issueQuery,schemaDto} from './contracts';
+import {sameHost} from '../crawler/safe-fetch';
 import {z} from 'zod';
 import {parse,recordId,fail,id} from '../contracts';
 import {transaction,log,Membership,User} from '../database';
-import {SeoIssueWorkflow} from './models';
+import {SeoIssueWorkflow,SeoSchemaDraft} from './models';
 import {canResolve} from './recheck';
 const writers=['Owner','Admin','Marketing Manager','SEO Manager'];
 const transition=z.object({version:z.number().int().nonnegative(),action:z.enum(['open','in_progress','ignored','recheck']),assigneeId:id.nullable(),reason:z.string().trim().min(3).max(1000)}).strict();
-import {Controller,Get,Post,Body,Param,Req,UseGuards} from '@nestjs/common';
+import {Controller,Get,Post,Body,Query,Param,Req,UseGuards} from '@nestjs/common';
 import {AuthGuard,VerifiedGuard} from '../security';
 import {scope} from '../content/scope';
 import {CrawlJob,CrawlPage,TechnicalIssue} from '../crawler/models';
@@ -13,6 +15,49 @@ import {CrawlJob,CrawlPage,TechnicalIssue} from '../crawler/models';
 @Controller('organizations/:orgId/websites/:websiteId/seo')
 @UseGuards(AuthGuard,VerifiedGuard)
 export class SeoController {
+  @Get('issues') async issues(@Req() req:any,@Param() p:any,@Query() query:unknown){
+    const site=await scope(req,p.orgId,p.websiteId),q=parse(issueQuery,query);
+    const job:any=await CrawlJob.findOne({_id:q.jobId,orgId:site.orgId,websiteId:site._id}).lean();
+    if(!job)fail(404,'NOT_FOUND','Crawl unavailable.');
+    const match:any={orgId:site.orgId,websiteId:site._id,jobId:job._id};
+    if(q.severity)match.severity=q.severity;
+    if(q.search)match.url={$regex:q.search.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),$options:'i'};
+    const post:any={};if(q.status)post['workflow.status']=q.status;
+    if(q.assigneeId){const mongoose=await import('mongoose');post['workflow.assigneeId']=new mongoose.Types.ObjectId(q.assigneeId);}
+    const result=await TechnicalIssue.aggregate([{$match:match},{$lookup:{from:'seo_issue_workflows',let:{issue:'$_id',org:'$orgId',site:'$websiteId'},pipeline:[{$match:{$expr:{$and:[{$eq:['$issueId','$$issue']},{$eq:['$orgId','$$org']},{$eq:['$websiteId','$$site']}]}}}],as:'workflow'}},{$set:{workflow:{$ifNull:[{$arrayElemAt:['$workflow',0]},{status:'open',version:0,assigneeId:null}]}}},{$match:post},{$sort:{_id:-1}},{$facet:{items:[{$skip:(q.page-1)*q.limit},{$limit:q.limit}],count:[{$count:'total'}]}}]);
+    return {items:result[0].items,total:result[0].count[0]?.total||0,page:q.page,limit:q.limit};
+  }
+  @Get('schema') async schemas(@Req() req:any,@Param() p:any){await scope(req,p.orgId,p.websiteId);return {items:await SeoSchemaDraft.find({orgId:p.orgId,websiteId:p.websiteId}).sort({_id:-1}).limit(100).lean()};}
+  @Post('schema') async createSchema(@Req() req:any,@Param() p:any,@Body() body:unknown){return this.saveSchema(req,p,body);}
+  @Post('schema/:schemaId') async editSchema(@Req() req:any,@Param() p:any,@Body() body:unknown){recordId(p.schemaId);return this.saveSchema(req,p,body);}
+  private async saveSchema(req:any,p:any,body:unknown){
+    const d=parse(schemaDto,body);
+    return transaction(async session=>{
+      const site=await scope(req,p.orgId,p.websiteId,writers,session);
+      if(!sameHost(d.jsonLd.url,site.domain))fail(422,'OUT_OF_SCOPE','Schema URL must belong to this website.');
+      let item:any=p.schemaId?await SeoSchemaDraft.findOne({_id:p.schemaId,orgId:p.orgId,websiteId:p.websiteId}).session(session):null;
+      if(p.schemaId&&!item)fail(404,'NOT_FOUND','Schema draft unavailable.');
+      if(item&&item.version!==d.version)fail(409,'VERSION_CONFLICT','Schema changed. Reload it.');
+      if(!item&&d.version!==undefined)fail(422,'INVALID_VERSION','New drafts do not take a version.');
+      const before=item?.toObject()||null;
+      if(!item)item=new SeoSchemaDraft({orgId:p.orgId,websiteId:p.websiteId});
+      item.name=d.name;item.url=d.jsonLd.url;item.jsonLd=d.jsonLd;item.status='draft';item.approvedBy=undefined;item.updatedBy=req.user._id;if(before)item.version++;
+      await item.save({session});await log(session,req,p.orgId,'seo.schema.saved','seo_schema',item._id,before,item.toObject());return item;
+    });
+  }
+  @Post('schema/:schemaId/transition') async schemaTransition(@Req() req:any,@Param() p:any,@Body() body:unknown){
+    recordId(p.schemaId);const d=parse(z.object({version:z.number().int().nonnegative(),action:z.enum(['review','approve','archive']),reason:z.string().trim().min(3).max(1000)}).strict(),body);
+    return transaction(async session=>{
+      const site=await scope(req,p.orgId,p.websiteId,d.action==='approve'?['Owner','Admin','Marketing Manager']:writers,session);
+      const item:any=await SeoSchemaDraft.findOne({_id:p.schemaId,orgId:p.orgId,websiteId:p.websiteId}).session(session);
+      if(!item)fail(404,'NOT_FOUND','Schema unavailable.');if(item.version!==d.version)fail(409,'VERSION_CONFLICT','Schema changed. Reload it.');
+      if(d.action==='review'&&item.status!=='draft'||d.action==='approve'&&item.status!=='review')fail(409,'INVALID_TRANSITION','Reload the current schema workflow.');
+      if(d.action==='approve'&&String(item.updatedBy)===String(req.user._id))fail(409,'INDEPENDENT_REVIEW_REQUIRED','Another approver must review this schema.');
+      if(!sameHost(item.url,site.domain))fail(409,'DOMAIN_CHANGED','Update this draft for the current website domain.');
+      parse(schemaDto,{name:item.name,jsonLd:item.jsonLd});const before=item.toObject();item.status=d.action==='approve'?'approved':d.action==='archive'?'archived':'review';if(d.action==='approve')item.approvedBy=req.user._id;item.version++;await item.save({session});
+      await log(session,req,p.orgId,'seo.schema.'+d.action,'seo_schema',item._id,before,{...item.toObject(),reason:d.reason});return item;
+    });
+  }
   @Get('issues/:issueId') async issue(@Req() req:any,@Param() p:any){
     await scope(req,p.orgId,p.websiteId);recordId(p.issueId);
     const filter={orgId:p.orgId,websiteId:p.websiteId};

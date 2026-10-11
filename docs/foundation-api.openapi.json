@@ -8754,6 +8754,360 @@
           }
         }
       }
+    },
+    "/organizations/{orgId}/websites/{websiteId}/seo/issues": {
+      "get": {
+        "summary": "Filter crawl issues joined with workflow status",
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "websiteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "jobId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "severity",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "assigneeId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "items, total, page, limit. Untriaged records are open."
+          },
+          "404": {
+            "description": "Scoped crawl unavailable"
+          }
+        }
+      }
+    },
+    "/organizations/{orgId}/websites/{websiteId}/seo/schema": {
+      "get": {
+        "summary": "List latest 100 scoped schema drafts",
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "websiteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "items"
+          }
+        }
+      },
+      "post": {
+        "summary": "Create validated schema draft",
+        "description": "Website-host URL required. Article requires headline. Supported subset only; no remote fetching or publishing. Version must be omitted on create.",
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "websiteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "name",
+                  "jsonLd"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 160
+                  },
+                  "version": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "jsonLd": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "@context",
+                      "@type",
+                      "name",
+                      "url"
+                    ],
+                    "properties": {
+                      "@context": {
+                        "const": "https://schema.org"
+                      },
+                      "@type": {
+                        "enum": [
+                          "Organization",
+                          "WebPage",
+                          "Article"
+                        ]
+                      },
+                      "name": {
+                        "type": "string",
+                        "minLength": 2,
+                        "maxLength": 200
+                      },
+                      "url": {
+                        "type": "string",
+                        "format": "uri"
+                      },
+                      "description": {
+                        "type": "string",
+                        "maxLength": 2000
+                      },
+                      "headline": {
+                        "type": "string",
+                        "minLength": 2,
+                        "maxLength": 200
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Saved draft"
+          },
+          "422": {
+            "description": "Validation failure"
+          }
+        }
+      }
+    },
+    "/organizations/{orgId}/websites/{websiteId}/seo/schema/{schemaId}": {
+      "post": {
+        "summary": "Save schema and clear approval",
+        "description": "Existing version is required. Server enforces scoped roles, validation and audit.",
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "websiteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "name",
+                  "jsonLd"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 160
+                  },
+                  "version": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "jsonLd": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "@context",
+                      "@type",
+                      "name",
+                      "url"
+                    ],
+                    "properties": {
+                      "@context": {
+                        "const": "https://schema.org"
+                      },
+                      "@type": {
+                        "enum": [
+                          "Organization",
+                          "WebPage",
+                          "Article"
+                        ]
+                      },
+                      "name": {
+                        "type": "string",
+                        "minLength": 2,
+                        "maxLength": 200
+                      },
+                      "url": {
+                        "type": "string",
+                        "format": "uri"
+                      },
+                      "description": {
+                        "type": "string",
+                        "maxLength": 2000
+                      },
+                      "headline": {
+                        "type": "string",
+                        "minLength": 2,
+                        "maxLength": 200
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Saved draft"
+          },
+          "409": {
+            "description": "Version conflict"
+          }
+        }
+      }
+    },
+    "/organizations/{orgId}/websites/{websiteId}/seo/schema/{schemaId}/transition": {
+      "post": {
+        "summary": "Request review, approve or archive a schema draft",
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "websiteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "description": "Body: version, action(review|approve|archive), reason(3\u20131000 characters). Unknown fields rejected. Approval requires Owner/Admin/Marketing Manager other than last editor. Approval never publishes.",
+        "responses": {
+          "201": {
+            "description": "Updated record"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Version, domain or workflow conflict"
+          }
+        }
+      }
     }
   },
   "components": {

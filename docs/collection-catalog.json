@@ -565,5 +565,12 @@
     "fields": "issueId,status,assigneeId,reason,version,checkedJobId,checkedAt,updatedBy,createdAt,updatedAt",
     "indexes": "orgId+websiteId+issueId unique",
     "lifecycle": "Mutable triage alongside immutable crawl issue evidence; changes audited; resolution only through evidence recheck."
+  },
+  {
+    "name": "seo_schema_drafts",
+    "scope": "organization + website",
+    "fields": "name,url,jsonLd,status,version,updatedBy,approvedBy,timestamps",
+    "indexes": "orgId+websiteId+_id",
+    "lifecycle": "Validated supported JSON-LD subset; edits clear approval; independent approver; no remote publication."
   }
 ]

@@ -48,3 +48,14 @@ test('SEO resolution requires complete fresh page evidence and absence of the is
  assert.equal(canResolve(job,{...page,status:'blocked'},false),false);
  assert.equal(canResolve(job,{...page,data:{statusCode:404,contentType:'text/html'}},false),false);
 });
+
+import {schemaDto,issueQuery} from '../src/seo/contracts';
+test('schema drafts reject executable markup fields, remote contexts and incomplete articles',()=>{
+ const base={name:'Page schema',jsonLd:{'@context':'https://schema.org','@type':'WebPage',name:'Page',url:'https://example.com/'}};
+ assert.equal(schemaDto.safeParse(base).success,true);
+ assert.equal(schemaDto.safeParse({...base,jsonLd:{...base.jsonLd,script:'alert(1)'}}).success,false);
+ assert.equal(schemaDto.safeParse({...base,jsonLd:{...base.jsonLd,'@context':'https://attacker.example/'}}).success,false);
+ assert.equal(schemaDto.safeParse({...base,jsonLd:{...base.jsonLd,'@type':'Article'}}).success,false);
+ assert.equal(schemaDto.safeParse({...base,jsonLd:{...base.jsonLd,url:'javascript:alert(1)'}}).success,false);
+ assert.equal(issueQuery.safeParse({jobId:'a'.repeat(24),orgId:'b'.repeat(24)}).success,false);
+});

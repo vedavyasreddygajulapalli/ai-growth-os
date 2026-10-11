@@ -177,3 +177,23 @@ test('SEO workflow validates assignment, protects writes and resolves only from 
  const foreign=(await call('/organizations','POST',{name:'Issue foreign',timezone:'UTC',currency:'USD'})).data._id;
  assert.equal((await call(`/organizations/${foreign}/websites/${target._id}/seo/issues/${evidence._id}`)).status,404);
 });
+
+test('SEO workflow filters include untriaged issues and schema drafts enforce scope/review/version',async()=>{
+ const target=await Website.create({orgId:org,name:'Schema fixture',verificationToken:'test-only',domain:'schema.example.com',cmsType:'Other',status:'active'});
+ const root=`/organizations/${org}/websites/${target._id}/seo`;
+ const crawl=await CrawlJob.create({orgId:org,websiteId:target._id,domain:target.domain,status:'completed',active:false});
+ await TechnicalIssue.create({orgId:org,websiteId:target._id,jobId:crawl._id,url:'https://schema.example.com/[page]',type:'missing_title',severity:'High'});
+ const listed=await call(root+`/issues?jobId=${crawl._id}&status=open&search=%5Bpage%5D`);
+ assert.equal(listed.status,200);assert.equal(listed.data.total,1);assert.equal(listed.data.items[0].workflow.status,'open');
+ assert.equal((await call(root+`/issues?jobId=${crawl._id}&status=resolved`)).data.total,0);
+ const body={name:'Page draft',jsonLd:{'@context':'https://schema.org','@type':'WebPage',name:'Example page',url:'https://schema.example.com/'}};
+ assert.equal((await call(root+'/schema','POST',{...body,jsonLd:{...body.jsonLd,url:'https://other.example/'}})).status,422);
+ const created=await call(root+'/schema','POST',body);assert.equal(created.status,201);assert.equal(created.data.status,'draft');
+ const endpoint=root+'/schema/'+created.data._id;
+ assert.equal((await call(endpoint,'POST',{...body,version:99})).status,409);
+ assert.equal((await call(endpoint+'/transition','POST',{version:0,action:'review',reason:'Ready for review'})).status,201);
+ assert.equal((await call(endpoint+'/transition','POST',{version:1,action:'approve',reason:'Self approval attempt'})).status,409);
+ const edited=await call(endpoint,'POST',{...body,version:1});assert.equal(edited.data.status,'draft');assert.equal(edited.data.version,2);
+ const other=(await call('/organizations','POST',{name:'Schema foreign',timezone:'UTC',currency:'USD'})).data._id;
+ assert.equal((await call(`/organizations/${other}/websites/${target._id}/seo/schema`)).status,404);
+});

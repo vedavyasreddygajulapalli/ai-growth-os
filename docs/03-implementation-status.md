@@ -101,3 +101,11 @@ M5/M6 now provide the manual V1 development flow: scoped content editing/history
 - Recheck consumes a newer completed crawl; it does not itself queue a crawl. Resolution requires full untruncated successful crawl coverage, a successful HTML page and no matching issue. Missing/blocked/error pages cannot resolve issues; domain changes invalidate recheck.
 - Tests added for conservative resolution, DTO injection, invalid assignee, Viewer denial, concurrent conflict and tenant isolation. Latest MongoDB execution awaits CI; local tests do not establish production acceptance.
 - Remaining M7: workflow filtering/dashboard, provider integrations, schema draft lifecycle. No automatic fixes or ranking/indexing claims. M8 remains next after M7 development.
+
+### M7 development — filters and structured data drafts
+- Prior issue workflow CI 38153312188 passed.
+- Added paginated workflow issue filters by crawl, status, severity, URL substring and assignee; untriaged evidence appears as open. Existing crawl report exposes filter form and paginated results.
+- Added MongoDB schema draft lifecycle for a deliberately restricted Organization/WebPage/Article JSON-LD vocabulary. Website URL scope, strict fields, optimistic version checks, role checks, transactional audit, independent approval and approval invalidation on edits are enforced.
+- Website SEO overview opens drafts, editor and review form using existing visual components. Records are data only, never executed or remotely published. This is structural validation, not a full schema.org or Google rich-results validator.
+- Added validation and integration tests. Local integration remains dependent on CI's MongoDB/Redis; do not infer live acceptance.
+- Remaining M7: provider-backed Search Console/rankings/AI observations, full schema vocabulary and approved publication integration, unified SEO navigation/acceptance. M8 has not started; paired deployment remains pending.
