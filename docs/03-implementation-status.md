@@ -80,3 +80,9 @@ Follow-up development: featured-image upload/mapping and age-based content refre
 Featured-image and refresh checkpoint verified: `64f2266f8a9f6becba80c6e720e78183920c7acc`, CI run 38116873267, both builds and 68 tests passed without skips (30 unit/UI, 38 real MongoDB/Redis integration). Live WordPress responses remain simulated in tests. No deployment in this checkpoint.
 
 Template/design follow-up: editable draft/review/approval templates, named variants, version-bound approved Design Profile snapshots and server-side approved-template content creation are connected to the existing UI. WordPress comparison/resolution now supports explicitly reviewed local-vs-remote title/body drafts without automatic publication. CI for this follow-up must be recorded after execution; full PRD/live acceptance is not implied.
+
+## Current deployed M5/M6 development checkpoint
+
+Code `8e4eb203ed0e080d8afd81c171d4054faf18a4cf` passed both builds and 71 tests in CI run 38133165765 (31 unit/UI, 40 MongoDB/Redis integration, zero skips). Both free Render services are live at that commit as of 11 October 2026 10:50 UTC. Root and direct/proxied readiness returned 200; embedded worker readiness was true; migrations completed; the frontend asset checksum matches the tested build. Preview: https://ai-growth-os-web-us4p.onrender.com/ . This supersedes older undeployed checkpoint notes above.
+
+M5/M6 now provide the manual V1 development flow: scoped content editing/history/refresh, explicit AI proposals, design-bound reviewed templates, approved WordPress import/draft/publish/schedule, featured-image mapping, uncertain-outcome reconciliation and reviewed remote-conflict drafts. Full PRD scope and live acceptance remain as listed in `09-content-wordpress-acceptance.md`. Provider setup, real authenticated flows, mobile visual checks and final operational acceptance are not claimed complete. M7 has not started.

@@ -52,3 +52,16 @@ Templates now support named variants, content type, safe basic-HTML mapping, blo
 WordPress conflict comparison reads the remote source and displays it safely alongside local blocks. A version/hash-fenced resolution may keep local content or import the remote title/body into supported blocks. Both create unapproved local revisions, record an audit snapshot, and update the acknowledged remote-modification token without writing WordPress. A second remote change or concurrent local edit rejects the resolution. Slug, excerpt, taxonomy, and featured-image selections remain local settings during title/body import and must be reviewed separately.
 
 Remaining full-PRD scope: richer layout/inline-media mappings, automated design extraction, advanced SEO/refresh signals and plugin-specific SEO meta adapters. Current V1 supports explicit design guidance and safe text/featured-image publishing, not arbitrary Elementor/Gutenberg theme round-tripping. Live WordPress/AI acceptance and authenticated responsive review remain deployment gates.
+
+Template/design and remote-conflict evidence: code commit `8e4eb203ed0e080d8afd81c171d4054faf18a4cf`, CI https://github.com/vedavyasreddygajulapalli/ai-growth-os/actions/runs/38133165765 — backend/frontend builds, 31 unit/UI and 40 real MongoDB/Redis integration tests passed, zero skips. WordPress is mocked in integration tests; this is not evidence of live provider acceptance.
+
+## Combined development deployment — 11 October 2026
+
+Both existing free Render services deployed code `8e4eb203ed0e080d8afd81c171d4054faf18a4cf` successfully:
+- API deploy `dep-db5mj4jrjlhs739jd010` live at 10:50:15 UTC.
+- Web deploy `dep-db5mj6d9fdbs73dd1as0` live at 10:50:17 UTC.
+- Preview: https://ai-growth-os-web-us4p.onrender.com/
+- Root, direct `/api/v1/health/ready`, and same-origin proxied readiness returned HTTP 200. Readiness reported embedded worker ready.
+- Startup log confirmed migrations/indexes completed. Served `foundation.js` SHA-256 matched the local tested bundle: `f32b7404f453fc19787eddf5b7a3db2d563db735fd8771e7d679b77063458f56`.
+
+This supersedes earlier "not deployed" checkpoint notes. It does not establish authenticated end-to-end production acceptance, live inbox delivery, real WordPress media/publish/resolve behavior, configured encryption/AI credentials, mobile visual acceptance, backup/restore, or load/security hardening. No credentials were added or replaced during this deployment. No paid infrastructure was created.
