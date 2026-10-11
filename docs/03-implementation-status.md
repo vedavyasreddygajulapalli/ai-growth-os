@@ -109,3 +109,12 @@ M5/M6 now provide the manual V1 development flow: scoped content editing/history
 - Website SEO overview opens drafts, editor and review form using existing visual components. Records are data only, never executed or remotely published. This is structural validation, not a full schema.org or Google rich-results validator.
 - Added validation and integration tests. Local integration remains dependent on CI's MongoDB/Redis; do not infer live acceptance.
 - Remaining M7: provider-backed Search Console/rankings/AI observations, full schema vocabulary and approved publication integration, unified SEO navigation/acceptance. M8 has not started; paired deployment remains pending.
+
+
+### M7 development — provider abstractions and schema publication
+
+- Added typed Search Console, ranking, and AI visibility provider contracts. Status is persisted per organization and website. Without a registered real adapter the UI shows disconnected or authorization required and displays no measurements.
+- Added version-bound schema publication through the existing WordPress publishing worker. Publication requires a verified website, connected CMS, approved schema, current published target, explicit registered meta key, and publish-capable role. The worker writes only the registered WordPress metadata field, verifies by read-back, and sends uncertain outcomes to read-only reconciliation.
+- Added `integrations/wordpress/ai-growth-os-schema-adapter.php` to register and validate the REST meta field and emit supported JSON-LD. Acceptance steps and provider limitations are in [M7 acceptance](10-seo-acceptance.md).
+- Added a unified SEO workspace with overview, issues, providers, schema, and AI visibility sections using the existing UI components. Tests cover provider empty states, authorization/audit, strict schema approval and publish flow, reconciliation, and live UI rendering.
+- The WordPress adapter and docs are now on `codex/m7-seo-provider-workflows`; the latest CI run is still in progress. M7 is not marked CI complete until that run passes. Real provider/OAuth and authenticated live WordPress acceptance remain deferred; no data is fabricated. M8 follows once M7 is clean; combined deployment is after both.
