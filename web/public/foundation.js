@@ -622,7 +622,7 @@
     }
     if(live.seoTab==="Issues")body='<section class="card padded"><h2>Technical issue workflows</h2><p class="helper">Issue evidence and triage are available in the selected crawl report. Rechecks require a newer completed crawl.</p>'+(summary.crawl?button("Open latest crawl issues","open-seo-issues"):'<div class="empty">Complete a crawl to create issue evidence.</div>')+'</section>';
     if(live.seoTab==="Providers")body='<section class="card"><div class="card-head"><div><h2>Provider connections</h2><p>Connection requests never imply live data. Verified authorization is required before syncing.</p></div>'+button("Refresh status","seo-reload")+'</div><div class="padded">'+live.seoProviders.map(p=>'<div class="knowledge"><div><strong>'+esc(p.label)+'</strong><small>'+esc(p.data)+'</small><small>'+esc(p.connection)+'</small></div>'+badge(p.status)+(p.property?'<small>'+esc(p.property)+'</small>':"")+'<div class="actions">'+(canCrawl()?(p.status==="disconnected"?button("Request connection","seo-connect:"+p.key):button("Disconnect","seo-disconnect:"+p.key)):"")+'</div><p class="helper">'+(p.metricsAvailable?"Provider records can be shown after a verified sync.":"No provider data is available in this state.")+'</p></div>').join("")+'</div></section>';
-    if(live.seoTab==="Schema")body='<section class="card"><div class="card-head"><div><h2>Structured data drafts</h2><p>Strictly validated JSON-LD. Approval is independent from authoring; publishing must use the connected CMS workflow.</p></div>'+(canCrawl()?button("New schema draft","seo-schema-new",true):"")+'</div><div class="padded">'+(live.seoDrafts.length?live.seoDrafts.map(d=>'<div class="knowledge"><div><strong>'+esc(d.name)+'</strong><small>'+esc(d.url)+'</small><small>'+esc(d.jsonLd["@type"])+'</small></div>'+badge(d.status)+'<div class="actions">'+(canCrawl()&&d.status==="draft"?button("Submit for review","seo-schema-transition:"+d._id+":review"):"")+(["Owner","Admin","Marketing Manager"].includes(live.org&&live.org.role)&&d.status==="review"?button("Approve","seo-schema-transition:"+d._id+":approve"):"")+(canCrawl()&&d.status!=="archived"?button("Archive","seo-schema-transition:"+d._id+":archive"):"")+'</div></div>').join(""):'<div class="empty">No schema drafts saved for this website.</div>')+'</div></section>';
+    if(live.seoTab==="Schema")body='<section class="card"><div class="card-head"><div><h2>Structured data drafts</h2><p>Strictly validated JSON-LD. Approval is independent from authoring; publishing must use the connected CMS workflow.</p></div>'+(canCrawl()?button("New schema draft","seo-schema-new",true):"")+'</div><div class="padded">'+(live.seoDrafts.length?live.seoDrafts.map(d=>'<div class="knowledge"><div><strong>'+esc(d.name)+'</strong><small>'+esc(d.url)+'</small><small>'+esc(d.jsonLd["@type"])+'</small></div>'+badge(d.status)+'<div class="actions">'+(canCrawl()&&d.status==="draft"?button("Submit for review","seo-schema-transition:"+d._id+":review"):"")+(["Owner","Admin","Marketing Manager"].includes(live.org&&live.org.role)&&d.status==="review"?button("Approve","seo-schema-transition:"+d._id+":approve"):"")+(canCrawl()&&d.status==="approved"?button("Publish to WordPress","seo-schema-publish:"+d._id):"")+(canCrawl()&&d.status!=="archived"&&d.status!=="publishing"?button("Archive","seo-schema-transition:"+d._id+":archive"):"")+'</div></div>').join(""):'<div class="empty">No schema drafts saved for this website.</div>')+(live.seoTargetStatus&&!live.seoTargetStatus.available?'<p class="note">'+esc(live.seoTargetStatus.reason||"WordPress schema publication is not configured.")+'</p>':'')+(live.seoJobs.length?'<h3>Schema publication jobs</h3>'+live.seoJobs.map(j=>'<div class="knowledge"><strong>'+esc(j.schemaId||"Schema")+'</strong>'+badge(j.status)+'<small>'+esc(j.error||"")+'</small>'+(j.status==="needs_review"?button("Reconcile outcome","seo-schema-reconcile:"+j._id):"")+(j.status==="queued"?button("Cancel","seo-schema-cancel:"+j._id):"")+'</div>').join(""):'')+'</div></section>';
     if(live.seoTab==="AI Visibility")body='<section class="card padded"><h2>AI visibility observations</h2><p class="helper">No provider is connected, so no citation or visibility metrics are available. Connect a supported provider before recording observations.</p>'+button("Review providers","seo-tab:Providers")+'</section>';
     return header("SEO & AI Visibility","A unified view of crawl evidence, issue triage, provider status and reviewed schema.")+errorBox(live.error)+'<div class="tabs">'+siteChooser+'</div><div class="tabs">'+tabButtons+'</div>'+body;
   }
@@ -737,6 +737,30 @@
             await api(orgPath("/websites/"+live.seoSite._id+"/seo/schema"),{method:"POST",body:{name:data.name,jsonLd}});
             closeModal();live.seoLoaded=false;await loadSeo(true);
           });break;
+        case "seo-schema-publish": {
+          const draft=live.seoDrafts.find(d=>d._id===id);if(!draft)break;
+          if(!live.seoTargets.length){notify(live.seoTargetStatus&&live.seoTargetStatus.reason||"No published WordPress target is available.");break;}
+          const options=live.seoTargets.map(t=>'<option value="'+esc(t._id)+'">'+esc(t.title)+' · '+esc(t.liveUrl||"No URL")+'</option>').join("");
+          showForm("Publish approved schema",'<p class="helper">This queues only the approved JSON-LD value for the selected published page. The registered WordPress REST meta adapter must be active.</p><label class="field"><span>Published WordPress page</span><select name="contentId" required>'+options+'</select></label>'+input("Reason","reason","Publishing approved schema"),"Queue publication",async data=>{
+            const target=live.seoTargets.find(t=>t._id===data.contentId);if(!target)throw Error("Choose a published page.");
+            const result=await api(orgPath("/websites/"+live.seoSite._id+"/seo/schema/"+draft._id+"/publish"),{method:"POST",body:{version:draft.version,contentId:target._id,contentVersion:target.version,reason:data.reason}});
+            closeModal();notify("Schema publication queued.");live.seoLoaded=false;await loadSeo(true);
+          });break;
+        }
+        case "seo-schema-reconcile": {
+          if(!live.seoJobs.find(j=>j._id===id))break;
+          showForm("Check WordPress publication outcome",'<p class="helper">This performs a read-only check. It will not repeat a WordPress write.</p>',"Check outcome",async()=>{
+            const result=await api(orgPath("/cms/jobs/"+id+"/reconcile"),{method:"POST",body:{}});
+            closeModal();notify(result.message);live.seoLoaded=false;await loadSeo(true);
+          });break;
+        }
+        case "seo-schema-cancel": {
+          const job=live.seoJobs.find(j=>j._id===id);if(!job)break;
+          showForm("Cancel queued schema publication",'<p class="helper">Only an unchanged queued job can be cancelled.</p>',"Cancel queued job",async()=>{
+            await api(orgPath("/cms/jobs/"+id+"/cancel"),{method:"POST",body:{version:job.version}});
+            closeModal();live.seoLoaded=false;await loadSeo(true);
+          });break;
+        }
         case "seo-schema-transition": {
           const [schemaId,transition]=a.slice("seo-schema-transition:".length).split(":");const draft=live.seoDrafts.find(d=>d._id===schemaId);if(!draft)break;
           showForm(transition==="approve"?"Approve schema draft":transition==="review"?"Submit schema for independent review":"Archive schema draft",input("Reason","reason","Reviewed in SEO workspace"),transition==="approve"?"Approve":transition==="review"?"Submit for review":"Archive",async data=>{
