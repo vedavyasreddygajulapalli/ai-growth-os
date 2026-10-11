@@ -16,6 +16,7 @@
     auditFilters: {},
     crawlSite: null, crawls: [], crawlSummary: null, crawlFocus: null,
     crawlReport: null, urlItems: [], urlTotal: 0, urlPage: 1, urlFilters: {},
+    seoSite: null, seoSummary: null, seoProviders: [], seoDrafts: [], seoTab: "Overview", seoLoading: false, seoLoaded: false,
     sessions: [],
     securityEvents: [],
     error: "",
@@ -541,6 +542,7 @@
         `<section class="card padded"><h3>Welcome, ${esc(live.user.name)}</h3><p class="helper">You do not belong to a workspace yet.</p><div class="actions">${button("Create workspace", "create-org", true)}${button("Accept invitation", "accept-invite")}</div></section>`
       );
     if (state.page === "content") return contentPanel();
+    if (state.page === "seo") return seoContent();
     if (knowledgePage()) return knowledgeContent();
     if (state.page !== "settings")
       return (
@@ -579,6 +581,52 @@
       body
     );
   }
+
+  async function loadSeo(force=false) {
+    if (live.seoLoading || (live.seoLoaded && !force)) return;
+    live.seoLoading=true;live.error="";render();const generation=live.generation,orgId=live.org&&live.org._id;
+    try {
+      const sites=await api(orgPath("/websites"));
+      if(generation!==live.generation||orgId!== (live.org&&live.org._id))return;
+      live.sites=sites.items;
+      const site=(live.seoSite&&sites.items.find(s=>s._id===live.seoSite._id&&s.status==="active"))||sites.items.find(s=>s.status==="active");
+      live.seoSite=site||null;live.seoLoaded=true;
+      if(!site){live.seoSummary=null;live.seoProviders=[];live.seoDrafts=[];return;}
+      live.crawlSite=site;const path=orgPath("/websites/"+site._id+"/seo");
+      const result=await Promise.all([api(path+"/summary"),api(path+"/providers"),api(path+"/schema")]);
+      if(generation!==live.generation||orgId!==(live.org&&live.org._id)||(live.seoSite&&live.seoSite._id)!==site._id)return;
+      live.seoSummary=result[0];live.seoProviders=result[1].items;live.seoDrafts=result[2].items;
+    } catch(e){if(generation===live.generation)live.error=e.message;}
+    finally{if(generation===live.generation){live.seoLoading=false;render();}}
+  }
+  function seoContent() {
+    if(!live.seoLoaded){loadSeo();return header("SEO & AI Visibility","Real crawl evidence and provider-backed observations only.")+'<section class="card padded" role="status">Loading SEO workspace…</section>';}
+    const site=live.seoSite;
+    if(!site)return header("SEO & AI Visibility","Connect your website to review its SEO evidence.")+errorBox(live.error)+'<section class="card padded"><h3>No active websites</h3><p class="helper">Add an active website in Settings before opening its SEO workspace.</p>'+button("Open website settings","settings",true)+'</section>';
+    const summary=live.seoSummary||{};
+    const tabs=["Overview","Issues","Providers","Schema","AI Visibility"];
+    const siteChooser=live.sites.map(s=>button(s.name+" · "+s.domain,"seo-site:"+s._id,site._id===s._id)).join("");
+    const tabButtons=tabs.map(t=>button(t,"seo-tab:"+t,live.seoTab===t)).join("");
+    let body="";
+    if(live.seoTab==="Overview"){
+      body='<section class="card padded"><div class="card-head"><div><h2>'+esc(site.name)+'</h2><p>'+esc(site.domain)+'</p></div>'+button("Refresh evidence","seo-reload")+'</div>';
+      if(summary.crawl){
+        body+='<div class="knowledge"><strong>Latest crawl</strong><span>'+badge(summary.crawl.status)+' · '+esc(summary.crawl.completedAt||"")+'</span></div>';
+        body+='<div class="knowledge"><span>Audited pages</span><strong>'+summary.auditedPages+'</strong></div>';
+        body+='<div class="knowledge"><span>Indexable / not indexable / unknown</span><strong>'+summary.indexable+' / '+summary.notIndexable+' / '+summary.unknown+'</strong></div>';
+        if(summary.crawl.truncated)body+='<p class="note">This crawl was limited. Counts describe only the recorded crawl coverage.</p>';
+        body+='<h3>Technical issues</h3>';
+        body+=summary.issues&&summary.issues.length?summary.issues.map(i=>'<div class="knowledge">'+badge(i.severity)+'<strong>'+esc(i.type)+'</strong><span>'+i.count+'</span><p class="helper">'+esc(i.recommendation||"")+'</p></div>').join(""):'<p class="helper">No issue evidence was recorded for this crawl.</p>';
+      }else body+='<div class="empty">No completed crawl evidence for this website yet. Start a crawl from Settings → Crawls.</div>';
+      body+='<p class="helper">Search Console, rankings and AI visibility remain unavailable until verified provider authorization and sync are configured. No sample metrics are shown.</p></section>';
+    }
+    if(live.seoTab==="Issues")body='<section class="card padded"><h2>Technical issue workflows</h2><p class="helper">Issue evidence and triage are available in the selected crawl report. Rechecks require a newer completed crawl.</p>'+(summary.crawl?button("Open latest crawl issues","open-seo-issues"):'<div class="empty">Complete a crawl to create issue evidence.</div>')+'</section>';
+    if(live.seoTab==="Providers")body='<section class="card"><div class="card-head"><div><h2>Provider connections</h2><p>Connection requests never imply live data. Verified authorization is required before syncing.</p></div>'+button("Refresh status","seo-reload")+'</div><div class="padded">'+live.seoProviders.map(p=>'<div class="knowledge"><div><strong>'+esc(p.label)+'</strong><small>'+esc(p.data)+'</small><small>'+esc(p.connection)+'</small></div>'+badge(p.status)+(p.property?'<small>'+esc(p.property)+'</small>':"")+'<div class="actions">'+(canCrawl()?(p.status==="disconnected"?button("Request connection","seo-connect:"+p.key):button("Disconnect","seo-disconnect:"+p.key)):"")+'</div><p class="helper">'+(p.metricsAvailable?"Provider records can be shown after a verified sync.":"No provider data is available in this state.")+'</p></div>').join("")+'</div></section>';
+    if(live.seoTab==="Schema")body='<section class="card"><div class="card-head"><div><h2>Structured data drafts</h2><p>Strictly validated JSON-LD. Approval is independent from authoring; publishing must use the connected CMS workflow.</p></div>'+(canCrawl()?button("New schema draft","seo-schema-new",true):"")+'</div><div class="padded">'+(live.seoDrafts.length?live.seoDrafts.map(d=>'<div class="knowledge"><div><strong>'+esc(d.name)+'</strong><small>'+esc(d.url)+'</small><small>'+esc(d.jsonLd["@type"])+'</small></div>'+badge(d.status)+'<div class="actions">'+(canCrawl()&&d.status==="draft"?button("Submit for review","seo-schema-transition:"+d._id+":review"):"")+(["Owner","Admin","Marketing Manager"].includes(live.org&&live.org.role)&&d.status==="review"?button("Approve","seo-schema-transition:"+d._id+":approve"):"")+(canCrawl()&&d.status!=="archived"?button("Archive","seo-schema-transition:"+d._id+":archive"):"")+'</div></div>').join(""):'<div class="empty">No schema drafts saved for this website.</div>')+'</div></section>';
+    if(live.seoTab==="AI Visibility")body='<section class="card padded"><h2>AI visibility observations</h2><p class="helper">No provider is connected, so no citation or visibility metrics are available. Connect a supported provider before recording observations.</p>'+button("Review providers","seo-tab:Providers")+'</section>';
+    return header("SEO & AI Visibility","A unified view of crawl evidence, issue triage, provider status and reviewed schema.")+errorBox(live.error)+'<div class="tabs">'+siteChooser+'</div><div class="tabs">'+tabButtons+'</div>'+body;
+  }
+
   function crawlerPanel() {
     const site = live.crawlSite;
     const heading = `<div class="card-head"><div><h2>${esc(site.name)}</h2><p>${esc(site.domain)}</p></div><div class="actions">${button("Websites", "tab:Websites")}${canCrawl() ? button("Start crawl", "start-crawl", true) : ""}</div></div>`;
@@ -658,6 +706,44 @@
       if(key.startsWith("content-")){try{return await contentAction(key,id);}catch(e){cms.error=e.message;notify(e.message);render();return;}}
       if(key.startsWith("knowledge-")) return await knowledgeAction(key,id);
       switch (key) {
+
+        case "seo-tab":
+          live.seoTab=id;render();break;
+        case "seo-site":
+          live.seoSite=live.sites.find(s=>s._id===id)||null;live.seoLoaded=false;live.seoTab="Overview";await loadSeo(true);break;
+        case "seo-reload":
+          live.seoLoaded=false;await loadSeo(true);break;
+        case "open-seo-issues":
+          live.tab="Crawl issues";live.crawlFocus=live.seoSummary&&live.seoSummary.crawl?live.seoSummary.crawl.id:null;state.page="settings";location.hash="settings";await loadTab();render();break;
+        case "seo-connect": {
+          const p=live.seoProviders.find(x=>x.key===id);if(!p)break;
+          showForm("Request provider connection",input("Provider property or account label","property",p.property||"","text",false),"Request authorization",async data=>{
+            const body=data.property?{property:data.property}:{};
+            if(p.version!==null)body.version=p.version;
+            const r=await api(orgPath("/websites/"+live.seoSite._id+"/seo/providers/"+p.key+"/connect"),{method:"POST",body});
+            closeModal();notify(r.notice);live.seoLoaded=false;await loadSeo(true);
+          });break;
+        }
+        case "seo-disconnect": {
+          const p=live.seoProviders.find(x=>x.key===id);if(!p||p.version===null)break;
+          showForm("Disconnect provider",input("Reason","reason","No longer using this provider"),"Disconnect",async data=>{
+            await api(orgPath("/websites/"+live.seoSite._id+"/seo/providers/"+p.key+"/disconnect"),{method:"POST",body:{version:p.version,reason:data.reason}});
+            closeModal();live.seoLoaded=false;await loadSeo(true);
+          });break;
+        }
+        case "seo-schema-new":
+          showForm("Create structured data draft",input("Draft name","name")+input("JSON-LD URL","url","https://"+live.seoSite.domain,"url")+'<label class="field"><span>JSON-LD object</span><textarea name="jsonLd" rows="12" required>{"@context":"https://schema.org","@type":"WebPage","name":"","url":"https://'+esc(live.seoSite.domain)+'/"}</textarea></label>',"Save draft",async data=>{
+            let jsonLd;try{jsonLd=JSON.parse(data.jsonLd)}catch{throw Error("Enter valid JSON-LD.");}
+            await api(orgPath("/websites/"+live.seoSite._id+"/seo/schema"),{method:"POST",body:{name:data.name,jsonLd}});
+            closeModal();live.seoLoaded=false;await loadSeo(true);
+          });break;
+        case "seo-schema-transition": {
+          const [schemaId,transition]=id.split(":");const draft=live.seoDrafts.find(d=>d._id===schemaId);if(!draft)break;
+          showForm(transition==="approve"?"Approve schema draft":transition==="review"?"Submit schema for independent review":"Archive schema draft",input("Reason","reason","Reviewed in SEO workspace"),transition==="approve"?"Approve":transition==="review"?"Submit for review":"Archive",async data=>{
+            await api(orgPath("/websites/"+live.seoSite._id+"/seo/schema/"+schemaId+"/transition"),{method:"POST",body:{version:draft.version,action:transition,reason:data.reason}});
+            closeModal();live.seoLoaded=false;await loadSeo(true);
+          });break;
+        }
         case "live":
           live.active = true;
           state.page = "settings";
