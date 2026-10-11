@@ -3,7 +3,8 @@ import {sameHost} from '../crawler/safe-fetch';
 import {z} from 'zod';
 import {parse,recordId,fail,id} from '../contracts';
 import {transaction,log,Membership,User} from '../database';
-import {SeoIssueWorkflow,SeoSchemaDraft} from './models';
+import {SeoIssueWorkflow,SeoSchemaDraft,SeoProviderConnection} from './models';
+import {seoProviderCatalog} from './providers';
 import {canResolve} from './recheck';
 const writers=['Owner','Admin','Marketing Manager','SEO Manager'];
 const transition=z.object({version:z.number().int().nonnegative(),action:z.enum(['open','in_progress','ignored','recheck']),assigneeId:id.nullable(),reason:z.string().trim().min(3).max(1000)}).strict();
@@ -94,6 +95,40 @@ export class SeoController {
       await item.save({session});
       await log(session,req,p.orgId,'seo.issue.'+dto.action,'seo_issue',p.issueId,before,item.toObject());
       return item;
+    });
+  }
+  @Get('providers') async providers(@Req() req:any,@Param() p:any){
+    const site=await scope(req,p.orgId,p.websiteId);
+    const rows=await SeoProviderConnection.find({orgId:site.orgId,websiteId:site._id}).select('provider status property version updatedAt').lean();
+    const byKey=new Map(rows.map((row:any)=>[row.provider,row]));
+    return {items:seoProviderCatalog.map(provider=>{const saved:any=byKey.get(provider.key);return {key:provider.key,label:provider.label,data:provider.data,connection:provider.connection,status:saved?.status||'disconnected',property:saved?.property||null,version:saved?.version??null,updatedAt:saved?.updatedAt||null,metricsAvailable:saved?.status==='connected'};})};
+  }
+  @Post('providers/:provider/connect') async requestProviderAuthorization(@Req() req:any,@Param() p:any,@Body() body:unknown){
+    const provider=parse(z.enum(['search_console','rankings','ai_visibility']),p.provider);
+    const d=parse(z.object({property:z.string().trim().min(2).max(255).optional(),version:z.number().int().nonnegative().optional()}).strict(),body);
+    return transaction(async session=>{
+      const site=await scope(req,p.orgId,p.websiteId,writers,session);
+      let item:any=await SeoProviderConnection.findOne({orgId:site.orgId,websiteId:site._id,provider}).session(session);
+      if(item&&d.version!==item.version)fail(409,'VERSION_CONFLICT','Provider connection changed. Reload it.');
+      if(!item&&d.version!==undefined)fail(422,'INVALID_VERSION','New connection requests do not take a version.');
+      const before=item?.toObject()||null;
+      if(!item)item=new SeoProviderConnection({orgId:site.orgId,websiteId:site._id,provider,updatedBy:req.user._id});
+      item.status='authorization_required';item.property=d.property;item.requestedBy=req.user._id;item.updatedBy=req.user._id;if(before)item.version++;
+      await item.save({session});await log(session,req,String(site.orgId),'seo.provider.authorization_requested','seo_provider_connection',item._id,before,item);
+      return {key:provider,status:item.status,property:item.property||null,version:item.version,notice:'Authorization is not connected yet. No provider data is available until a verified provider authorization flow is configured.'};
+    });
+  }
+  @Post('providers/:provider/disconnect') async disconnectProvider(@Req() req:any,@Param() p:any,@Body() body:unknown){
+    const provider=parse(z.enum(['search_console','rankings','ai_visibility']),p.provider);
+    const d=parse(z.object({version:z.number().int().nonnegative(),reason:z.string().trim().min(3).max(500)}).strict(),body);
+    return transaction(async session=>{
+      const site=await scope(req,p.orgId,p.websiteId,writers,session);
+      const item:any=await SeoProviderConnection.findOne({orgId:site.orgId,websiteId:site._id,provider}).session(session);
+      if(!item)fail(404,'NOT_FOUND','Provider connection unavailable.');
+      if(item.version!==d.version)fail(409,'VERSION_CONFLICT','Provider connection changed. Reload it.');
+      const before=item.toObject();item.status='disconnected';item.property=undefined;item.version++;item.updatedBy=req.user._id;
+      await item.save({session});await log(session,req,String(site.orgId),'seo.provider.disconnected','seo_provider_connection',item._id,before,{...item.toObject(),reason:d.reason});
+      return {key:provider,status:item.status,version:item.version};
     });
   }
   @Get('summary') async summary(@Req() req:any,@Param() p:any) {
