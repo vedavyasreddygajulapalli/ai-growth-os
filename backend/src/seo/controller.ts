@@ -46,7 +46,7 @@ export class SeoController {
       const schemaUrl=new URL(schema.url),targetUrl=new URL(item.liveUrl);
       if(schemaUrl.origin!==targetUrl.origin||schemaUrl.pathname.replace(/\/+$/,'')!==targetUrl.pathname.replace(/\/+$/,''))fail(422,'SCHEMA_TARGET_MISMATCH','Schema URL must match the selected published page URL.');
       const before=schema.toObject();
-      const [job]=await PublishJob.create([{orgId:site.orgId,websiteId:site._id,contentId:item._id,revision:item.publishedRevision||item.revision,contentVersion:item.version,operation:'schema',schemaId:schema._id,schemaVersion:schema.version+1,requestedBy:req.user._id,connectionVersion:cms.version,websiteVersion:site.version,status:'queued',runAt:new Date(),version:0,key:'schema:'+String(schema._id)+':'+schema.version+':'+randomUUID()}],{session});
+      const [job]=await PublishJob.create([{orgId:site.orgId,websiteId:site._id,contentId:item._id,revision:item.publishedRevision||item.revision,contentVersion:item.version,operation:'schema',schemaId:schema._id,schemaVersion:schema.version+1,remoteId:item.remoteId,requestedBy:req.user._id,connectionVersion:cms.version,websiteVersion:site.version,status:'queued',runAt:new Date(),version:0,key:'schema:'+String(schema._id)+':'+schema.version+':'+randomUUID()}],{session});
       schema.status='publishing';schema.version++;schema.publicationJobId=job._id;schema.updatedBy=req.user._id;await schema.save({session});
       await log(session,req,String(site.orgId),'seo.schema.publication_queued','seo_schema',schema._id,before,{...schema.toObject(),reason:d.reason,jobId:job._id});
       return {job,schema};
@@ -89,7 +89,7 @@ export class SeoController {
       const site=await scope(req,p.orgId,p.websiteId,d.action==='approve'?['Owner','Admin','Marketing Manager']:writers,session);
       const item:any=await SeoSchemaDraft.findOne({_id:p.schemaId,orgId:p.orgId,websiteId:p.websiteId}).session(session);
       if(!item)fail(404,'NOT_FOUND','Schema unavailable.');if(item.version!==d.version)fail(409,'VERSION_CONFLICT','Schema changed. Reload it.');
-      if(d.action==='review'&&item.status!=='draft'||d.action==='approve'&&item.status!=='review')fail(409,'INVALID_TRANSITION','Reload the current schema workflow.');
+      if(item.status==='publishing')fail(409,'SCHEMA_PUBLICATION_PENDING','Wait for the WordPress schema job to finish or reconcile.');if(d.action==='review'&&item.status!=='draft'||d.action==='approve'&&item.status!=='review')fail(409,'INVALID_TRANSITION','Reload the current schema workflow.');
       if(d.action==='approve'&&String(item.updatedBy)===String(req.user._id))fail(409,'INDEPENDENT_REVIEW_REQUIRED','Another approver must review this schema.');
       if(!sameHost(item.url,site.domain))fail(409,'DOMAIN_CHANGED','Update this draft for the current website domain.');
       parse(schemaDto,{name:item.name,jsonLd:item.jsonLd});const before=item.toObject();item.status=d.action==='approve'?'approved':d.action==='archive'?'archived':'review';if(d.action==='approve')item.approvedBy=req.user._id;item.version++;await item.save({session});
