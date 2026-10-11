@@ -67,7 +67,3 @@ export function providerAvailability(
 ): ProviderConnectionState {
   return registered.has(key) ? "authorization_required" : "disconnected";
 }
-
-export function emptyEvidence<T>(provider: SeoProviderKey): ProviderEvidence<T> {
-  return { provider, retrievedAt: new Date(0).toISOString(), items: [] };
-}
