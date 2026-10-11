@@ -6,6 +6,8 @@ import {transaction,log,Membership,User} from '../database';
 import {SeoIssueWorkflow,SeoSchemaDraft,SeoProviderConnection} from './models';
 import {seoProviderCatalog} from './providers';
 import {canResolve} from './recheck';
+import {randomUUID} from 'node:crypto';
+import {ContentItem,CmsConnection,PublishJob} from '../content/models';
 const writers=['Owner','Admin','Marketing Manager','SEO Manager'];
 const transition=z.object({version:z.number().int().nonnegative(),action:z.enum(['open','in_progress','ignored','recheck']),assigneeId:id.nullable(),reason:z.string().trim().min(3).max(1000)}).strict();
 import {Controller,Get,Post,Body,Query,Param,Req,UseGuards} from '@nestjs/common';
@@ -16,6 +18,40 @@ import {CrawlJob,CrawlPage,TechnicalIssue} from '../crawler/models';
 @Controller('organizations/:orgId/websites/:websiteId/seo')
 @UseGuards(AuthGuard,VerifiedGuard)
 export class SeoController {
+  @Get('publish-targets') async schemaPublishTargets(@Req() req:any,@Param() p:any){
+    const site=await scope(req,p.orgId,p.websiteId);
+    const cms=await CmsConnection.findOne({orgId:site.orgId,websiteId:site._id,status:'connected'});
+    if(!cms||cms.origin!=='https://'+site.domain||site.verificationStatus!=='verified')return {items:[],available:false,reason:'Connect the verified WordPress website first.'};
+    const items=await ContentItem.find({orgId:site.orgId,websiteId:site._id,status:'published',remoteOrigin:cms.origin,remoteId:{$type:'number'}}).select('title liveUrl remoteId remoteModified version type').sort({_id:-1}).limit(100).lean();
+    return {items,available:!!process.env.CMS_SCHEMA_META_KEY,reason:process.env.CMS_SCHEMA_META_KEY?null:'Configure the registered WordPress REST meta key before publishing schema.'};
+  }
+  @Post('schema/:schemaId/publish') async publishSchema(@Req() req:any,@Param() p:any,@Body() body:unknown){
+    recordId(p.schemaId);
+    const d=parse(z.object({version:z.number().int().nonnegative(),contentId:id,contentVersion:z.number().int().nonnegative(),reason:z.string().trim().min(3).max(1000)}).strict(),body);
+    if(process.env.CRAWLER_ENABLED!=='true'||!process.env.REDIS_URL)fail(503,'WORKER_UNAVAILABLE','The WordPress publishing worker is not enabled.');
+    const metaKey=process.env.CMS_SCHEMA_META_KEY||'';
+    if(!/^[a-z][a-z0-9_]{2,63}$/.test(metaKey))fail(503,'CMS_SCHEMA_META_UNSUPPORTED','Configure a registered WordPress REST meta key before publishing structured data.');
+    return transaction(async session=>{
+      const site=await scope(req,p.orgId,p.websiteId,['Owner','Admin','Marketing Manager'],session);
+      if(site.verificationStatus!=='verified')fail(409,'VERIFY_WEBSITE','Verify this website before publishing schema.');
+      const cms=await CmsConnection.findOne({orgId:site.orgId,websiteId:site._id,status:'connected'}).session(session);
+      if(!cms||cms.origin!=='https://'+site.domain)fail(409,'CMS_DISCONNECTED','Connect the verified WordPress website first.');
+      const schema:any=await SeoSchemaDraft.findOne({_id:p.schemaId,orgId:site.orgId,websiteId:site._id}).session(session);
+      if(!schema)fail(404,'NOT_FOUND','Schema draft unavailable.');
+      if(schema.version!==d.version)fail(409,'VERSION_CONFLICT','Schema changed. Reload it.');
+      if(schema.status!=='approved')fail(409,'SCHEMA_APPROVAL_REQUIRED','Only an independently approved schema can be published.');
+      if(!sameHost(schema.url,site.domain))fail(409,'DOMAIN_CHANGED','Update the schema draft for the current website domain.');
+      const item:any=await ContentItem.findOne({_id:d.contentId,orgId:site.orgId,websiteId:site._id,version:d.contentVersion,status:'published',remoteOrigin:cms.origin,remoteId:{$type:'number'}}).session(session);
+      if(!item)fail(409,'PUBLISH_TARGET_CHANGED','Choose a currently published WordPress page from this website.');
+      const schemaUrl=new URL(schema.url),targetUrl=new URL(item.liveUrl);
+      if(schemaUrl.origin!==targetUrl.origin||schemaUrl.pathname.replace(/\/+$/,'')!==targetUrl.pathname.replace(/\/+$/,''))fail(422,'SCHEMA_TARGET_MISMATCH','Schema URL must match the selected published page URL.');
+      const before=schema.toObject();
+      const [job]=await PublishJob.create([{orgId:site.orgId,websiteId:site._id,contentId:item._id,revision:item.publishedRevision||item.revision,contentVersion:item.version,operation:'schema',schemaId:schema._id,schemaVersion:schema.version+1,requestedBy:req.user._id,connectionVersion:cms.version,websiteVersion:site.version,status:'queued',runAt:new Date(),version:0,key:'schema:'+String(schema._id)+':'+schema.version+':'+randomUUID()}],{session});
+      schema.status='publishing';schema.version++;schema.publicationJobId=job._id;schema.updatedBy=req.user._id;await schema.save({session});
+      await log(session,req,String(site.orgId),'seo.schema.publication_queued','seo_schema',schema._id,before,{...schema.toObject(),reason:d.reason,jobId:job._id});
+      return {job,schema};
+    });
+  }
   @Get('issues') async issues(@Req() req:any,@Param() p:any,@Query() query:unknown){
     const site=await scope(req,p.orgId,p.websiteId),q=parse(issueQuery,query);
     const job:any=await CrawlJob.findOne({_id:q.jobId,orgId:site.orgId,websiteId:site._id}).lean();
@@ -38,6 +74,7 @@ export class SeoController {
       if(!sameHost(d.jsonLd.url,site.domain))fail(422,'OUT_OF_SCOPE','Schema URL must belong to this website.');
       let item:any=p.schemaId?await SeoSchemaDraft.findOne({_id:p.schemaId,orgId:p.orgId,websiteId:p.websiteId}).session(session):null;
       if(p.schemaId&&!item)fail(404,'NOT_FOUND','Schema draft unavailable.');
+      if(item?.status==='publishing')fail(409,'SCHEMA_PUBLICATION_PENDING','Wait for the WordPress schema job to finish or reconcile.');
       if(item&&item.version!==d.version)fail(409,'VERSION_CONFLICT','Schema changed. Reload it.');
       if(!item&&d.version!==undefined)fail(422,'INVALID_VERSION','New drafts do not take a version.');
       const before=item?.toObject()||null;
