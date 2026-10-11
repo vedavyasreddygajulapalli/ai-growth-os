@@ -44,3 +44,11 @@ Implemented: age-based refresh candidates (90-day default, configurable API thre
 Pending: expanded design intelligence/templates, inline-media/layout round-tripping, registered SEO-plugin adapters, live WordPress/AI acceptance and the combined deployment. Do not mark the whole pair complete from this checkpoint.
 
 Follow-up evidence: code commit `64f2266f8a9f6becba80c6e720e78183920c7acc`, CI https://github.com/vedavyasreddygajulapalli/ai-growth-os/actions/runs/38116873267. Both builds and all 30 unit/UI plus 38 MongoDB/Redis integration tests passed, zero skips. Featured-image publishing uses mocked WordPress responses in these tests; no live upload or deployment is claimed.
+
+## Template/design and conflict-resolution follow-up
+
+Templates now support named variants, content type, safe basic-HTML mapping, block editing/reordering, saved preview, and optional approved Design Profile binding. Writers create/edit drafts and request review; publishers approve or request changes. Owner self-approval requires an explicit audited exception. Edits clear approval; changed/unapproved design profiles block approval/reuse until resaved and reviewed. Content creation copies an approved template server-side with version/provenance and a design snapshot. Existing content does not change when its source template changes. Named variants are separate template records; no arbitrary theme CSS is generated.
+
+WordPress conflict comparison reads the remote source and displays it safely alongside local blocks. A version/hash-fenced resolution may keep local content or import the remote title/body into supported blocks. Both create unapproved local revisions, record an audit snapshot, and update the acknowledged remote-modification token without writing WordPress. A second remote change or concurrent local edit rejects the resolution. Slug, excerpt, taxonomy, and featured-image selections remain local settings during title/body import and must be reviewed separately.
+
+Remaining full-PRD scope: richer layout/inline-media mappings, automated design extraction, advanced SEO/refresh signals and plugin-specific SEO meta adapters. Current V1 supports explicit design guidance and safe text/featured-image publishing, not arbitrary Elementor/Gutenberg theme round-tripping. Live WordPress/AI acceptance and authenticated responsive review remain deployment gates.

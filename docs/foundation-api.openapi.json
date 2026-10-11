@@ -6712,6 +6712,13 @@
                       "null"
                     ],
                     "description": "Uploaded scoped PNG/JPEG/WebP asset. Null preserves the remote featured image."
+                  },
+                  "templateId": {
+                    "type": "string"
+                  },
+                  "templateVersion": {
+                    "type": "integer",
+                    "minimum": 0
                   }
                 },
                 "required": [
@@ -7204,22 +7211,22 @@
         }
       },
       "post": {
-        "summary": "Approve block template",
+        "summary": "Create draft template",
         "tags": [
           "Content and WordPress"
         ],
         "parameters": [
           {
-            "name": "orgId",
             "in": "path",
+            "name": "orgId",
             "required": true,
             "schema": {
               "type": "string"
             }
           },
           {
-            "name": "websiteId",
             "in": "path",
+            "name": "websiteId",
             "required": true,
             "schema": {
               "type": "string"
@@ -7250,9 +7257,34 @@
               "schema": {
                 "type": "object",
                 "additionalProperties": false,
+                "required": [
+                  "name",
+                  "blocks"
+                ],
                 "properties": {
                   "name": {
-                    "type": "string"
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 160
+                  },
+                  "contentType": {
+                    "enum": [
+                      "post",
+                      "page"
+                    ]
+                  },
+                  "variant": {
+                    "type": "string",
+                    "maxLength": 80
+                  },
+                  "mapping": {
+                    "const": "basic_html"
+                  },
+                  "designProfileId": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
                   },
                   "blocks": {
                     "type": "array",
@@ -7285,11 +7317,7 @@
                       }
                     }
                   }
-                },
-                "required": [
-                  "name",
-                  "blocks"
-                ]
+                }
               }
             }
           }
@@ -8136,6 +8164,416 @@
                     "type": "string",
                     "minLength": 3,
                     "maxLength": 2000
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organizations/{orgId}/websites/{websiteId}/content/templates/{id}": {
+      "patch": {
+        "summary": "Save draft and clear approval",
+        "tags": [
+          "Content and WordPress"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orgId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "websiteId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "403": {
+            "description": "Permission or independent review required"
+          },
+          "409": {
+            "description": "Version, approval or remote outcome conflict"
+          },
+          "422": {
+            "description": "Strict DTO validation failure"
+          },
+          "503": {
+            "description": "Integration configuration unavailable"
+          },
+          "200": {
+            "description": "Successful operation"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "name",
+                  "blocks",
+                  "version"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 160
+                  },
+                  "contentType": {
+                    "enum": [
+                      "post",
+                      "page"
+                    ]
+                  },
+                  "variant": {
+                    "type": "string",
+                    "maxLength": 80
+                  },
+                  "mapping": {
+                    "const": "basic_html"
+                  },
+                  "designProfileId": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "blocks": {
+                    "type": "array",
+                    "maxItems": 100,
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "type",
+                        "text"
+                      ],
+                      "properties": {
+                        "type": {
+                          "enum": [
+                            "paragraph",
+                            "heading",
+                            "quote",
+                            "list"
+                          ]
+                        },
+                        "text": {
+                          "type": "string",
+                          "maxLength": 8000
+                        },
+                        "level": {
+                          "type": "integer",
+                          "minimum": 2,
+                          "maximum": 6
+                        }
+                      }
+                    }
+                  },
+                  "version": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "Read saved template preview",
+        "tags": [
+          "Content and WordPress"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orgId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "websiteId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "403": {
+            "description": "Permission or independent review required"
+          },
+          "409": {
+            "description": "Version, approval or remote outcome conflict"
+          },
+          "422": {
+            "description": "Strict DTO validation failure"
+          },
+          "503": {
+            "description": "Integration configuration unavailable"
+          },
+          "200": {
+            "description": "Successful operation"
+          }
+        }
+      }
+    },
+    "/organizations/{orgId}/websites/{websiteId}/content/templates/{id}/decision": {
+      "post": {
+        "summary": "Review, approve or archive template",
+        "tags": [
+          "Content and WordPress"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orgId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "websiteId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful operation"
+          },
+          "403": {
+            "description": "Permission or independent review required"
+          },
+          "409": {
+            "description": "Version, approval or remote outcome conflict"
+          },
+          "422": {
+            "description": "Strict DTO validation failure"
+          },
+          "503": {
+            "description": "Integration configuration unavailable"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "version",
+                  "action"
+                ],
+                "properties": {
+                  "version": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "action": {
+                    "enum": [
+                      "review",
+                      "approve",
+                      "changes",
+                      "archive"
+                    ]
+                  },
+                  "reason": {
+                    "type": "string"
+                  },
+                  "allowSelfApproval": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organizations/{orgId}/websites/{websiteId}/cms/{id}/compare": {
+      "get": {
+        "summary": "Read current remote/local content for comparison",
+        "tags": [
+          "Content and WordPress"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orgId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "websiteId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "403": {
+            "description": "Permission or independent review required"
+          },
+          "409": {
+            "description": "Version, approval or remote outcome conflict"
+          },
+          "422": {
+            "description": "Strict DTO validation failure"
+          },
+          "503": {
+            "description": "Integration configuration unavailable"
+          },
+          "200": {
+            "description": "Successful operation"
+          }
+        }
+      }
+    },
+    "/organizations/{orgId}/websites/{websiteId}/cms/{id}/resolve-conflict": {
+      "post": {
+        "summary": "Create explicitly resolved unapproved draft",
+        "tags": [
+          "Content and WordPress"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orgId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "websiteId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful operation"
+          },
+          "403": {
+            "description": "Permission or independent review required"
+          },
+          "409": {
+            "description": "Version, approval or remote outcome conflict"
+          },
+          "422": {
+            "description": "Strict DTO validation failure"
+          },
+          "503": {
+            "description": "Integration configuration unavailable"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "version",
+                  "remoteHash",
+                  "remoteModified",
+                  "choice",
+                  "reason",
+                  "acceptSimplifiedFormatting"
+                ],
+                "properties": {
+                  "version": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "remoteHash": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  },
+                  "remoteModified": {
+                    "type": "string"
+                  },
+                  "choice": {
+                    "enum": [
+                      "keep_local",
+                      "import_remote"
+                    ]
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 3
+                  },
+                  "acceptSimplifiedFormatting": {
+                    "const": true
                   }
                 }
               }

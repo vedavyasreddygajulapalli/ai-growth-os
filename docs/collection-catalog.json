@@ -527,9 +527,9 @@
   {
     "name": "content_templates",
     "scope": "orgId + websiteId",
-    "fields": "name,blocks,status,version,updatedBy",
+    "fields": "name,contentType,variant,mapping,blocks,designProfileId,designVersion,designSnapshot,status,version,updatedBy,approvedBy",
     "indexes": "org/site/id",
-    "lifecycle": "Publisher-approved reusable blocks"
+    "lifecycle": "Draft -> review -> approval; edits invalidate approval; profile changes fence reuse"
   },
   {
     "name": "cms_connections",

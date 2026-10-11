@@ -123,3 +123,35 @@ test('refresh opens a new draft revision and retains live mapping without a remo
  assert.equal((await call('/content/'+item._id+'/refresh','POST',{version:item.version,reason:'Retry'})).status,409);
  assert.equal((await call('/content/refresh-candidates?days=0')).status,422);
 });
+test('templates require review, bind approved designs and create scoped immutable content copies',async()=>{
+ const profile=await call('/knowledge/records/design','POST',{title:'Approved design',status:'approved',data:{typography:'Use readable headings'}});assert.equal(profile.status,201,JSON.stringify(profile.data));
+ const body={name:'Article structure',contentType:'post',variant:'Editorial',mapping:'basic_html',designProfileId:profile.data._id,blocks:[{type:'heading',level:2,text:'Introduction'}]};
+ assert.equal((await call('/content/templates','POST',body,'viewer')).status,403);
+ let t=await call('/content/templates','POST',body,'writer');assert.equal(t.status,201,JSON.stringify(t.data));assert.equal(t.data.status,'draft');
+ const copy={title:'From template',slug:'from-template',type:'post',idempotencyKey:randomUUID(),templateId:t.data._id,templateVersion:t.data.version};
+ assert.equal((await call('/content','POST',copy)).status,409);
+ assert.equal((await call('/content/templates/'+t.data._id,'GET',undefined,'owner',otherSite)).status,404);
+ t=await call('/content/templates/'+t.data._id+'/decision','POST',{action:'review',version:t.data.version},'writer');assert.equal(t.status,201);
+ assert.equal((await call('/content/templates/'+t.data._id+'/decision','POST',{action:'approve',version:t.data.version},'writer')).status,403);
+ t=await call('/content/templates/'+t.data._id+'/decision','POST',{action:'approve',version:t.data.version});assert.equal(t.status,201,JSON.stringify(t.data));
+ const made=await call('/content','POST',{...copy,templateVersion:t.data.version});assert.equal(made.status,201,JSON.stringify(made.data));assert.equal(made.data.blocks[0].text,'Introduction');assert.equal(made.data.templateId,t.data._id);assert.equal(made.data.designSnapshot.data.typography,'Use readable headings');
+ assert.equal((await call('/content','POST',{...copy,templateVersion:t.data.version})).data._id,made.data._id);
+ assert.equal((await call('/content','POST',{...copy,idempotencyKey:randomUUID(),type:'page',templateVersion:t.data.version})).status,422);
+ const saved=await call('/content/templates/'+t.data._id,'PATCH',{...body,name:'Revised',version:t.data.version},'writer');assert.equal(saved.status,200);assert.equal(saved.data.status,'draft');
+ assert.equal((await call('/content/templates/'+t.data._id,'PATCH',{...body,version:t.data.version},'writer')).status,409);
+ assert.equal((await ContentItem.findById(made.data._id))!.blocks[0].text,'Introduction');
+ let reviewed=await call('/content/templates/'+t.data._id+'/decision','POST',{action:'review',version:saved.data.version},'writer');
+ assert.equal((await call('/knowledge/'+profile.data._id,'PATCH',{title:'Changed design',status:'approved',data:{typography:'New guidance'},version:profile.data.version})).status,200);
+ assert.equal((await call('/content/templates/'+t.data._id+'/decision','POST',{action:'approve',version:reviewed.data.version})).status,409);
+ assert.equal((await call('/content/templates')).status,200);
+});
+test('remote conflict resolution is version fenced and never publishes automatically',async()=>{
+ const item=await makeApproved('remote-conflict');await ContentItem.updateOne({_id:item._id},{$set:{remoteId:801,remoteOrigin:'https://example.com',remoteModified:'old'}});let modified='new',writes=0;
+ setTestWpTransport(async(_c,_p,method)=>{if(method==='POST')writes++;return {id:801,status:'publish',modified_gmt:modified,title:{raw:'Remote title'},content:{raw:'<p>Changed remotely</p>'}};});
+ const compared=await call('/cms/'+item._id+'/compare');assert.equal(compared.status,200,JSON.stringify(compared.data));
+ assert.equal((await call('/cms/'+item._id+'/compare','GET',undefined,'viewer')).status,403);
+ const body={version:item.version,remoteHash:compared.data.remoteHash,remoteModified:compared.data.remoteModified,choice:'import_remote',reason:'Accept the reviewed remote edit',acceptSimplifiedFormatting:true};
+ modified='newer';assert.equal((await call('/cms/'+item._id+'/resolve-conflict','POST',body)).status,409);
+ modified='new';const resolved=await call('/cms/'+item._id+'/resolve-conflict','POST',body);assert.equal(resolved.status,201,JSON.stringify(resolved.data));assert.equal(resolved.data.status,'draft');assert.equal(resolved.data.approvedRevision,undefined);assert.equal(resolved.data.blocks[0].text,'Changed remotely');assert.equal(writes,0);
+ assert.equal((await call('/cms/'+item._id+'/resolve-conflict','POST',body)).status,409);setTestWpTransport();
+});
