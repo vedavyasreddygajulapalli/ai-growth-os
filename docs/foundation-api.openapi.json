@@ -6520,6 +6520,1365 @@
           }
         }
       }
+    },
+    "/organizations/{orgId}/websites/{websiteId}/content": {
+      "get": {
+        "summary": "List content",
+        "tags": [
+          "Content and WordPress"
+        ],
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "websiteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation"
+          },
+          "403": {
+            "description": "Permission or independent review required"
+          },
+          "409": {
+            "description": "Version, approval or remote outcome conflict"
+          },
+          "422": {
+            "description": "Strict DTO validation failure"
+          },
+          "503": {
+            "description": "Integration configuration unavailable"
+          }
+        }
+      },
+      "post": {
+        "summary": "Create idempotent content",
+        "tags": [
+          "Content and WordPress"
+        ],
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "websiteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful operation"
+          },
+          "403": {
+            "description": "Permission or independent review required"
+          },
+          "409": {
+            "description": "Version, approval or remote outcome conflict"
+          },
+          "422": {
+            "description": "Strict DTO validation failure"
+          },
+          "503": {
+            "description": "Integration configuration unavailable"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 200
+                  },
+                  "slug": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+                  },
+                  "type": {
+                    "enum": [
+                      "post",
+                      "page"
+                    ]
+                  },
+                  "brief": {
+                    "type": "string"
+                  },
+                  "blocks": {
+                    "type": "array",
+                    "maxItems": 100,
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "type",
+                        "text"
+                      ],
+                      "properties": {
+                        "type": {
+                          "enum": [
+                            "paragraph",
+                            "heading",
+                            "quote",
+                            "list"
+                          ]
+                        },
+                        "text": {
+                          "type": "string",
+                          "maxLength": 8000
+                        },
+                        "level": {
+                          "type": "integer",
+                          "minimum": 2,
+                          "maximum": 6
+                        }
+                      }
+                    }
+                  },
+                  "seoTitle": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "keywords": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "ownerId": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "evidenceIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "mediaIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "categories": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer"
+                    }
+                  },
+                  "tags": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer"
+                    }
+                  },
+                  "idempotencyKey": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organizations/{orgId}/websites/{websiteId}/content/{id}": {
+      "get": {
+        "summary": "Content detail and checks",
+        "tags": [
+          "Content and WordPress"
+        ],
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "websiteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation"
+          },
+          "403": {
+            "description": "Permission or independent review required"
+          },
+          "409": {
+            "description": "Version, approval or remote outcome conflict"
+          },
+          "422": {
+            "description": "Strict DTO validation failure"
+          },
+          "503": {
+            "description": "Integration configuration unavailable"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Save new draft revision",
+        "tags": [
+          "Content and WordPress"
+        ],
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "websiteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation"
+          },
+          "403": {
+            "description": "Permission or independent review required"
+          },
+          "409": {
+            "description": "Version, approval or remote outcome conflict"
+          },
+          "422": {
+            "description": "Strict DTO validation failure"
+          },
+          "503": {
+            "description": "Integration configuration unavailable"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 200
+                  },
+                  "slug": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+                  },
+                  "type": {
+                    "enum": [
+                      "post",
+                      "page"
+                    ]
+                  },
+                  "brief": {
+                    "type": "string"
+                  },
+                  "blocks": {
+                    "type": "array",
+                    "maxItems": 100,
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "type",
+                        "text"
+                      ],
+                      "properties": {
+                        "type": {
+                          "enum": [
+                            "paragraph",
+                            "heading",
+                            "quote",
+                            "list"
+                          ]
+                        },
+                        "text": {
+                          "type": "string",
+                          "maxLength": 8000
+                        },
+                        "level": {
+                          "type": "integer",
+                          "minimum": 2,
+                          "maximum": 6
+                        }
+                      }
+                    }
+                  },
+                  "seoTitle": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "keywords": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "ownerId": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "evidenceIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "mediaIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "categories": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer"
+                    }
+                  },
+                  "tags": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer"
+                    }
+                  },
+                  "version": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organizations/{orgId}/websites/{websiteId}/content/{id}/transition": {
+      "post": {
+        "summary": "Review approval or archive",
+        "tags": [
+          "Content and WordPress"
+        ],
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "websiteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful operation"
+          },
+          "403": {
+            "description": "Permission or independent review required"
+          },
+          "409": {
+            "description": "Version, approval or remote outcome conflict"
+          },
+          "422": {
+            "description": "Strict DTO validation failure"
+          },
+          "503": {
+            "description": "Integration configuration unavailable"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "version": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "action": {
+                    "enum": [
+                      "brief",
+                      "draft",
+                      "review",
+                      "approve",
+                      "changes",
+                      "archive"
+                    ]
+                  },
+                  "reason": {
+                    "type": "string"
+                  },
+                  "allowSelfApproval": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organizations/{orgId}/websites/{websiteId}/content/{id}/versions": {
+      "get": {
+        "summary": "Immutable version history",
+        "tags": [
+          "Content and WordPress"
+        ],
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "websiteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation"
+          },
+          "403": {
+            "description": "Permission or independent review required"
+          },
+          "409": {
+            "description": "Version, approval or remote outcome conflict"
+          },
+          "422": {
+            "description": "Strict DTO validation failure"
+          },
+          "503": {
+            "description": "Integration configuration unavailable"
+          }
+        }
+      }
+    },
+    "/organizations/{orgId}/websites/{websiteId}/content/{id}/restore": {
+      "post": {
+        "summary": "Restore as new draft",
+        "tags": [
+          "Content and WordPress"
+        ],
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "websiteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful operation"
+          },
+          "403": {
+            "description": "Permission or independent review required"
+          },
+          "409": {
+            "description": "Version, approval or remote outcome conflict"
+          },
+          "422": {
+            "description": "Strict DTO validation failure"
+          },
+          "503": {
+            "description": "Integration configuration unavailable"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "version": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "revision": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organizations/{orgId}/websites/{websiteId}/content/templates": {
+      "get": {
+        "summary": "List templates",
+        "tags": [
+          "Content and WordPress"
+        ],
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "websiteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation"
+          },
+          "403": {
+            "description": "Permission or independent review required"
+          },
+          "409": {
+            "description": "Version, approval or remote outcome conflict"
+          },
+          "422": {
+            "description": "Strict DTO validation failure"
+          },
+          "503": {
+            "description": "Integration configuration unavailable"
+          }
+        }
+      },
+      "post": {
+        "summary": "Approve block template",
+        "tags": [
+          "Content and WordPress"
+        ],
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "websiteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful operation"
+          },
+          "403": {
+            "description": "Permission or independent review required"
+          },
+          "409": {
+            "description": "Version, approval or remote outcome conflict"
+          },
+          "422": {
+            "description": "Strict DTO validation failure"
+          },
+          "503": {
+            "description": "Integration configuration unavailable"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "blocks": {
+                    "type": "array",
+                    "maxItems": 100,
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "type",
+                        "text"
+                      ],
+                      "properties": {
+                        "type": {
+                          "enum": [
+                            "paragraph",
+                            "heading",
+                            "quote",
+                            "list"
+                          ]
+                        },
+                        "text": {
+                          "type": "string",
+                          "maxLength": 8000
+                        },
+                        "level": {
+                          "type": "integer",
+                          "minimum": 2,
+                          "maximum": 6
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organizations/{orgId}/websites/{websiteId}/content/{id}/ai": {
+      "post": {
+        "summary": "Generate unapproved AI proposal",
+        "tags": [
+          "Content and WordPress"
+        ],
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "websiteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful operation"
+          },
+          "403": {
+            "description": "Permission or independent review required"
+          },
+          "409": {
+            "description": "Version, approval or remote outcome conflict"
+          },
+          "422": {
+            "description": "Strict DTO validation failure"
+          },
+          "503": {
+            "description": "Integration configuration unavailable"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "version": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "operation": {
+                    "enum": [
+                      "draft",
+                      "section",
+                      "rewrite",
+                      "shorten",
+                      "expand",
+                      "brand_voice"
+                    ]
+                  },
+                  "instruction": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organizations/{orgId}/websites/{websiteId}/content/{id}/ai/{requestId}/apply": {
+      "post": {
+        "summary": "Apply proposal once",
+        "tags": [
+          "Content and WordPress"
+        ],
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "websiteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "requestId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful operation"
+          },
+          "403": {
+            "description": "Permission or independent review required"
+          },
+          "409": {
+            "description": "Version, approval or remote outcome conflict"
+          },
+          "422": {
+            "description": "Strict DTO validation failure"
+          },
+          "503": {
+            "description": "Integration configuration unavailable"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "version": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organizations/{orgId}/websites/{websiteId}/cms": {
+      "get": {
+        "summary": "Connection status without secrets",
+        "tags": [
+          "Content and WordPress"
+        ],
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "websiteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation"
+          },
+          "403": {
+            "description": "Permission or independent review required"
+          },
+          "409": {
+            "description": "Version, approval or remote outcome conflict"
+          },
+          "422": {
+            "description": "Strict DTO validation failure"
+          },
+          "503": {
+            "description": "Integration configuration unavailable"
+          }
+        }
+      }
+    },
+    "/organizations/{orgId}/websites/{websiteId}/cms/connect": {
+      "post": {
+        "summary": "Test and encrypt WordPress credentials",
+        "tags": [
+          "Content and WordPress"
+        ],
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "websiteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful operation"
+          },
+          "403": {
+            "description": "Permission or independent review required"
+          },
+          "409": {
+            "description": "Version, approval or remote outcome conflict"
+          },
+          "422": {
+            "description": "Strict DTO validation failure"
+          },
+          "503": {
+            "description": "Integration configuration unavailable"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "username": {
+                    "type": "string"
+                  },
+                  "applicationPassword": {
+                    "type": "string",
+                    "writeOnly": true
+                  },
+                  "version": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organizations/{orgId}/websites/{websiteId}/cms/disconnect": {
+      "post": {
+        "summary": "Remove credentials",
+        "tags": [
+          "Content and WordPress"
+        ],
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "websiteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful operation"
+          },
+          "403": {
+            "description": "Permission or independent review required"
+          },
+          "409": {
+            "description": "Version, approval or remote outcome conflict"
+          },
+          "422": {
+            "description": "Strict DTO validation failure"
+          },
+          "503": {
+            "description": "Integration configuration unavailable"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "version": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organizations/{orgId}/websites/{websiteId}/cms/remote": {
+      "get": {
+        "summary": "Browse remote records read-only",
+        "tags": [
+          "Content and WordPress"
+        ],
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "websiteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation"
+          },
+          "403": {
+            "description": "Permission or independent review required"
+          },
+          "409": {
+            "description": "Version, approval or remote outcome conflict"
+          },
+          "422": {
+            "description": "Strict DTO validation failure"
+          },
+          "503": {
+            "description": "Integration configuration unavailable"
+          }
+        }
+      }
+    },
+    "/organizations/{orgId}/websites/{websiteId}/cms/jobs": {
+      "get": {
+        "summary": "Publishing history",
+        "tags": [
+          "Content and WordPress"
+        ],
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "websiteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation"
+          },
+          "403": {
+            "description": "Permission or independent review required"
+          },
+          "409": {
+            "description": "Version, approval or remote outcome conflict"
+          },
+          "422": {
+            "description": "Strict DTO validation failure"
+          },
+          "503": {
+            "description": "Integration configuration unavailable"
+          }
+        }
+      }
+    },
+    "/organizations/{orgId}/websites/{websiteId}/cms/{id}/publish": {
+      "post": {
+        "summary": "Queue approved revision",
+        "tags": [
+          "Content and WordPress"
+        ],
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "websiteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful operation"
+          },
+          "403": {
+            "description": "Permission or independent review required"
+          },
+          "409": {
+            "description": "Version, approval or remote outcome conflict"
+          },
+          "422": {
+            "description": "Strict DTO validation failure"
+          },
+          "503": {
+            "description": "Integration configuration unavailable"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "version": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "operation": {
+                    "enum": [
+                      "draft",
+                      "publish"
+                    ]
+                  },
+                  "runAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organizations/{orgId}/websites/{websiteId}/cms/jobs/{id}/cancel": {
+      "post": {
+        "summary": "Cancel queued job",
+        "tags": [
+          "Content and WordPress"
+        ],
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "websiteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful operation"
+          },
+          "403": {
+            "description": "Permission or independent review required"
+          },
+          "409": {
+            "description": "Version, approval or remote outcome conflict"
+          },
+          "422": {
+            "description": "Strict DTO validation failure"
+          },
+          "503": {
+            "description": "Integration configuration unavailable"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "version": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organizations/{orgId}/websites/{websiteId}/cms/jobs/{id}/reconcile": {
+      "post": {
+        "summary": "Read-only outcome reconciliation",
+        "tags": [
+          "Content and WordPress"
+        ],
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "websiteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful operation"
+          },
+          "403": {
+            "description": "Permission or independent review required"
+          },
+          "409": {
+            "description": "Version, approval or remote outcome conflict"
+          },
+          "422": {
+            "description": "Strict DTO validation failure"
+          },
+          "503": {
+            "description": "Integration configuration unavailable"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {}
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {

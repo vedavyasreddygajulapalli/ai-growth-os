@@ -509,5 +509,47 @@
     "fields": "MongoDB GridFS bytes/metadata; owner record required for authenticated access",
     "indexes": "GridFS defaults",
     "lifecycle": "Private persistent records; archive auditable; production lifecycle and orphan cleanup gate remains"
+  },
+  {
+    "name": "content_items",
+    "scope": "orgId + websiteId",
+    "fields": "title,slug,type,blocks,brief,ownerId,evidenceIds,mediaIds,status,version,revision,approvedRevision,remoteId,remoteModified",
+    "indexes": "unique scoped slug and partial create key",
+    "lifecycle": "Edits create snapshots and invalidate approval"
+  },
+  {
+    "name": "content_versions",
+    "scope": "orgId + websiteId",
+    "fields": "contentId,revision,snapshot,actorId,reason",
+    "indexes": "unique contentId/revision",
+    "lifecycle": "Immutable snapshots"
+  },
+  {
+    "name": "content_templates",
+    "scope": "orgId + websiteId",
+    "fields": "name,blocks,status,version,updatedBy",
+    "indexes": "org/site/id",
+    "lifecycle": "Publisher-approved reusable blocks"
+  },
+  {
+    "name": "cms_connections",
+    "scope": "orgId + websiteId",
+    "fields": "origin,username,encryptedSecret,status,version,capabilities",
+    "indexes": "unique org/site",
+    "lifecycle": "Encrypted secret excluded by default; disconnect removes secret"
+  },
+  {
+    "name": "publish_jobs",
+    "scope": "orgId + websiteId",
+    "fields": "contentId,revision,operation,status,runAt,attempts,requestedBy,connectionVersion,websiteVersion,remoteId,error,version",
+    "indexes": "unique scoped key; status/runAt",
+    "lifecycle": "Durable scheduling; ambiguous writes require reconciliation"
+  },
+  {
+    "name": "content_ai_requests",
+    "scope": "orgId + websiteId",
+    "fields": "contentId,revision,operation,status,result,sourceIds,requestedBy,error",
+    "indexes": "org/site/id",
+    "lifecycle": "Explicit one-time proposal application"
   }
 ]

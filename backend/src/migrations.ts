@@ -1,3 +1,4 @@
+import { contentModels } from "./content/models";
 import { KnowledgeRecord } from "./knowledge/models";
 import { crawlerModels } from "./crawler/models";
 import { initializeIndexes, Session, User } from "./database";
@@ -9,5 +10,6 @@ export async function runMigrations() {
   await Session.updateMany({ authVersion: { $exists: false } }, { $set: { authVersion: 0 } });
   await initializeIndexes();
   await KnowledgeRecord.createIndexes();
+  for (const model of contentModels) await model.createIndexes();
   for (const model of crawlerModels) await model.createIndexes();
 }

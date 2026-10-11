@@ -1,3 +1,6 @@
+import { ContentAiController } from "./content/ai.controller";
+import { CmsController } from "./content/cms.controller";
+import { ContentController } from "./content/controller";
 import { KnowledgeController } from "./knowledge/controller";
 import { embeddedCrawlerReady, stopEmbeddedCrawler } from "./crawler/embedded";
 import { crawlSettings } from "./crawler/settings";
@@ -106,6 +109,9 @@ class HealthController {
     WebsitesController,
     CrawlsController,
     KnowledgeController,
+    ContentController,
+    ContentAiController,
+    CmsController,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }, {
     provide: "RESOURCE_LIFECYCLE", useValue: { async beforeApplicationShutdown() { await stopEmbeddedCrawler(); }, async onApplicationShutdown() { closeRateLimitStore(); await mongoose.disconnect(); } },

@@ -247,3 +247,9 @@ test("Brand editor submits scoped data with named evidence choices and retains A
  assert.deepEqual(payload,{title:"Saved business",status:"draft",data:{industry:"Technology"},references:["c".repeat(24)]});
  assert.match(doc.querySelector('#live-error')!.textContent!,/Check industry/);assert.equal((doc.querySelector('[name="title"]') as HTMLInputElement).value,"Saved business");dom.window.close();
 });
+test('Content workspace loads persisted records and keeps Viewer publishing controls hidden',async()=>{
+ const org={_id:'a'.repeat(24),name:'Saved workspace',role:'Viewer'},site={_id:'b'.repeat(24),name:'Saved website',status:'active'};
+ const fetcher=async(url:string)=>{let data:any;if(url.endsWith('/auth/me'))data={name:'Viewer',emailVerifiedAt:'2026-01-01'};else if(url.endsWith('/organizations'))data={items:[org]};else if(url.includes('/websites?'))data={items:[site]};else if(url.includes('/content?'))data={items:[{_id:'c'.repeat(24),title:'Persisted article',slug:'persisted',type:'post',status:'review',updatedAt:'2026-10-11'}]};else if(url.endsWith('/cms'))data={connection:null};else if(url.endsWith('/jobs')||url.endsWith('/templates'))data={items:[]};else throw Error(url);return {ok:true,status:200,json:async()=>data};};
+ const dom=setup(true,fetcher);click(dom,'live');await tick();runInContext('navigate("content")',dom.getInternalVMContext());await tick();await tick();
+ assert.match(dom.window.document.body.textContent!,/Persisted article/);assert.equal(dom.window.document.querySelector('[data-live="content-new"]'),null);assert.equal(dom.window.document.querySelector('[data-live="content-wordpress"]'),null);dom.window.close();
+});

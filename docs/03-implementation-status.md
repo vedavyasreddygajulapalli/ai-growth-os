@@ -68,3 +68,7 @@ User approved a free temporary crawler setup with unchanged visual design. A pri
 - Authenticated live M3/M4 write/read workflows were not exercised: the browser has no signed-in verified account. No user credentials were requested, invented or bypassed. The equivalent API workflows passed with isolated real MongoDB data in CI.
 - Broad responsive/device, real-domain crawl, live email, load/security, malware scanning, backup/restore and operational acceptance remain open.
 - Next ordered development phase: M5 Content & AI CMS, then M6 WordPress; next deployment checkpoint after that pair. No M5/M6 implementation is claimed in this checkpoint.
+
+## M5 / M6 — development in progress
+
+Content library/editor, versioned review/approval, optional AI proposals, encrypted WordPress connection, safe queued draft/publish/schedule/cancel and read-only uncertain-outcome reconciliation are implemented in this checkpoint. Approved UI patterns/navigation remain unchanged. See [acceptance and remaining gates](09-content-wordpress-acceptance.md). Media publishing/import, richer design/refresh workflows and live integration acceptance remain; this is not M5/M6 completion. M7 has not started.

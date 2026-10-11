@@ -49,3 +49,7 @@ The existing API can supervise the crawler using `CRAWLER_EXECUTION=embedded`, `
 Brand & Knowledge, Research and Strategy now have authenticated, website-scoped MongoDB record workflows using the approved UI. The field catalog and acceptance scope are in `docs/08-brand-research-acceptance.md`. Run the same migrations and build/test commands; no new external credentials are needed. Media uploads are stored privately in MongoDB GridFS (2 MB/file, 100 uploads/website), while larger/video assets may be linked. External keyword metrics are not generated or fabricated.
 
 Deployment cadence follows the development-first roadmap: M3+M4, M5+M6, M7+M8, M9+M10, separate M11, then M12 final acceptance. A successful code gate is distinct from live production acceptance.
+
+### Content and WordPress development
+
+The authenticated Content workspace now uses MongoDB drafts, revisions, approval and queued WordPress workflows. Optional AI proposals require explicit review. Read [M5/M6 acceptance](docs/09-content-wordpress-acceptance.md) for configuration, safety behavior and unfinished gates. These modules are in progress; the new source checkpoint does not imply a live deployment or full WordPress/AI acceptance.
