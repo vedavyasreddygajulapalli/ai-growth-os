@@ -93,3 +93,33 @@ test('remote import is persisted, idempotent and requires explicit formatting ac
  const r=await call('/cms/import','POST',body);assert.equal(r.status,201,JSON.stringify(r.data));assert.equal(r.data.status,'draft');assert.equal(r.data.remoteOrigin,'https://example.com');
  assert.equal((await call('/cms/import','POST',body)).data._id,r.data._id);assert.equal(await ContentVersion.countDocuments({contentId:r.data._id}),1);setTestWpTransport();
 });
+import {ensureFeaturedMedia} from '../src/content/media';
+import {CmsMedia} from '../src/content/models';
+test('featured images use private scoped bytes, deduplicate and reconcile a lost upload response',async()=>{
+ const png=Buffer.from([137,80,78,71,13,10,26,10,1,2,3]);
+ const asset=await call('/knowledge/upload','POST',{name:'cover.png',type:'image/png',base64:png.toString('base64')});assert.equal(asset.status,201,JSON.stringify(asset.data));
+ const c:any={orgId:org,websiteId:site,origin:'https://example.com',capabilities:{media:true}};let remote:any,uploads=0;
+ setTestWpTransport(async(_c,path,method,body)=>{if(method==='POST'){uploads++;assert.deepEqual(body.bytes,png);remote={id:901,slug:body.filename.replace(/\.png$/,''),mime_type:'image/png'};throw Error('CMS_OUTCOME_UNKNOWN');}return remote?[remote]:[];});
+ await assert.rejects(()=>ensureFeaturedMedia(c,asset.data._id),/CMS_MEDIA_OUTCOME_UNKNOWN/);assert.equal(uploads,1);
+ assert.equal((await CmsMedia.findOne({orgId:org,websiteId:site}))!.status,'needs_review');
+ assert.equal(await ensureFeaturedMedia(c,asset.data._id),901);assert.equal(await ensureFeaturedMedia(c,asset.data._id),901);assert.equal(uploads,1);
+ await assert.rejects(()=>ensureFeaturedMedia({...c,websiteId:otherSite},asset.data._id),/CMS_MEDIA_UNAVAILABLE/);
+ await assert.rejects(()=>ensureFeaturedMedia({...c,capabilities:{media:false}},asset.data._id),/CMS_MEDIA_PERMISSION_REQUIRED/);
+ const item=await makeApproved('cover-content');
+ const edited=await call('/content/'+item._id,'PATCH',{title:item.title,slug:item.slug,type:'post',blocks:item.blocks,featuredMediaId:asset.data._id,version:item.version});assert.equal(edited.status,200);assert.equal(edited.data.approvedRevision,undefined);
+ assert.equal((await call('/content/'+item._id,'PATCH',{title:item.title,slug:item.slug,type:'post',featuredMediaId:asset.data._id,version:edited.data.version},'owner',otherSite)).status,404);
+ await CmsConnection.updateOne({orgId:org,websiteId:site},{$set:{'capabilities.media':true}});
+ let reviewed=await call('/content/'+item._id+'/transition','POST',{action:'review',version:edited.data.version});
+ reviewed=await call('/content/'+item._id+'/transition','POST',{action:'approve',version:reviewed.data.version,allowSelfApproval:true,reason:'Owner reviews the cover image'});assert.equal(reviewed.status,201);
+ let sent:any;
+ setTestWpTransport(async(_c,path,method,body)=>{if(method==='POST'){sent={...(sent||{}),...body};return {id:902,status:sent.status,featured_media:sent.featured_media,modified_gmt:'2026-10-11T01:00:00',link:'https://example.com/cover-content'};}return [];});
+ const queued=await call('/cms/'+item._id+'/publish','POST',{version:reviewed.data.version,operation:'publish'});assert.equal(queued.status,201);await processPublication(queued.data._id);
+ assert.equal(sent.featured_media,901);assert.equal((await PublishJob.findById(queued.data._id))!.status,'completed');
+ setTestWpTransport();
+});
+test('refresh opens a new draft revision and retains live mapping without a remote write',async()=>{
+ const item=await makeApproved('refresh-live');await ContentItem.updateOne({_id:item._id},{$set:{status:'published',remoteId:701,remoteOrigin:'https://example.com',publishedRevision:item.revision}});
+ const result=await call('/content/'+item._id+'/refresh','POST',{version:item.version,reason:'Update product details'});assert.equal(result.status,201,JSON.stringify(result.data));assert.equal(result.data.status,'draft');assert.equal(result.data.remoteId,701);assert.equal(result.data.revision,item.revision+1);assert.equal(result.data.approvedRevision,undefined);
+ assert.equal((await call('/content/'+item._id+'/refresh','POST',{version:item.version,reason:'Retry'})).status,409);
+ assert.equal((await call('/content/refresh-candidates?days=0')).status,422);
+});

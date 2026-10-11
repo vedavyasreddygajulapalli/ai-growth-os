@@ -4,6 +4,7 @@ import {ContentItem,CmsConnection,PublishJob} from './models';
 import {User,transaction,log} from '../database';
 import {scope,publishers} from './scope';
 import {renderBlocks} from './contracts';
+import {ensureFeaturedMedia} from './media';
 import {wordpress,cmsError} from './wordpress';
 export const publicationMarker=(id:unknown,revision:number)=>`<!-- growth-os:${id}:revision:${revision} -->`;
 let queue:Queue|undefined;
@@ -26,7 +27,9 @@ export async function processPublication(id:string){
    if(found.length){remote=found.find((r:any)=>String(r.content?.raw||'').includes(marker));if(!remote)throw Error('CMS_SLUG_CONFLICT');}
   }
   // Creation is always a remote draft. Never blindly repeat a timed-out POST.
-  const payload={title:item.title,slug:item.slug,content:renderBlocks(item.blocks)+'\n'+marker,excerpt:item.description,categories:item.type==='post'?item.categories:undefined,tags:item.type==='post'?item.tags:undefined,status:job.operation==='publish'&&remote?'publish':'draft'};
+  if(remote?.status==='publish'&&job.operation==='draft')throw Error('CMS_PUBLISHED_DRAFT_FORBIDDEN');
+  const featuredMedia=item.featuredMediaId?await ensureFeaturedMedia(connection,String(item.featuredMediaId)):undefined;
+  const payload={...(featuredMedia?{featured_media:featuredMedia}:{}),title:item.title,slug:item.slug,content:renderBlocks(item.blocks)+'\n'+marker,excerpt:item.description,categories:item.type==='post'?item.categories:undefined,tags:item.type==='post'?item.tags:undefined,status:job.operation==='publish'&&remote?'publish':'draft'};
   if(remote?.status==='publish'&&job.operation==='draft')throw Error('CMS_PUBLISHED_DRAFT_FORBIDDEN');
   mutationAttempted=true;
   if(!remote)remote=await wordpress(connection,endpoint,'POST',payload);
@@ -34,6 +37,7 @@ export async function processPublication(id:string){
   if(!Number.isInteger(remote.id)||!remote.modified_gmt)throw Error('CMS_OUTCOME_UNKNOWN');
   await PublishJob.updateOne({_id:job._id},{$set:{remoteId:remote.id}});
   if(job.operation==='publish'&&remote.status!=='publish')remote=await wordpress(connection,endpoint+'/'+remote.id,'POST',{status:'publish'});
+  if(featuredMedia&&remote.featured_media!==featuredMedia)throw Error('CMS_OUTCOME_UNKNOWN');
   if(remote.status!==(job.operation==='publish'?'publish':'draft'))throw Error('CMS_OUTCOME_UNKNOWN');
   await transaction(async session=>{
    const before=await ContentItem.findById(item._id).session(session);

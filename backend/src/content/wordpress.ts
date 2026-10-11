@@ -16,8 +16,9 @@ export const wordpress:WpTransport=async(c,path,method='GET',body)=>{
  if(!addresses.length||addresses.some(a=>!publicAddress(a.address)))throw Error('UNSAFE_CMS_ADDRESS');
  const secret=unseal(c.encryptedSecret,String(c.orgId)+':'+String(c.websiteId));
  return new Promise((resolve,reject)=>{
-  const data=body?JSON.stringify(body):undefined;
-  const req=https.request(u,{method,agent:false,lookup:((_h:any,_o:any,cb:any)=>cb(null,addresses[0].address,addresses[0].family)) as any,headers:{Authorization:'Basic '+Buffer.from(c.username+':'+secret).toString('base64'),'Content-Type':'application/json','Accept-Encoding':'identity','User-Agent':'AIGrowthOS/1.0'}},res=>{
+  const binary=body?.bytes instanceof Buffer;if(binary&&(body.bytes.length>2*1024*1024||!/^growth-[a-f0-9-]+\.(png|jpg|webp)$/.test(body.filename)))throw Error('CMS_INVALID_UPLOAD');
+  const data=binary?body.bytes:body?JSON.stringify(body):undefined;
+  const req=https.request(u,{method,agent:false,lookup:((_h:any,_o:any,cb:any)=>cb(null,addresses[0].address,addresses[0].family)) as any,headers:{Authorization:'Basic '+Buffer.from(c.username+':'+secret).toString('base64'),'Content-Type':binary?body.contentType:'application/json',...(binary?{'Content-Disposition':'attachment; filename="'+body.filename+'"'}:{}),'Accept-Encoding':'identity','User-Agent':'AIGrowthOS/1.0'}},res=>{
    if((res.statusCode||0)>=300){res.resume();reject(Error('CMS_HTTP_'+res.statusCode));return;}
    let count=0;const chunks:Buffer[]=[];res.on('data',chunk=>{count+=chunk.length;if(count>2*1024*1024){res.destroy();reject(Error('CMS_RESPONSE_TOO_LARGE'));}else chunks.push(chunk);});res.on('end',()=>{try{resolve(JSON.parse(Buffer.concat(chunks).toString()));}catch{reject(Error('CMS_INVALID_RESPONSE'));}});res.on('error',()=>reject(Error('CMS_RESPONSE_LOST')));
   });const timer=setTimeout(()=>req.destroy(),15000);req.on('close',()=>clearTimeout(timer));req.on('error',()=>reject(Error(method==='GET'?'CMS_UNAVAILABLE':'CMS_OUTCOME_UNKNOWN')));req.end(data);

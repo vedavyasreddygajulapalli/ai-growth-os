@@ -551,5 +551,12 @@
     "fields": "contentId,revision,operation,status,result,sourceIds,requestedBy,error",
     "indexes": "org/site/id",
     "lifecycle": "Explicit one-time proposal application"
+  },
+  {
+    "name": "cms_media",
+    "scope": "orgId + websiteId + origin",
+    "fields": "checksum,assetId,slug,status,remoteId,error",
+    "indexes": "unique orgId/websiteId/origin/checksum",
+    "lifecycle": "Durable upload mapping; uncertain uploads never blindly retried"
   }
 ]

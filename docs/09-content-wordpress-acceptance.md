@@ -34,3 +34,11 @@ Do not label this checkpoint M5/M6 complete or start M7 on this evidence. Existi
 CI run 38113634527 on commit `4352a3644eec7a49b4157540186a8c586d3d654e` passed 29 unit/UI tests and 35 MongoDB/Redis integration tests, zero skips, and both builds. Subsequent remote-import and origin-binding changes require a fresh CI result.
 
 Latest code checkpoint: `ae83aef2e00aa709d769f8eade5e95ea432cdd69`. GitHub CI run https://github.com/vedavyasreddygajulapalli/ai-growth-os/actions/runs/38113853672 passed backend/frontend builds, 30 unit/UI tests and 36 real MongoDB/Redis integration tests, zero skips. This verifies the safe-block import, independent-review exception, remote-origin binding, approval and mocked-provider flows. It is not live WordPress, AI-provider or deployment evidence.
+
+## Featured images and refresh follow-up
+
+Implemented: explicit featured-image selection (uploaded PNG/JPEG/WebP only), strict tenant validation, approval invalidation on change, worker-side private GridFS read, bounded binary WordPress upload, checksum/origin mapping reuse, and read-only deterministic-slug recovery after lost upload responses. The publish confirmation discloses public upload. Clearing the selection preserves the remote image; remote image deletion is not implied. Ambiguous media outcomes without a unique match remain blocked, requiring operator investigation. Other media references remain internal; inline galleries/custom layouts are not yet supported.
+
+Implemented: age-based refresh candidates (90-day default, configurable API threshold), with an explicit explanation that this is not traffic/ranking intelligence. Beginning a refresh creates an audited, unapproved draft revision and keeps the live remote mapping. WordPress remains unchanged until a newly approved publish request.
+
+Pending: expanded design intelligence/templates, inline-media/layout round-tripping, registered SEO-plugin adapters, live WordPress/AI acceptance and the combined deployment. Do not mark the whole pair complete from this checkpoint.

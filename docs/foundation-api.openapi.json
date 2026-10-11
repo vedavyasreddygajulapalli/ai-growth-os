@@ -6705,6 +6705,13 @@
                   "idempotencyKey": {
                     "type": "string",
                     "format": "uuid"
+                  },
+                  "featuredMediaId": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Uploaded scoped PNG/JPEG/WebP asset. Null preserves the remote featured image."
                   }
                 },
                 "required": [
@@ -6919,6 +6926,13 @@
                   "version": {
                     "type": "integer",
                     "minimum": 0
+                  },
+                  "featuredMediaId": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Uploaded scoped PNG/JPEG/WebP asset. Null preserves the remote featured image."
                   }
                 },
                 "required": [
@@ -7992,6 +8006,136 @@
                   },
                   "acceptSimplifiedFormatting": {
                     "const": true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organizations/{orgId}/websites/{websiteId}/content/refresh-candidates": {
+      "get": {
+        "summary": "Age-based published content refresh candidates",
+        "tags": [
+          "Content and WordPress"
+        ],
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "websiteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "days",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 730,
+              "default": 90
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation"
+          },
+          "403": {
+            "description": "Permission or independent review required"
+          },
+          "409": {
+            "description": "Version, approval or remote outcome conflict"
+          },
+          "422": {
+            "description": "Strict DTO validation failure"
+          },
+          "503": {
+            "description": "Integration configuration unavailable"
+          }
+        }
+      }
+    },
+    "/organizations/{orgId}/websites/{websiteId}/content/{id}/refresh": {
+      "post": {
+        "summary": "Begin refresh as new unapproved revision, retaining live mapping",
+        "tags": [
+          "Content and WordPress"
+        ],
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "websiteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful operation"
+          },
+          "403": {
+            "description": "Permission or independent review required"
+          },
+          "409": {
+            "description": "Version, approval or remote outcome conflict"
+          },
+          "422": {
+            "description": "Strict DTO validation failure"
+          },
+          "503": {
+            "description": "Integration configuration unavailable"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "version",
+                  "reason"
+                ],
+                "properties": {
+                  "version": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 2000
                   }
                 }
               }
