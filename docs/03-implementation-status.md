@@ -86,3 +86,10 @@ Template/design follow-up: editable draft/review/approval templates, named varia
 Code `8e4eb203ed0e080d8afd81c171d4054faf18a4cf` passed both builds and 71 tests in CI run 38133165765 (31 unit/UI, 40 MongoDB/Redis integration, zero skips). Both free Render services are live at that commit as of 11 October 2026 10:50 UTC. Root and direct/proxied readiness returned 200; embedded worker readiness was true; migrations completed; the frontend asset checksum matches the tested build. Preview: https://ai-growth-os-web-us4p.onrender.com/ . This supersedes older undeployed checkpoint notes above.
 
 M5/M6 now provide the manual V1 development flow: scoped content editing/history/refresh, explicit AI proposals, design-bound reviewed templates, approved WordPress import/draft/publish/schedule, featured-image mapping, uncertain-outcome reconciliation and reviewed remote-conflict drafts. Full PRD scope and live acceptance remain as listed in `09-content-wordpress-acceptance.md`. Provider setup, real authenticated flows, mobile visual checks and final operational acceptance are not claimed complete. M7 has not started.
+
+### M7 development — crawl-backed SEO overview
+- Added read-only tenant-scoped SEO summary and a Website management overview action using approved cards, tables and modal components.
+- Uses one completed snapshot for the current domain, with date, coverage denominator, limited-crawl warning, issue counts and recommendations. Unknown fetch/robots states are separate from known local indexability.
+- Search Console, rankings and AI visibility remain explicitly disconnected; no search-engine indexing or ranking claims.
+- Added MongoDB integration coverage for empty evidence, summary counts, cross-workspace rejection and domain changes. Execution evidence is pending CI for this checkpoint.
+- Remaining M7: issue assignment/ignore/recheck workflow, indexing/provider workflows and schema drafts. M8 has not started. No production completion claimed; deploy after the M7/M8 development pair.

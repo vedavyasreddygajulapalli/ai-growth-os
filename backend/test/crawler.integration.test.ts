@@ -139,3 +139,17 @@ test("embedded mode enforces API budgets and starts and stops the real child wor
     if(previous.mongo===undefined)delete process.env.MONGODB_URI;else process.env.MONGODB_URI=previous.mongo;
   }
 });
+
+test('SEO summary uses finished domain-matched evidence and rejects another workspace',async()=>{
+  const target=await Website.create({orgId:org,name:'SEO fixture',verificationToken:'test-only',domain:'seo.example.com',cmsType:'Other',status:'active'});
+  const endpoint=`/organizations/${org}/websites/${target._id}/seo/summary`;
+  assert.equal((await call(endpoint)).data.crawl,null);
+  const completed=await CrawlJob.create({orgId:org,websiteId:target._id,domain:target.domain,status:'completed',active:false,source:'test',completedAt:new Date(),config:{mode:'single'},truncated:true});
+  await CrawlPage.create([{orgId:org,websiteId:target._id,jobId:completed._id,url:'https://seo.example.com/',urlHash:'fixture1',status:'crawled',data:{indexable:true}},{orgId:org,websiteId:target._id,jobId:completed._id,url:'https://seo.example.com/private',urlHash:'fixture2',status:'blocked'}]);
+  await TechnicalIssue.create({orgId:org,websiteId:target._id,jobId:completed._id,url:'https://seo.example.com/',type:'missing_title',severity:'High'});
+  const result=await call(endpoint);assert.equal(result.status,200);assert.equal(result.data.auditedPages,2);assert.equal(result.data.indexable,1);assert.equal(result.data.unknown,1);assert.equal(result.data.issues[0].count,1);assert.equal(result.data.providers.searchConsole,'not_connected');
+  const other=(await call('/organizations','POST',{name:'SEO Other',timezone:'UTC',currency:'USD'})).data._id;
+  assert.equal((await call(`/organizations/${other}/websites/${target._id}/seo/summary`)).status,404);
+  await Website.updateOne({_id:target._id},{$set:{domain:'changed.example.com'}});
+  assert.equal((await call(endpoint)).data.crawl,null);
+});

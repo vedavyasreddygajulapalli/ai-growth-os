@@ -8581,6 +8581,46 @@
           }
         }
       }
+    },
+    "/organizations/{orgId}/websites/{websiteId}/seo/summary": {
+      "get": {
+        "summary": "Summarize the latest completed crawl for the current website domain",
+        "description": "Read-only, active website membership required. Uses immutable crawl pages, never mixed latest inventory. Local indexability is not search-engine indexing. No provider metrics are fabricated.",
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          },
+          {
+            "name": "websiteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "crawl (nullable), auditedPages, indexable, notIndexable, unknown, grouped issues and disconnected provider states"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Verification or membership required"
+          },
+          "404": {
+            "description": "Active website not available in this organization"
+          }
+        }
+      }
     }
   },
   "components": {
