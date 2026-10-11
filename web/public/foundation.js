@@ -34,7 +34,7 @@
     "Sales User",
     "Viewer",
   ];
-  function clearCrawlState() { live.crawlSite=null; live.crawls=[]; live.crawlFocus=null; live.crawlSummary=null; live.crawlReport=null; live.urlItems=[]; live.urlFilters={}; live.urlPage=1; live.urlTotal=0; }
+  function clearCrawlState() { live.crawlSite=null; live.crawls=[]; live.crawlFocus=null; live.crawlSummary=null; live.crawlReport=null; live.urlItems=[]; live.urlFilters={}; live.urlPage=1; live.urlTotal=0; live.seoSite=null; live.seoSummary=null; live.seoProviders=[]; live.seoDrafts=[]; live.seoLoaded=false; live.seoLoading=false; }
   const canCrawl = () => ["Owner", "Admin", "Marketing Manager", "SEO Manager"].includes(live.org?.role);
   const isManager = () => ["Owner", "Admin"].includes(live.org?.role);
   const button = (label, act, primary = false) =>
@@ -738,7 +738,7 @@
             closeModal();live.seoLoaded=false;await loadSeo(true);
           });break;
         case "seo-schema-transition": {
-          const [schemaId,transition]=id.split(":");const draft=live.seoDrafts.find(d=>d._id===schemaId);if(!draft)break;
+          const [schemaId,transition]=a.slice("seo-schema-transition:".length).split(":");const draft=live.seoDrafts.find(d=>d._id===schemaId);if(!draft)break;
           showForm(transition==="approve"?"Approve schema draft":transition==="review"?"Submit schema for independent review":"Archive schema draft",input("Reason","reason","Reviewed in SEO workspace"),transition==="approve"?"Approve":transition==="review"?"Submit for review":"Archive",async data=>{
             await api(orgPath("/websites/"+live.seoSite._id+"/seo/schema/"+schemaId+"/transition"),{method:"POST",body:{version:draft.version,action:transition,reason:data.reason}});
             closeModal();live.seoLoaded=false;await loadSeo(true);
