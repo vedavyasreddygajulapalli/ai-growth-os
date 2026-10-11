@@ -20,8 +20,8 @@ before(async()=>{
   await Session.create({userId:u._id,tokenHash:digest(name!),expiresAt:new Date(Date.now()+60000)});
   if(role)await Membership.create({orgId:org,userId:u._id,role});
  }
- site=String((await Website.create({orgId:org,name:"Test site",domain:"example.com",cmsType:"Other",verificationToken:"test"}))._id);
- otherSite=String((await Website.create({orgId:org,name:"Second site",domain:"second.example.com",cmsType:"Other",verificationToken:"test"}))._id);
+ site=String((await Website.create({orgId:org,name:"Test site",domain:"example.com",cmsType:"WordPress",verificationStatus:"verified",verificationToken:"test"}))._id);
+ otherSite=String((await Website.create({orgId:org,name:"Second site",domain:"second.example.com",cmsType:"WordPress",verificationStatus:"verified",verificationToken:"test"}))._id);
  app=await createApp();await app.listen(0,"127.0.0.1");base=`http://127.0.0.1:${app.getHttpServer().address().port}/api/v1/organizations/${org}/websites/`;
 });
 after(async()=>{await app?.close();await mongoose.disconnect();await db?.stop();});
