@@ -20,6 +20,8 @@
     crmSite:null, crmLeads:[], crmSummary:null, crmForms:[], crmMembers:[], crmFocus:null, crmProfile:null, crmTab:"Inbox", crmLoaded:false, crmLoading:false,
     sessions: [],
     securityEvents: [],
+    billingSnapshot: null,
+    usageSnapshot: null,
     error: "",
     cursor: null,
     generation: 0,
@@ -120,6 +122,7 @@
       return;
     }
     if (!live.org) return;
+    if (live.tab === "Billing & usage" && ["Owner","Admin"].includes(live.org.role)) { const [billing,usage]=await Promise.all([api(orgPath("/subscription")),api(orgPath("/usage-records"))]); if(generation===live.generation){live.billingSnapshot=billing;live.usageSnapshot=usage;} return; }
     const base = orgPath("");
     if (live.crawlSite && ["Crawls", "URL Inventory", "Crawl issues"].includes(live.tab)) {
       const path = base + "/websites/" + live.crawlSite._id;
@@ -579,6 +582,7 @@
       "Websites",
       "Account",
       ...(isManager() ? ["Team & roles", "Audit logs"] : []),
+      ...(live.org.role === "Owner" || live.org.role === "Admin" ? ["Billing & usage"] : []),
       ...(live.crawlSite ? ["Crawls", "URL Inventory", "Crawl issues"] : []),
     ];
     if (!available.includes(live.tab)) live.tab = "Organization";
@@ -590,6 +594,7 @@
     if (live.tab === "Team & roles")
       body = `<section class="card padded"><div class="card-head" style="padding:0 0 20px"><h2>Your team</h2>${button("Invite member", "invite", true)}</div>${live.members.map((m) => `<div class="knowledge"><div><strong>${esc(m.user?.name || "Member")}</strong><small>${esc(m.user?.email || "")}</small></div>${badge(m.role)}<div class="actions">${m.role !== "Owner" && (live.org.role === "Owner" || m.role !== "Admin") ? button("Manage", "member:" + m._id) : ""}</div></div>`).join("")}<h3 style="margin-top:28px">Pending invitations</h3>${live.invites.length ? live.invites.map((i) => `<div class="knowledge"><div><strong>${esc(i.email)}</strong><small>${esc(i.role)} · Expires ${new Date(i.expiresAt).toLocaleDateString()}</small></div>${live.org.role === "Owner" || i.role !== "Admin" ? button("Revoke", "revoke:" + i._id) : ""}</div>`).join("") : '<p class="helper">No pending invitations.</p>'}<p class="helper">Invitations use a private link you share yourself. No email is sent automatically.</p></section>`;
     if (["Crawls", "URL Inventory", "Crawl issues"].includes(live.tab)) body = crawlerPanel();
+    if (live.tab === "Billing & usage") { const sub=live.billingSnapshot?.subscription||{}, rows=live.usageSnapshot?.items||[]; body=`<section class="grid"><div class="card padded"><small>Billing provider</small><h3>${esc(live.billingSnapshot?.providerStatus||"unavailable")}</h3><p class="helper">Checkout is unavailable until a billing provider is configured. Payment status is only updated by a verified provider event.</p></div><div class="card padded"><small>Subscription</small><h3>${esc(sub.status||"not_configured")}</h3><p class="helper">${sub.planId?"Plan "+esc(sub.planId):"No verified plan is attached to this workspace."}</p>${sub.periodEnd?"<p>Current period ends "+esc(new Date(sub.periodEnd).toLocaleDateString())+"</p>":""}</div></section><section class="card"><div class="card-head"><div><h2>Usage</h2><p>Counts from persisted successful operations. Limits appear after verified plan entitlements are available.</p></div></div>${rows.length?`<div class="table-scroll"><table><thead><tr><th>Period</th><th>Meter</th><th>Used</th><th>Limit</th><th>Reset</th></tr></thead><tbody>${rows.map(x=>`<tr><td>${esc(x.period)}</td><td>${esc(x.meter.replaceAll("_"," "))}</td><td>${x.used} ${esc(x.unit)}</td><td>${x.limit===null?"Unavailable":x.limit}</td><td>${esc(new Date(x.resetAt).toLocaleDateString())}</td></tr>`).join("")}</tbody></table></div>`:'<div class="empty">No successful metered operations are recorded for this workspace.</div>'}</section>`; }
     if (live.tab === "Audit logs")
       body = `<section class="card"><div class="card-head"><div><h2>Workspace activity</h2><p>${Object.keys(live.auditFilters).length ? "Filtered workspace records" : "Saved server records"}</p></div><div class="actions">${button("Filter", "audit-filter")}${Object.keys(live.auditFilters).length ? button("Clear filters", "audit-clear") : ""}${button("Export JSON", "audit-export")}</div></div>${live.audit.length ? `<div class="table-scroll"><table><thead><tr><th>Action</th><th>Record</th><th>Actor</th><th>Time</th></tr></thead><tbody>${live.audit.map((a) => `<tr><td><button class="text-btn" data-live="audit:${a._id}">${esc(a.action)}</button></td><td>${esc(a.entityType)}</td><td>${esc(a.actorId)}</td><td>${esc(new Date(a.occurredAt).toLocaleString("en-IN", { timeZone: live.org.timezone }))}</td></tr>`).join("")}</tbody></table></div>` : '<div class="empty">No activity matches these filters.</div>'}${live.cursor ? button("Load more", "more") : ""}</section>`;
     return (

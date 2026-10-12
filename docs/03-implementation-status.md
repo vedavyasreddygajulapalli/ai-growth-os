@@ -118,3 +118,15 @@ M5/M6 now provide the manual V1 development flow: scoped content editing/history
 - Added `integrations/wordpress/ai-growth-os-schema-adapter.php` to register and validate the REST meta field and emit supported JSON-LD. Acceptance steps and provider limitations are in [M7 acceptance](10-seo-acceptance.md).
 - Added a unified SEO workspace with overview, issues, providers, schema, and AI visibility sections using the existing UI components. Tests cover provider empty states, authorization/audit, strict schema approval and publish flow, reconciliation, and live UI rendering.
 - The WordPress adapter and docs are on `codex/m7-seo-provider-workflows`. Branch CI run `38196525912` passed backend build, unit tests, MongoDB/Redis integration tests, UI sync, and frontend production build at commit `32c315a82a02cde6007cc2836c5ddf7d2e4af846`. M7 development is complete for this checkpoint; real provider OAuth/data ingestion and authenticated live WordPress acceptance remain deferred and are documented in `10-seo-acceptance.md`. No external provider data is fabricated. Merge to `main`, verify main CI, then proceed to M8; combined deployment is after M8.
+
+
+## Current main checkpoint — 12 October 2026
+
+- M7 SEO & AI Visibility and M8 Leads & CRM are implemented and merged. Real provider acceptance for Search Console, rankings, AI visibility, email, and other external systems remains deferred; provider-backed observations are never fabricated.
+- M9 Analytics and M10 Assisted Agents merged at `b890a2a28c9fbebd354c4b21fafa3dd55e5be6e2`. Main CI run 38203104617 passed. The existing Render API and web services both deployed this commit; the API MongoDB migration completed and the API deploy is live. M9 external provider observations and M10 autonomous execution remain unavailable by design.
+- Existing preview: https://ai-growth-os-web-us4p.onrender.com/#analytics . The signed-out preview labels its records as sample data; authenticated workspace data requires sign-in.
+- M11 Billing & Usage implementation is now in development. Checkout and paid-plan entitlements remain explicitly unavailable until a real provider is configured. See [M11 acceptance](14-billing-usage-acceptance.md).
+- M12 remains the final production-hardening and live acceptance checkpoint. Previously deferred M1/M2 live gates are reserved for that checkpoint.
+
+- M11 deployed at commit `1960f73c8348c57e0ebd34e7955bacdb8822aecf`; main CI passed and both Render services are live. API logs confirm the new migration/index initialization completed; no post-deploy errors were returned. Real Stripe checkout, signed provider event configuration, and billing acceptance remain unconfigured and are shown as unavailable.
+- M12 hardening is underway. See [M12 acceptance](15-production-hardening-acceptance.md); production readiness is not claimed until its real account, provider, backup/restore, alerting, worker, and responsive acceptance gates are closed.
