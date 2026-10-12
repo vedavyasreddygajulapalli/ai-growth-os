@@ -292,3 +292,31 @@ test("SEO workspace uses scoped crawl evidence and shows providers as disconnect
  assert.equal(dom.window.localStorage.length,0);}finally{dom.window.close();}
 });
 
+
+test("emailed verification code is enterable without development mode and errors preserve input", async () => {
+  const calls: any[] = [];
+  const dom = setup(true, async (url: string, options: any) => {
+    calls.push([url, options]);
+    if (url.endsWith("/auth/email-verification/complete")) return { ok: false, status: 409, json: async () => ({ error: { message: "Code expired" } }) };
+    return { ok: true, status: 200, json: async () => url.endsWith("/auth/me")
+      ? { name: "Unverified", email: "test@example.com", emailVerifiedAt: null }
+      : { message: "Check your inbox for a verification link or code." } };
+  });
+  try {
+    click(dom, "live"); await tick(); click(dom, "send-verification");
+    dom.window.document.querySelector("#live-form")!.dispatchEvent(new dom.window.Event("submit", { bubbles: true, cancelable: true }));
+    await tick();
+    const form = dom.window.document.querySelector("#live-form")!;
+    const field = form.querySelector('[name="otp"]') as HTMLInputElement;
+    assert.ok(field);
+    assert.equal(field.value, "");
+    assert.doesNotMatch(form.textContent!, /Local testing code/);
+    field.value = "012345";
+    form.dispatchEvent(new dom.window.Event("submit", { bubbles: true, cancelable: true }));
+    await tick();
+    const sent = calls.find(([url]) => url.endsWith("/auth/email-verification/complete"));
+    assert.deepEqual(JSON.parse(sent[1].body), { email: "test@example.com", otp: "012345" });
+    assert.match(form.textContent!, /Code expired/);
+    assert.equal(field.value, "012345");
+  } finally { dom.window.close(); }
+});

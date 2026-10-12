@@ -18,6 +18,7 @@ import { setTestEmailTransport, AccountEmail } from "../src/email";
 import { digest } from "../src/security";
 import { runMigrations } from "../src/migrations";
 import { createApp } from "../src/app";
+import { AccountController } from "../src/account.controller";
 let repl: MongoMemoryReplSet, app: any, base: string;
 process.env.NODE_ENV = "test";
 process.env.APP_ORIGINS = "http://localhost:3000";
@@ -479,4 +480,25 @@ test("ownership transfer preserves exactly one owner and rejects former-owner re
   assert.equal(after.find((m: any) => m._id === target._id).role, "Owner");
   assert.equal((await call(`/organizations/${orgId}/transfer`, "POST", { membershipId: target._id, version: previous.version }, ownerCookie)).status, 403);
   assert.equal((await call(`/organizations/${orgId}/memberships/${target._id}`, "DELETE", undefined, ownerCookie)).status, 403);
+});
+
+test("verification codes have persisted attempt limits while private links remain usable", async () => {
+  setTestEmailTransport(async message => { messages.push(message); });
+  const email = "otp-limit@example.com";
+  const registration = await call("/auth/register", "POST", { name: "OTP Test", email, password: "Secure OTP Password 123!" });
+  assert.equal(registration.status, 201);
+  const request = await call("/auth/email-verification", "POST", {}, registration.cookie);
+  assert.equal(request.status, 202);
+  assert.equal(request.data.developmentOtp, undefined);
+  const token = deliveredToken(email, "verify");
+  const message = messages.filter(m => m.to === email).at(-1)!;
+  const otp = message.text.match(/Verification code: (\d{6})/)![1];
+  const wrong = otp === "000000" ? "000001" : "000000";
+  const controller = app.get(AccountController) as AccountController;
+  // Exercise the persisted budget independently of the per-IP HTTP throttle.
+  for (let i = 0; i < 5; i++) await assert.rejects(controller.verify({}, { email, otp: wrong }), (e: any) => e.getStatus() === 409);
+  assert.equal((await AuthToken.findOne({ tokenHash: digest(token) }))?.otpAttempts, 5);
+  await assert.rejects(controller.verify({}, { email, otp }), (e: any) => e.getStatus() === 409);
+  assert.equal((await User.findOne({ email }))?.emailVerifiedAt, null);
+  assert.equal((await call("/auth/email-verification/complete", "POST", { token })).status, 200);
 });

@@ -41,6 +41,7 @@ const authToken = schema({
   tokenHash: { type: String, required: true, unique: true, select: false },
   otpHash: { type: String, select: false },
   otpExpiresAt: Date,
+  otpAttempts: { type: Number, default: 0 },
   authVersion: { type: Number, required: true },
   expiresAt: { type: Date, required: true },
 });

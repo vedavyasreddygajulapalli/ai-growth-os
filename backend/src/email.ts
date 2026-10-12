@@ -55,6 +55,7 @@ function classifyProviderMessage(message: unknown) {
 }
 async function sendSmtp(message: AccountEmail) {
   const transport = nodemailer.createTransport(smtpOptions());
+  try {
   const result = await transport.sendMail({
     from: process.env.EMAIL_FROM!.trim(),
     to: message.to,
@@ -64,7 +65,9 @@ async function sendSmtp(message: AccountEmail) {
   });
   if (!result.accepted.includes(message.to) || result.rejected.length)
     throw new Error("smtp_recipient_rejected");
-  transport.close();
+  } finally {
+    transport.close();
+  }
 }
 async function sendResend(message: AccountEmail) {
   const result = await fetch("https://api.resend.com/emails", {
