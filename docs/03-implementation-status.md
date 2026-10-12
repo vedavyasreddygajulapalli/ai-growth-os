@@ -127,3 +127,6 @@ M5/M6 now provide the manual V1 development flow: scoped content editing/history
 - Existing preview: https://ai-growth-os-web-us4p.onrender.com/#analytics . The signed-out preview labels its records as sample data; authenticated workspace data requires sign-in.
 - M11 Billing & Usage implementation is now in development. Checkout and paid-plan entitlements remain explicitly unavailable until a real provider is configured. See [M11 acceptance](14-billing-usage-acceptance.md).
 - M12 remains the final production-hardening and live acceptance checkpoint. Previously deferred M1/M2 live gates are reserved for that checkpoint.
+
+- M11 deployed at commit `1960f73c8348c57e0ebd34e7955bacdb8822aecf`; main CI passed and both Render services are live. API logs confirm the new migration/index initialization completed; no post-deploy errors were returned. Real Stripe checkout, signed provider event configuration, and billing acceptance remain unconfigured and are shown as unavailable.
+- M12 hardening is underway. See [M12 acceptance](15-production-hardening-acceptance.md); production readiness is not claimed until its real account, provider, backup/restore, alerting, worker, and responsive acceptance gates are closed.
