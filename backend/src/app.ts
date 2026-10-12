@@ -1,4 +1,5 @@
 import { SeoController } from "./seo/controller";
+import { CrmController, PublicLeadCaptureController } from "./crm/controller";
 import { TemplateController } from './content/templates';
 import { ContentAiController } from "./content/ai.controller";
 import { CmsController } from "./content/cms.controller";
@@ -111,6 +112,8 @@ class HealthController {
     WebsitesController,
     CrawlsController,
     SeoController,
+    CrmController,
+    PublicLeadCaptureController,
     KnowledgeController,
     TemplateController,
     ContentController,
