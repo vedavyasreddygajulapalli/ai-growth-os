@@ -49,7 +49,7 @@ Owner is one membership per organization. Transfer is transactional; Admin canno
 - Leads: New → Attempted/Contacted → Qualified → Meeting → Proposal → Negotiation → Won/Lost/Not Relevant; direct forward skips allowed with reason; Spam from pre-closed states; reopening closed → Contacted preserves prior close event.
 - Jobs: Queued → Running → Awaiting Approval/Completed/Failed; Failed → Retrying → Running, maximum 3 attempts with exponential backoff/jitter; cancelled cannot execute. Waiting Approval is display alias of Awaiting Approval.
 - Integration: Disconnected → Action Required → Connected; Connected → Warning/Expired/Disabled; revoke tokens on disconnect. No credentials supplied means Disconnected.
-- Website: active/archived independent from unverified/verified. Domain change resets DNS verification and invalidates connections and crawl permission.
+- Website: active/archived independent from unverified/verified. Domain change resets ownership verification and invalidates connections and crawl permission.
 
 ## Milestone gates
 M1 Foundation → M2 Website/crawler → M3 Brand/media → M4 Research/Strategy → M5 Content/design → M6 WordPress → M7 SEO/indexing → M8 CRM → M9 Analytics → M10 Assisted agents → M11 Billing/usage → M12 hardening. Each gate requires real persisted data, failure-path tests, tenant/role checks, audit evidence and UI loading/error states. Do not call the overall product production-ready before the full PRD acceptance loop is tested with configured external accounts.
@@ -951,10 +951,10 @@ Purpose: manage/inspect websites within the selected workspace and website.
 
 - Data/fields & filters: `name,domain,cmsType,version`.
 - Cards/table/detail data: `name,domain,cmsType,verificationStatus,status`.
-- Actions/drawers/modals: Add;edit;archive;request verification;verify DNS.
+- Actions/drawers/modals: Add;edit;archive;request verification;verify with DNS TXT or the site-specific HTTPS proof file.
 - API needs (under `/api/v1/organizations/:orgId/` unless auth/public): `GET/POST websites;PATCH websites/:id;POST websites/:id/verify`.
 - Status, permissions, empty/error and audit: shared contracts above; phase-disabled features display “Available in a later release”, never invented results.
-- Acceptance: Domain canonicalized;unique per org;verification token required before crawling. Plus all universal acceptance checks.
+- Acceptance: Domain canonicalized;unique per org;DNS TXT or exact-host HTTPS proof required before crawling; domain changes rotate the token and invalidate prior proof. Plus all universal acceptance checks.
 
 ### S088 · Website Detail & URL Inventory [V1]
 Purpose: manage/inspect website detail & url inventory within the selected workspace and website.

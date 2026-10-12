@@ -19,6 +19,7 @@ import { digest } from "../src/security";
 import { runMigrations } from "../src/migrations";
 import { createApp } from "../src/app";
 import { AccountController } from "../src/account.controller";
+import { setWebsiteVerificationFetcherForTests } from "../src/websites.controller";
 let repl: MongoMemoryReplSet, app: any, base: string;
 process.env.NODE_ENV = "test";
 process.env.APP_ORIGINS = "http://localhost:3000";
@@ -200,6 +201,53 @@ test("website create, duplicate rejection and version concurrency", async () => 
     1,
   );
 });
+test("website ownership accepts an exact-host HTTPS proof file safely", async () => {
+  const path = `/organizations/${orgId}/websites/${siteId}`;
+  const instructions = await call(path + "/verification", "GET", undefined, owner);
+  assert.equal(instructions.status, 200);
+  assert.equal(instructions.data.httpFile.path, "/.well-known/ai-growth-os-verification.txt");
+  assert.match(instructions.data.httpFile.content, /^growth-os-verification=[a-f0-9]{64}$/);
+  assert.equal((await call(path + "/verify", "POST", { method: "unknown" }, owner)).status, 422);
+
+  const challenge = instructions.data.httpFile.content;
+  let requestedUrl = "";
+  setWebsiteVerificationFetcherForTests(async (url, domain) => {
+    requestedUrl = url;
+    assert.equal(domain, "example.com");
+    return { url, finalUrl: url, statusCode: 200, headers: { "content-type": "text/html" }, body: challenge, bytes: challenge.length, responseMs: 1, redirects: [] };
+  });
+  try {
+    assert.equal((await call(path + "/verify", "POST", { method: "http_file" }, owner)).status, 409);
+    assert.equal((await Website.findById(siteId).lean())?.verificationStatus, "unverified");
+
+    setWebsiteVerificationFetcherForTests(async (url) => ({
+      url, finalUrl: "http://example.com/.well-known/ai-growth-os-verification.txt", statusCode: 200,
+      headers: { "content-type": "text/plain" }, body: challenge, bytes: challenge.length, responseMs: 1, redirects: [],
+    }));
+    assert.equal((await call(path + "/verify", "POST", { method: "http_file" }, owner)).status, 409);
+
+    setWebsiteVerificationFetcherForTests(async (url) => ({
+      url, finalUrl: "https://attacker.example/.well-known/ai-growth-os-verification.txt", statusCode: 200,
+      headers: { "content-type": "text/plain" }, body: challenge, bytes: challenge.length, responseMs: 1, redirects: [],
+    }));
+    assert.equal((await call(path + "/verify", "POST", { method: "http_file" }, owner)).status, 409);
+
+    setWebsiteVerificationFetcherForTests(async (url, domain) => {
+      requestedUrl = url;
+      assert.equal(domain, "example.com");
+      return { url, finalUrl: url, statusCode: 200, headers: { "content-type": "text/plain; charset=utf-8" }, body: challenge + "\n", bytes: challenge.length + 1, responseMs: 1, redirects: [] };
+    });
+    const verified = await call(path + "/verify", "POST", { method: "http_file" }, owner);
+    assert.equal(verified.status, 201);
+    assert.equal(verified.data.verificationStatus, "verified");
+    assert.equal(requestedUrl, "https://example.com/.well-known/ai-growth-os-verification.txt");
+    assert.equal(verified.data.verificationToken, undefined);
+    assert.ok(await Audit.findOne({ orgId, action: "website.verified", entityId: new mongoose.Types.ObjectId(siteId) }));
+    siteVersion = verified.data.version;
+  } finally {
+    setWebsiteVerificationFetcherForTests();
+  }
+});
 test("invitation acceptance is email bound, one-time and role enforced", async () => {
   let r = await call("/auth/register", "POST", {
     name: "Viewer Test",
@@ -260,6 +308,10 @@ test("invitation acceptance is email bound, one-time and role enforced", async (
     (await call(`/organizations/${orgId}/websites`, "GET", undefined, viewer))
       .status,
     200,
+  );
+  assert.equal(
+    (await call(`/organizations/${orgId}/websites/${siteId}/verification`, "GET", undefined, viewer)).status,
+    403,
   );
   assert.equal(
     (

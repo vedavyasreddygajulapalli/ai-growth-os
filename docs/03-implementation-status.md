@@ -6,7 +6,7 @@ Updated 11 October 2026. Code/CI evidence and live deployment acceptance are sep
 
 The approved visual system and ten-module navigation are preserved. The Next.js shell connects the existing UI to NestJS/Mongoose through a same-origin API proxy. No prototype records are copied into tenant data.
 
-Implemented: registration/login/logout; email verification/resend and password reset/change; profile versioning; session/device listing, individual revocation and logout-all; account security history; organizations/preferences/switching; seven roles; invitations/acceptance/revocation; membership updates/removal and ownership transfer; websites with domain normalization, duplicate protection, edit/archive and DNS TXT verification; tenant-scoped redacted append-only audit records, search/filters and bounded JSON export.
+Implemented: registration/login/logout; email verification/resend and password reset/change; profile versioning; session/device listing, individual revocation and logout-all; account security history; organizations/preferences/switching; seven roles; invitations/acceptance/revocation; membership updates/removal and ownership transfer; websites with domain normalization, duplicate protection, edit/archive and DNS TXT or exact-host HTTPS file ownership verification; tenant-scoped redacted append-only audit records, search/filters and bounded JSON export.
 
 Security/operations: strict DTOs, transactional authorization, tenant isolation, optimistic versions, exact origins and CSRF protections, HttpOnly production-secure cookies, request IDs, safe error logging, secure headers, production environment checks, optional shared Redis throttling that fails closed, liveness/readiness, graceful shutdown, repeatable index migrations, retention dry-run/apply command, backup/restore procedure and monitoring guidance.
 
@@ -14,7 +14,7 @@ CI evidence: M1 hardening commit `024e661c900d768d319a8c69f243c68dfcbf73e1` pass
 
 Remaining deployment gates:
 - Live verification/reset email delivery and real account/session/invitation acceptance. Provider behavior is verified using a test-only transport; live inbox delivery remains unresolved.
-- Real DNS TXT ownership acceptance and mobile/desktop browser visual review.
+- Live DNS TXT or HTTPS-file ownership acceptance and mobile/desktop browser visual review.
 - Configure shared Redis throttling and verify the deployment proxy topology before multiple API instances.
 - Restore an isolated backup and verify operational alerts under deployment conditions. A written restore procedure is not a completed restore rehearsal.
 
@@ -134,4 +134,4 @@ M5/M6 now provide the manual V1 development flow: scoped content editing/history
 
 ## Cross-platform publishing follow-up — development checkpoint
 
-The Content editor now includes a publisher-only manual handoff for verified websites. It creates an immutable HTML/Markdown kit from an approved revision, records the handoff in MongoDB, lets the publisher report the final URL, and verifies the public page with the crawler's same-host, DNS-pinned fetch safeguards. Only a title/canonical match after a successful response is labeled verified. This fills the no-CMS-API path for builder-hosted and custom-coded sites; it does not push files to the hosting account. Automated CI and live deployment acceptance are still required before calling this deployed.
+The Content editor now includes a publisher-only manual handoff for verified websites. It creates an immutable HTML/Markdown kit from an approved revision, records the handoff in MongoDB, lets the publisher report the final URL, and verifies the public page with the crawler's same-host, DNS-pinned fetch safeguards. Only a title/canonical match after a successful response is labeled verified. This fills the no-CMS-API path for builder-hosted and custom-coded sites; it does not push files to the hosting account. Main CI passed for the exact code checkpoint on 12 October 2026; live deployment acceptance remains separate.
