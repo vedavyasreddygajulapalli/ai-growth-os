@@ -13,6 +13,8 @@
 
 ## M12 verification added
 
+`npm run smoke:deployment --prefix backend -- --url https://<web-origin>` runs a read-only web-origin probe for the homepage, proxied API liveness, and proxied API readiness. It checks JSON content types, request IDs, no-store response policy, and embedded crawler readiness when exposed. The probe does not create accounts or modify tenant data and is not a substitute for the authenticated staging acceptance below.
+
 A MongoDB replica-set integration regression signs a Stripe event over the exact raw HTTP body, sends the webhook without a browser Origin header, confirms the request passes the origin guard only because provider signature validation applies, verifies tenant-bound subscription projection and audit, and replays the same event to prove idempotency. An invalid signature leaves no event or subscription record.
 
 M9/M10 and M11 have green CI on main and have been deployed together at their respective ordered checkpoints. The current M11 live services use the merged release checkpoint documented in `03-implementation-status.md`.

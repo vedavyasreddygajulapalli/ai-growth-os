@@ -135,3 +135,7 @@ M5/M6 now provide the manual V1 development flow: scoped content editing/history
 ## Cross-platform publishing follow-up — development checkpoint
 
 The Content editor now includes a publisher-only manual handoff for verified websites. It creates an immutable HTML/Markdown kit from an approved revision, records the handoff in MongoDB, lets the publisher report the final URL, and verifies the public page with the crawler's same-host, DNS-pinned fetch safeguards. Only a title/canonical match after a successful response is labeled verified. This fills the no-CMS-API path for builder-hosted and custom-coded sites; it does not push files to the hosting account. Main CI passed for the exact code checkpoint on 12 October 2026; live deployment acceptance remains separate.
+
+## M12 deployment probe — development checkpoint
+
+Added a read-only script that checks the public web origin, proxied API liveness and readiness, request IDs, no-store headers and embedded crawler readiness. It is intended for repeatable deployment checks and does not create test accounts or mutate customer data. Local backend build, unit/UI suite, web production build and script syntax/URL validation passed. This execution environment blocks outbound access and loopback listeners, so no live Render or local HTTPS-server probe result is claimed; authenticated staging and provider acceptance remain open.
