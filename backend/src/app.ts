@@ -2,6 +2,7 @@ import { SeoController } from "./seo/controller";
 import { CrmController, PublicLeadCaptureController } from "./crm/controller";
 import { AnalyticsController } from "./analytics/controller";
 import { AgentsController } from "./agents/controller";
+import { BillingController, BillingWebhookController } from "./billing/controller";
 import { TemplateController } from './content/templates';
 import { ContentAiController } from "./content/ai.controller";
 import { CmsController } from "./content/cms.controller";
@@ -118,6 +119,8 @@ class HealthController {
     PublicLeadCaptureController,
     AnalyticsController,
     AgentsController,
+    BillingController,
+    BillingWebhookController,
     KnowledgeController,
     TemplateController,
     ContentController,
@@ -141,7 +144,7 @@ export async function createApp() {
   if (process.env.TRUST_PROXY) app.getHttpAdapter().getInstance().set("trust proxy", process.env.TRUST_PROXY.split(",").map(s => s.trim()));
   app.use(helmet());
   app.use("/api/v1/organizations/:orgId/websites/:websiteId/knowledge/upload", express.json({ limit: "3mb" }));
-  app.use(express.json({ limit: "64kb" }));
+  app.use(express.json({ limit: "64kb", verify: (req: any, _res: any, buf: Buffer) => { req.rawBody = Buffer.from(buf); } }));
   app.use(cookieParser());
   app.use((req: any, res: any, next: any) => {
     req.requestId = randomUUID();
