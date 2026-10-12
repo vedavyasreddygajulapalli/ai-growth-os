@@ -56,7 +56,10 @@ export class BillingWebhookController {
   const hash=createHash("sha256").update(raw!).digest("hex");
   try{return await transaction(async session=>{
    const exists=await BillingWebhookEvent.findOne({provider:"stripe",externalEventId:event.id}).session(session).lean();
-   if(exists)return {received:true,duplicate:true};
+   if(exists){
+    if(exists.payloadHash!==hash)fail(409,"WEBHOOK_EVENT_CONFLICT","Webhook event ID was already received with different content.");
+    return {received:true,duplicate:true};
+   }
    await BillingWebhookEvent.create([{provider:"stripe",externalEventId:event.id,status:"processed",payloadHash:hash,processedAt:new Date()}],{session});
    if(["customer.subscription.created","customer.subscription.updated","customer.subscription.deleted"].includes(event.type)){
     const o=event.data?.object||{},org=String(o.metadata?.orgId||"");
@@ -69,6 +72,18 @@ export class BillingWebhookController {
     await log(session,req,org,"billing.subscription.provider_updated","subscription",sub._id,null,{status:sub.status,planId:sub.planId,periodEnd:sub.periodEnd});
    }
    return {received:true,duplicate:false};
-  });}catch(e:any){if(e?.code===11000)return {received:true,duplicate:true};throw e;}
+  });}catch(e:any){
+   if(e?.code===11000){
+    // A different unique index (for example customer ownership) is not a replay.
+    // Only acknowledge after the exact event has committed successfully.
+    const committed=await BillingWebhookEvent.findOne({provider:"stripe",externalEventId:event.id}).lean();
+    if(committed){
+     if(committed.payloadHash!==hash)fail(409,"WEBHOOK_EVENT_CONFLICT","Webhook event ID was already received with different content.");
+     return {received:true,duplicate:true};
+    }
+    fail(409,"BILLING_PROJECTION_CONFLICT","Billing event could not be applied to this workspace.");
+   }
+   throw e;
+  }
  }
 }

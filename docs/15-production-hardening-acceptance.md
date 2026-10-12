@@ -20,3 +20,16 @@ M9/M10 and M11 have green CI on main and have been deployed together at their re
 ## External/live gates
 
 Code and CI verification do not replace live account or infrastructure acceptance. Do not mark production ready while email inbox delivery, real DNS ownership, worker outage recovery, backup restore, alert delivery, provider OAuth/sync, WordPress remote reconciliation, billing checkout/webhook credentials, mobile visual review, or production load tests remain unverified. No sample or test data is presented as tenant data, and no provider metric, paid status, or invoice is fabricated.
+
+## Webhook conflict hardening (2026-10-12)
+
+Duplicate acknowledgement now requires a committed receipt for the same provider event ID and the same payload hash. Reusing an ID with changed content returns 409. A subscription/customer unique-index conflict also returns 409 instead of falsely acknowledging receipt; the transaction rolls back the receipt, projection and audit so a corrected event can be retried. Integration coverage includes changed payloads, cross-tenant customer conflicts, recovery after rollback, and concurrent identical delivery.
+
+Local verification: API build, 38 unit/UI tests and web production build passed. The Redis test was skipped locally because no Redis test URL was configured. MongoDB integration could not start locally (`open: Operation not permitted`); GitHub's replica-set/Redis CI remains the merge gate.
+
+Production dependency audit on 2026-10-12: `npm audit --omit=dev --json` returned zero known vulnerabilities for both lockfiles. This is point-in-time advisory evidence, not a guarantee against unknown vulnerabilities.
+
+- Backend lockfile SHA-256: `11288ad8f7572d589bf5ce7b535ac6de33989044363357d516de6b577c2936a3`.
+- Web lockfile SHA-256: `a0af0fb804998080eabc3448893bcb6f8e3a37a441926fc1b43881a6d2a92436`.
+
+The external/live gates above remain open; this checkpoint does not declare production readiness.
