@@ -1,6 +1,7 @@
 import {Controller,Get,Post,Param,Req,Body,UseGuards,Headers,Query} from "@nestjs/common";
 import {createHmac,timingSafeEqual,createHash} from "node:crypto";
 import {z} from "zod";
+import mongoose from "mongoose";
 import {AuthGuard,VerifiedGuard,access,managers} from "../security";
 import {recordId,parse,fail} from "../contracts";
 import {Membership,Organization,transaction,log} from "../database";
@@ -30,7 +31,7 @@ export class BillingController {
   const rows:any[]=await AiRequest.find({orgId:org,status:"proposed"}).select("_id websiteId retryOf createdAt").lean();
   const unique=new Map<string,any>();
   for(const r of rows){const root=String(r.retryOf||r._id);if(!unique.has(root))unique.set(root,r);}
-  const ops=[...unique].map(([root,r])=>{const d=new Date(r.createdAt);const period=d.toISOString().slice(0,7);return {updateOne:{filter:{orgId:org,eventKey:"content-ai:"+root},update:{$setOnInsert:{orgId:org,websiteId:r.websiteId,meter:"content_ai_success",quantity:1,unit:"operation",eventKey:"content-ai:"+root,period,reservationState:"settled",sourceId:r._id}},upsert:true}}});
+  const ops=[...unique].map(([root,r])=>{const d=new Date(r.createdAt);const period=d.toISOString().slice(0,7);return {updateOne:{filter:{orgId:new mongoose.Types.ObjectId(org),eventKey:"content-ai:"+root},update:{$setOnInsert:{orgId:new mongoose.Types.ObjectId(org),websiteId:r.websiteId,meter:"content_ai_success",quantity:1,unit:"operation",eventKey:"content-ai:"+root,period,reservationState:"settled" as const,sourceId:r._id}},upsert:true}}});
   if(ops.length)await UsageRecord.bulkWrite(ops,{ordered:false});
   const records=await UsageRecord.find({orgId:org,...(filter.period?{period:filter.period}:{}),...(filter.meter?{meter:filter.meter}:{})}).sort({period:-1,meter:1,_id:1}).lean();
   const grouped=new Map<string,{period:string;meter:string;used:number;unit:string}>();
