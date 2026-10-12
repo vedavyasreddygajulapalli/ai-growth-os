@@ -154,8 +154,9 @@ export async function createApp() {
     });
     res.setHeader("X-Request-Id", req.requestId);
     res.setHeader("Cache-Control", "no-store");
+    const signedBillingWebhook = req.method === "POST" && req.originalUrl?.split("?")[0] === "/api/v1/billing/webhook/stripe";
     if (
-      ["POST", "PATCH", "PUT", "DELETE"].includes(req.method) &&
+      !signedBillingWebhook && ["POST", "PATCH", "PUT", "DELETE"].includes(req.method) &&
       (!allowed.includes(req.headers.origin) ||
         req.headers["x-growth-client"] !== "web")
     )
