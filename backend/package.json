@@ -11,6 +11,7 @@
     "test:integration": "tsc -p tsconfig.test.json && node --test .test-build/test/foundation.test.js .test-build/test/crawler.integration.test.js .test-build/test/knowledge.integration.test.js .test-build/test/content.integration.test.js .test-build/test/crm.integration.test.js .test-build/test/billing.integration.test.js",
     "db:migrate": "node dist/migrate.js",
     "audit:retention": "node dist/retention.js",
+    "smoke:deployment": "node scripts/deployment-smoke.mjs",
     "worker": "node dist/crawler/worker.js"
   },
   "dependencies": {

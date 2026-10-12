@@ -16,6 +16,7 @@ jobs:
         with:
           node-version: 22
       - run: npm ci --prefix backend
+      - run: node --check backend/scripts/deployment-smoke.mjs
       - run: npm run build --prefix backend
       - run: npm run test:unit --prefix backend
       - run: npm run test:integration --prefix backend
