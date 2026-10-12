@@ -291,3 +291,4 @@ test("SEO workspace uses scoped crawl evidence and shows providers as disconnect
  assert.match(dom.window.document.body.textContent!,/No provider data is available/);
  assert.equal(dom.window.localStorage.length,0);}finally{dom.window.close();}
 });
+

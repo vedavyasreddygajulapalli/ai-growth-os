@@ -110,7 +110,8 @@ website.index({ orgId: 1, domain: 1 }, { unique: true });
 website.index({ orgId: 1, _id: -1 });
 const audit = schema({
   orgId: { type: oid, required: true },
-  actorId: { type: oid, required: true },
+  actorId: { type: oid, default: null },
+  actorType: { type: String, enum: ["user", "system"], default: "user" },
   action: { type: String, required: true },
   entityType: { type: String, required: true },
   entityId: { type: oid, required: true },
@@ -178,7 +179,8 @@ interface WebsiteDoc extends Base {
 }
 interface AuditDoc extends Base {
   orgId: Id;
-  actorId: Id;
+  actorId: Id | null;
+  actorType: string;
   action: string;
   entityType: string;
   entityId: Id;
@@ -269,7 +271,8 @@ export async function log(
     [
       {
         orgId,
-        actorId: req.user._id,
+        actorId: req.user?._id || null,
+        actorType: req.user?._id ? "user" : "system",
         action,
         entityType,
         entityId,
