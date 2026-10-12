@@ -11,6 +11,7 @@ import {
 } from "@nestjs/common";
 import { Resolver } from "node:dns/promises";
 const dnsResolver = new Resolver({ timeout: 5000, tries: 1 });
+import { z } from "zod";
 import { Website, transaction, log, publicRecord } from "./database";
 import {
   fail,
@@ -21,6 +22,16 @@ import {
   paginate,
 } from "./contracts";
 import { AuthGuard, VerifiedGuard, access, managers, randomToken } from "./security";
+import { Fetcher, safeFetch } from "./crawler/safe-fetch";
+
+const verificationFile = "/.well-known/ai-growth-os-verification.txt";
+let verificationFetch: Fetcher = safeFetch;
+export function setWebsiteVerificationFetcherForTests(fetcher?: Fetcher) {
+  if (process.env.NODE_ENV !== "test")
+    throw Error("Test fetcher forbidden outside tests");
+  verificationFetch = fetcher || safeFetch;
+}
+
 @Controller("organizations/:orgId/websites")
 @UseGuards(AuthGuard, VerifiedGuard)
 export class WebsitesController {
@@ -125,6 +136,10 @@ export class WebsitesController {
       type: "TXT",
       host: `_growth-os.${site.domain}`,
       value: `growth-os-verification=${site.verificationToken}`,
+      httpFile: {
+        path: verificationFile,
+        content: `growth-os-verification=${site.verificationToken}`,
+      },
       status: site.verificationStatus,
     };
   }
@@ -132,35 +147,52 @@ export class WebsitesController {
     @Req() req: any,
     @Param("orgId") orgId: string,
     @Param("id") id: string,
+    @Body() body: unknown,
   ) {
     await access(req, orgId, managers);
     recordId(id);
+    const { method } = parse(
+      z.object({
+        method: z.enum(["either", "dns_txt", "http_file"]).default("either"),
+      }).strict().default({ method: "either" }),
+      body,
+    );
     const snapshot = await Website.findOne({
       _id: id,
       orgId,
       status: "active",
     }).lean();
     if (!snapshot) fail(404, "NOT_FOUND", "Website unavailable.");
-    let values: string[][];
-    try {
-      values = await dnsResolver.resolveTxt(`_growth-os.${snapshot.domain}`);
-    } catch {
-      fail(
-        409,
-        "DNS_NOT_READY",
-        "TXT record not found yet. Check your DNS settings and retry.",
-      );
+    const expected = `growth-os-verification=${snapshot.verificationToken}`;
+    let verified = false;
+    if (method !== "http_file") {
+      try {
+        const values = await dnsResolver.resolveTxt(`_growth-os.${snapshot.domain}`);
+        verified = values.some((v) => v.join("") === expected);
+      } catch {
+        // When either method is allowed, try the HTTPS proof below.
+      }
     }
-    if (
-      !values.some(
-        (v) =>
-          v.join("") === `growth-os-verification=${snapshot.verificationToken}`,
-      )
-    )
+    if (!verified && method !== "dns_txt") {
+      try {
+        const fileUrl = `https://${snapshot.domain}${verificationFile}`;
+        const result = await verificationFetch(fileUrl, snapshot.domain);
+        const finalUrl = new URL(result.finalUrl);
+        verified = result.statusCode === 200 &&
+          finalUrl.origin === `https://${snapshot.domain}` &&
+          finalUrl.pathname === verificationFile &&
+          !finalUrl.search && !finalUrl.hash &&
+          /^text\/plain(?:\s*;|$)/i.test(result.headers["content-type"] || "") &&
+          result.body.trim() === expected;
+      } catch {
+        // Do not expose DNS, network, or parser details to the caller.
+      }
+    }
+    if (!verified)
       fail(
         409,
-        "DNS_NOT_READY",
-        "TXT record does not match. Check its value and retry.",
+        "OWNERSHIP_PROOF_NOT_READY",
+        "Ownership proof not found. Check the DNS TXT record or HTTPS verification file, then retry.",
       );
     return transaction(async (session) => {
       await access(req, orgId, managers, session);

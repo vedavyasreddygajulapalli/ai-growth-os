@@ -262,7 +262,7 @@
         (site
           ? select("Status", "status", ["active", "archived"], site.status)
           : "") +
-        '<p class="helper">Add your domain first, then verify ownership using a DNS record.</p>',
+        '<p class="helper">Add your domain first, then verify ownership using either DNS or an HTTPS verification file.</p>',
       site ? "Save website" : "Add website",
       async (data) => {
         if (site && data.status === "archived" && site.status !== "archived") {
@@ -1015,7 +1015,7 @@
           const v = await api(orgPath(`/websites/${id}/verification`));
           modal(
             "Verify website ownership",
-            `<p class="helper">Add this DNS record at your domain provider. DNS changes may take time to become visible.</p><div class="note"><b>${esc(v.type)} record</b><p style="overflow-wrap:anywhere">Host: ${esc(v.host)}</p><p style="overflow-wrap:anywhere">Value: ${esc(v.value)}</p></div><div id="verify-error"></div>${button("Check DNS record", "check-dns:" + id, true)}`,
+            `<p class="helper">Prove you control this website with either method. DNS updates may take time; the HTTPS file must be publicly reachable at the exact path.</p><div class="note"><b>DNS TXT record</b><p style="overflow-wrap:anywhere">Host: ${esc(v.host)}</p><p style="overflow-wrap:anywhere">Value: ${esc(v.value)}</p></div><div class="note"><b>HTTPS verification file</b><p>Upload a plain text file to: <code style="overflow-wrap:anywhere">${esc(v.httpFile.path)}</code></p><p>File contents: <code style="overflow-wrap:anywhere">${esc(v.httpFile.content)}</code></p></div><div id="verify-error"></div>${button("Check ownership proof", "check-dns:" + id, true)}`,
           );
           bindLive();
           break;
@@ -1028,7 +1028,7 @@
           try {
             await api(orgPath(`/websites/${id}/verify`), {
               method: "POST",
-              body: {},
+              body: { method: "either" },
             });
             closeModal();
             await changeTab("Websites");

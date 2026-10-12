@@ -2262,7 +2262,7 @@
     },
     "/organizations/{orgId}/websites/{id}/verification": {
       "get": {
-        "summary": "DNS TXT instructions",
+        "summary": "Website ownership verification instructions",
         "operationId": "get_organizations_orgId_websites_id_verification",
         "description": "Required permission: Owner/Admin. Mutations require allowed Origin and X-Growth-Client: web.",
         "responses": {
@@ -2371,9 +2371,31 @@
     },
     "/organizations/{orgId}/websites/{id}/verify": {
       "post": {
-        "summary": "Check DNS TXT ownership",
+        "summary": "Check website ownership proof",
         "operationId": "post_organizations_orgId_websites_id_verify",
-        "description": "Required permission: Owner/Admin. Mutations require allowed Origin and X-Growth-Client: web.",
+        "description": "Checks the selected DNS TXT or exact-host HTTPS file proof. Required permission: Owner/Admin. Mutations require allowed Origin and X-Growth-Client: web.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "method": {
+                    "type": "string",
+                    "enum": [
+                      "either",
+                      "dns_txt",
+                      "http_file"
+                    ],
+                    "default": "either"
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
             "description": "Success",
@@ -2416,7 +2438,7 @@
             }
           },
           "409": {
-            "description": "Duplicate/version/transition conflict",
+            "description": "Ownership proof not ready or website changed during verification",
             "content": {
               "application/json": {
                 "schema": {
@@ -10523,6 +10545,22 @@
           "value": {
             "type": "string"
           },
+          "httpFile": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "const": "/.well-known/ai-growth-os-verification.txt"
+              },
+              "content": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "path",
+              "content"
+            ],
+            "additionalProperties": false
+          },
           "status": {
             "type": "string"
           }
@@ -10531,6 +10569,7 @@
           "type",
           "host",
           "value",
+          "httpFile",
           "status"
         ]
       },
