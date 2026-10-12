@@ -109,3 +109,12 @@ M5/M6 now provide the manual V1 development flow: scoped content editing/history
 - Website SEO overview opens drafts, editor and review form using existing visual components. Records are data only, never executed or remotely published. This is structural validation, not a full schema.org or Google rich-results validator.
 - Added validation and integration tests. Local integration remains dependent on CI's MongoDB/Redis; do not infer live acceptance.
 - Remaining M7: provider-backed Search Console/rankings/AI observations, full schema vocabulary and approved publication integration, unified SEO navigation/acceptance. M8 has not started; paired deployment remains pending.
+
+
+### M7 development — provider abstractions and schema publication
+
+- Added typed Search Console, ranking, and AI visibility provider contracts. Status is persisted per organization and website. Without a registered real adapter the UI shows disconnected or authorization required and displays no measurements.
+- Added version-bound schema publication through the existing WordPress publishing worker. Publication requires a verified website, connected CMS, approved schema, current published target, explicit registered meta key, and publish-capable role. The worker writes only the registered WordPress metadata field, verifies by read-back, and sends uncertain outcomes to read-only reconciliation.
+- Added `integrations/wordpress/ai-growth-os-schema-adapter.php` to register and validate the REST meta field and emit supported JSON-LD. Acceptance steps and provider limitations are in [M7 acceptance](10-seo-acceptance.md).
+- Added a unified SEO workspace with overview, issues, providers, schema, and AI visibility sections using the existing UI components. Tests cover provider empty states, authorization/audit, strict schema approval and publish flow, reconciliation, and live UI rendering.
+- The WordPress adapter and docs are on `codex/m7-seo-provider-workflows`. Branch CI run `38196525912` passed backend build, unit tests, MongoDB/Redis integration tests, UI sync, and frontend production build at commit `32c315a82a02cde6007cc2836c5ddf7d2e4af846`. M7 development is complete for this checkpoint; real provider OAuth/data ingestion and authenticated live WordPress acceptance remain deferred and are documented in `10-seo-acceptance.md`. No external provider data is fabricated. Merge to `main`, verify main CI, then proceed to M8; combined deployment is after M8.

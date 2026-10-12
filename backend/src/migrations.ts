@@ -1,4 +1,4 @@
-import { SeoIssueWorkflow, SeoSchemaDraft } from "./seo/models";
+import { SeoIssueWorkflow, SeoSchemaDraft, SeoProviderConnection } from "./seo/models";
 import { contentModels } from "./content/models";
 import { KnowledgeRecord } from "./knowledge/models";
 import { crawlerModels } from "./crawler/models";
@@ -13,6 +13,7 @@ export async function runMigrations() {
   await KnowledgeRecord.createIndexes();
   await SeoIssueWorkflow.createIndexes();
   await SeoSchemaDraft.createIndexes();
+  await SeoProviderConnection.createIndexes();
   for (const model of contentModels) await model.createIndexes();
   for (const model of crawlerModels) await model.createIndexes();
 }
