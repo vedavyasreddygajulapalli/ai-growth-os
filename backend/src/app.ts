@@ -167,7 +167,7 @@ export async function createApp() {
     origin: allowed,
     credentials: true,
     allowedHeaders: ["Content-Type", "X-Growth-Client"],
-    methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   });
   app.setGlobalPrefix("api/v1");
   app.useGlobalFilters(new ErrorFilter());
