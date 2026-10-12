@@ -271,17 +271,17 @@ test("SEO workspace uses scoped crawl evidence and shows providers as disconnect
   else if(url.includes("/websites?")||url.endsWith("/websites"))data={items:[site],nextCursor:null};
   else if(url.endsWith("/seo/summary"))data={crawl:{id:"c".repeat(24),status:"completed",completedAt:"2026-10-11T00:00:00Z",truncated:false},auditedPages:33,indexable:24,notIndexable:4,unknown:5,issues:[],providers:{}};
   else if(url.endsWith("/seo/providers"))data={items:[{key:"search_console",label:"Google Search Console",data:"Search performance",connection:"OAuth authorization required",status:"disconnected",property:null,version:null,metricsAvailable:false},{key:"rankings",label:"Keyword rankings",data:"Ranking observations",connection:"Provider authorization required",status:"disconnected",property:null,version:null,metricsAvailable:false},{key:"ai_visibility",label:"AI visibility",data:"Citation observations",connection:"Provider authorization required",status:"disconnected",property:null,version:null,metricsAvailable:false}]};
-  else if(url.endsWith("/seo/schema"))data={items:[]};
+  else if(url.endsWith("/seo/schema"))data={items:[{_id:"d".repeat(24),name:"Approved schema",url:"https://saved.example.com/",jsonLd:{"@type":"WebPage"},status:"approved"}]};
   else if(url.endsWith("/seo/publish-targets"))data={items:[],available:false,reason:"WordPress schema publication is not configured."};
   else if(url.endsWith("/cms/jobs"))data={items:[]};
   else if(url.endsWith("/seo/providers/search_console/connect")&&opts.method==="POST"){data={key:"search_console",status:"authorization_required",property:"sc-domain:saved.example.com",version:0,notice:"Authorization is not connected yet. No provider data is available until a verified provider authorization flow is configured."};}
   else throw Error("Unexpected request "+url);
   return {ok:true,status:200,json:async()=>data};
  };
- const dom=setup(true,fetcher);click(dom,"live");await tick();runInContext('navigate("seo")',dom.getInternalVMContext());await tick();await tick();
+ const dom=setup(true,fetcher);try{click(dom,"live");await tick();runInContext('navigate("seo")',dom.getInternalVMContext());await tick();await tick();
  let page=dom.window.document.querySelector(".page")!.textContent!;
  assert.match(page,/SEO & AI Visibility/);assert.match(page,/33/);assert.match(page,/24 \/ 4 \/ 5/);assert.doesNotMatch(page,/24,892|Sample metrics|Acme Studio/);
- click(dom,"seo-tab:Providers");assert.match(dom.window.document.querySelector(".page")!.textContent!,/Google Search Console/);
+ click(dom,"seo-tab:Schema");assert.match(dom.window.document.querySelector(".page")!.textContent!,/Approved schema/);assert.equal(dom.window.document.querySelector('[data-live^="seo-schema-publish:"]'),null);click(dom,"seo-tab:Providers");assert.match(dom.window.document.querySelector(".page")!.textContent!,/Google Search Console/);
  assert.match(dom.window.document.querySelector(".page")!.textContent!,/No provider data is available/);
  click(dom,"seo-connect:search_console");
  const form=dom.window.document.querySelector("#live-form") as HTMLFormElement;
@@ -289,5 +289,5 @@ test("SEO workspace uses scoped crawl evidence and shows providers as disconnect
  form.dispatchEvent(new dom.window.Event("submit",{bubbles:true,cancelable:true}));await tick();await tick();
  assert.ok(calls.some(([url,opts])=>url.endsWith("/seo/providers/search_console/connect")&&opts.method==="POST"));
  assert.match(dom.window.document.body.textContent!,/No provider data is available/);
- assert.equal(dom.window.localStorage.length,0);dom.window.close();
+ assert.equal(dom.window.localStorage.length,0);}finally{dom.window.close();}
 });
