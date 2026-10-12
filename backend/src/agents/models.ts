@@ -6,3 +6,7 @@ export const AgentPolicy=mongoose.model("AgentPolicy",policy,"agent_policies");
 const proposal=new Schema({...scoped,action:{type:String,enum:["content_draft","seo_schema_draft","technical_fix","lead_follow_up"],required:true},input:{type:Schema.Types.Mixed,required:true},inputHash:{type:String,required:true},rationale:{type:String,required:true,maxlength:2000},impact:{type:String,required:true,maxlength:1000},costMinor:{type:Number,required:true,min:0},status:{type:String,enum:["proposed","approved","rejected","changes_requested"],default:"proposed"},version:{type:Number,default:0},createdBy:{type:oid,required:true},decidedBy:oid,decisionReason:String,decidedAt:Date},{timestamps:true,strict:"throw"});
 proposal.index({orgId:1,websiteId:1,status:1,_id:-1});
 export const AgentProposal=mongoose.model("AgentProposal",proposal,"agent_proposals");
+
+const inboxState=new Schema({...scoped,activityId:{type:oid,required:true},status:{type:String,enum:["acknowledged","snoozed"],required:true},snoozedUntil:Date,reason:{type:String,required:true,maxlength:500},version:{type:Number,default:0},updatedBy:{type:oid,required:true}},{timestamps:true,strict:"throw"});
+inboxState.index({orgId:1,websiteId:1,activityId:1},{unique:true});
+export const InboxState=mongoose.model("InboxState",inboxState,"growth_inbox_state");
