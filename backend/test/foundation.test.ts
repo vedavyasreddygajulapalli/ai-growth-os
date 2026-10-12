@@ -483,6 +483,7 @@ test("ownership transfer preserves exactly one owner and rejects former-owner re
 });
 
 test("verification codes have persisted attempt limits while private links remain usable", async () => {
+  setTestEmailTransport(async message => { messages.push(message); });
   const email = "otp-limit@example.com";
   const registration = await call("/auth/register", "POST", { name: "OTP Test", email, password: "Secure OTP Password 123!" });
   assert.equal(registration.status, 201);
