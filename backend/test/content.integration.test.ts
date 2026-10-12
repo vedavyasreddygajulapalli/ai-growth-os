@@ -155,3 +155,21 @@ test('remote conflict resolution is version fenced and never publishes automatic
  modified='new';const resolved=await call('/cms/'+item._id+'/resolve-conflict','POST',body);assert.equal(resolved.status,201,JSON.stringify(resolved.data));assert.equal(resolved.data.status,'draft');assert.equal(resolved.data.approvedRevision,undefined);assert.equal(resolved.data.blocks[0].text,'Changed remotely');assert.equal(writes,0);
  assert.equal((await call('/cms/'+item._id+'/resolve-conflict','POST',body)).status,409);setTestWpTransport();
 });
+
+import {ManualPublication} from '../src/content/models';
+import {setManualPublishFetcherForTests} from '../src/content/manual-publication.controller';
+test('approved content can be exported for any CMS and safely verified after manual publishing',async()=>{
+ const item=await makeApproved('manual-handoff');
+ const writerKit=await call('/content/'+item._id+'/manual-publication','POST',{version:item.version},'writer');assert.equal(writerKit.status,403);
+ const kit=await call('/content/'+item._id+'/manual-publication','POST',{version:item.version});assert.equal(kit.status,201,JSON.stringify(kit.data));
+ assert.match(kit.data.bundle.html,/<!doctype html>/i);assert.match(kit.data.bundle.markdown,/Approved body/);assert.equal(kit.data.publication.state,'ready');
+ const reused=await call('/content/'+item._id+'/manual-publication','POST',{version:item.version});assert.equal(reused.data.publication._id,kit.data.publication._id);
+ assert.equal((await call('/content/'+item._id+'/manual-publication/'+kit.data.publication._id+'/confirm','POST',{version:kit.data.publication.version,liveUrl:'https://other.example.com/article'})).status,422);
+ const report=await call('/content/'+item._id+'/manual-publication/'+kit.data.publication._id+'/confirm','POST',{version:kit.data.publication.version,liveUrl:'https://example.com/manual-handoff'});assert.equal(report.status,201,JSON.stringify(report.data));assert.equal(report.data.state,'reported');
+ setManualPublishFetcherForTests(async url=>({url,finalUrl:url,statusCode:200,headers:{'content-type':'text/html'},body:'<html><head><title>Test manual-handoff</title><link rel="canonical" href="https://example.com/manual-handoff"></head><body><h1>Test manual-handoff</h1></body></html>',bytes:180,responseMs:4,redirects:[]}));
+ const checked=await call('/content/'+item._id+'/manual-publication/'+kit.data.publication._id+'/verify','POST',{version:report.data.version});assert.equal(checked.status,201,JSON.stringify(checked.data));assert.equal(checked.data.verified,true);assert.equal(checked.data.publication.state,'verified');
+ assert.equal((await ManualPublication.findById(kit.data.publication._id))!.checksum,kit.data.publication.checksum);
+ assert.equal((await call('/content/'+item._id+'/manual-publication/'+kit.data.publication._id+'/verify','POST',{version:report.data.version})).status,409);
+ setManualPublishFetcherForTests();
+});
+

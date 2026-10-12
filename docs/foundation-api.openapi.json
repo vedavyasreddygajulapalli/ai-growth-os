@@ -8205,6 +8205,9 @@
           }
         ],
         "responses": {
+          "200": {
+            "description": "Successful operation"
+          },
           "403": {
             "description": "Permission or independent review required"
           },
@@ -8216,9 +8219,6 @@
           },
           "503": {
             "description": "Integration configuration unavailable"
-          },
-          "200": {
-            "description": "Successful operation"
           }
         },
         "requestBody": {
@@ -8331,6 +8331,9 @@
           }
         ],
         "responses": {
+          "200": {
+            "description": "Successful operation"
+          },
           "403": {
             "description": "Permission or independent review required"
           },
@@ -8342,9 +8345,6 @@
           },
           "503": {
             "description": "Integration configuration unavailable"
-          },
-          "200": {
-            "description": "Successful operation"
           }
         }
       }
@@ -8468,6 +8468,9 @@
           }
         ],
         "responses": {
+          "200": {
+            "description": "Successful operation"
+          },
           "403": {
             "description": "Permission or independent review required"
           },
@@ -8479,9 +8482,6 @@
           },
           "503": {
             "description": "Integration configuration unavailable"
-          },
-          "200": {
-            "description": "Successful operation"
           }
         }
       }
@@ -9095,7 +9095,7 @@
             }
           }
         ],
-        "description": "Body: version, action(review|approve|archive), reason(3\u20131000 characters). Unknown fields rejected. Approval requires Owner/Admin/Marketing Manager other than last editor. Approval never publishes.",
+        "description": "Body: version, action(review|approve|archive), reason(3–1000 characters). Unknown fields rejected. Approval requires Owner/Admin/Marketing Manager other than last editor. Approval never publishes.",
         "responses": {
           "201": {
             "description": "Updated record"
@@ -9105,6 +9105,800 @@
           },
           "409": {
             "description": "Version, domain or workflow conflict"
+          }
+        }
+      }
+    },
+    "/organizations/{orgId}/websites/{websiteId}/content/{contentId}/manual-publication": {
+      "get": {
+        "tags": [
+          "Content"
+        ],
+        "summary": "List manual publication handoffs for content",
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "websiteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "contentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Scoped publishing history",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "_id": {
+                            "type": "string"
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "ready",
+                              "reported",
+                              "verified"
+                            ]
+                          },
+                          "sourceRevision": {
+                            "type": "integer"
+                          },
+                          "checksum": {
+                            "type": "string"
+                          },
+                          "liveUrl": {
+                            "type": "string",
+                            "format": "uri"
+                          },
+                          "version": {
+                            "type": "integer"
+                          },
+                          "bundle": {
+                            "type": "object",
+                            "properties": {
+                              "title": {
+                                "type": "string"
+                              },
+                              "slug": {
+                                "type": "string"
+                              },
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "post",
+                                  "page"
+                                ]
+                              },
+                              "seoTitle": {
+                                "type": "string"
+                              },
+                              "description": {
+                                "type": "string"
+                              },
+                              "keywords": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "canonical": {
+                                "type": "string",
+                                "format": "uri"
+                              },
+                              "html": {
+                                "type": "string"
+                              },
+                              "markdown": {
+                                "type": "string"
+                              },
+                              "sourceRevision": {
+                                "type": "integer"
+                              }
+                            },
+                            "required": [
+                              "title",
+                              "slug",
+                              "type",
+                              "seoTitle",
+                              "description",
+                              "keywords",
+                              "canonical",
+                              "html",
+                              "markdown",
+                              "sourceRevision"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "_id",
+                          "state",
+                          "sourceRevision",
+                          "checksum",
+                          "version"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Publisher role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Content unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Content"
+        ],
+        "summary": "Create or return an immutable HTML/Markdown kit for the approved content revision",
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "websiteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "contentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "version": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                },
+                "required": [
+                  "version"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Publishing kit ready",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "publication": {
+                      "type": "object",
+                      "properties": {
+                        "_id": {
+                          "type": "string"
+                        },
+                        "state": {
+                          "type": "string",
+                          "enum": [
+                            "ready",
+                            "reported",
+                            "verified"
+                          ]
+                        },
+                        "sourceRevision": {
+                          "type": "integer"
+                        },
+                        "checksum": {
+                          "type": "string"
+                        },
+                        "liveUrl": {
+                          "type": "string",
+                          "format": "uri"
+                        },
+                        "version": {
+                          "type": "integer"
+                        },
+                        "bundle": {
+                          "type": "object",
+                          "properties": {
+                            "title": {
+                              "type": "string"
+                            },
+                            "slug": {
+                              "type": "string"
+                            },
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "post",
+                                "page"
+                              ]
+                            },
+                            "seoTitle": {
+                              "type": "string"
+                            },
+                            "description": {
+                              "type": "string"
+                            },
+                            "keywords": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "canonical": {
+                              "type": "string",
+                              "format": "uri"
+                            },
+                            "html": {
+                              "type": "string"
+                            },
+                            "markdown": {
+                              "type": "string"
+                            },
+                            "sourceRevision": {
+                              "type": "integer"
+                            }
+                          },
+                          "required": [
+                            "title",
+                            "slug",
+                            "type",
+                            "seoTitle",
+                            "description",
+                            "keywords",
+                            "canonical",
+                            "html",
+                            "markdown",
+                            "sourceRevision"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "_id",
+                        "state",
+                        "sourceRevision",
+                        "checksum",
+                        "version"
+                      ]
+                    },
+                    "bundle": {
+                      "type": "object",
+                      "properties": {
+                        "title": {
+                          "type": "string"
+                        },
+                        "slug": {
+                          "type": "string"
+                        },
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "post",
+                            "page"
+                          ]
+                        },
+                        "seoTitle": {
+                          "type": "string"
+                        },
+                        "description": {
+                          "type": "string"
+                        },
+                        "keywords": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "canonical": {
+                          "type": "string",
+                          "format": "uri"
+                        },
+                        "html": {
+                          "type": "string"
+                        },
+                        "markdown": {
+                          "type": "string"
+                        },
+                        "sourceRevision": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "title",
+                        "slug",
+                        "type",
+                        "seoTitle",
+                        "description",
+                        "keywords",
+                        "canonical",
+                        "html",
+                        "markdown",
+                        "sourceRevision"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "publication",
+                    "bundle"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Publisher role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Revision is not approved or has changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organizations/{orgId}/websites/{websiteId}/content/{contentId}/manual-publication/{publicationId}/confirm": {
+      "post": {
+        "tags": [
+          "Content"
+        ],
+        "summary": "Record an external published URL on the verified website domain",
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "websiteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "contentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "publicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "version": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "liveUrl": {
+                    "type": "string",
+                    "format": "uri",
+                    "maxLength": 2048
+                  }
+                },
+                "required": [
+                  "version",
+                  "liveUrl"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "URL recorded as reported",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "_id": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "ready",
+                        "reported",
+                        "verified"
+                      ]
+                    },
+                    "sourceRevision": {
+                      "type": "integer"
+                    },
+                    "checksum": {
+                      "type": "string"
+                    },
+                    "liveUrl": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "bundle": {
+                      "type": "object",
+                      "properties": {
+                        "title": {
+                          "type": "string"
+                        },
+                        "slug": {
+                          "type": "string"
+                        },
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "post",
+                            "page"
+                          ]
+                        },
+                        "seoTitle": {
+                          "type": "string"
+                        },
+                        "description": {
+                          "type": "string"
+                        },
+                        "keywords": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "canonical": {
+                          "type": "string",
+                          "format": "uri"
+                        },
+                        "html": {
+                          "type": "string"
+                        },
+                        "markdown": {
+                          "type": "string"
+                        },
+                        "sourceRevision": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "title",
+                        "slug",
+                        "type",
+                        "seoTitle",
+                        "description",
+                        "keywords",
+                        "canonical",
+                        "html",
+                        "markdown",
+                        "sourceRevision"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "_id",
+                    "state",
+                    "sourceRevision",
+                    "checksum",
+                    "version"
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Stale handoff version",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "URL does not match the verified website domain",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organizations/{orgId}/websites/{websiteId}/content/{contentId}/manual-publication/{publicationId}/verify": {
+      "post": {
+        "tags": [
+          "Content"
+        ],
+        "summary": "Safely verify a reported page and match its title or canonical URL",
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "websiteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "contentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "publicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "version": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                },
+                "required": [
+                  "version"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Page check result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "publication": {
+                      "type": "object",
+                      "properties": {
+                        "_id": {
+                          "type": "string"
+                        },
+                        "state": {
+                          "type": "string",
+                          "enum": [
+                            "ready",
+                            "reported",
+                            "verified"
+                          ]
+                        },
+                        "sourceRevision": {
+                          "type": "integer"
+                        },
+                        "checksum": {
+                          "type": "string"
+                        },
+                        "liveUrl": {
+                          "type": "string",
+                          "format": "uri"
+                        },
+                        "version": {
+                          "type": "integer"
+                        },
+                        "bundle": {
+                          "type": "object",
+                          "properties": {
+                            "title": {
+                              "type": "string"
+                            },
+                            "slug": {
+                              "type": "string"
+                            },
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "post",
+                                "page"
+                              ]
+                            },
+                            "seoTitle": {
+                              "type": "string"
+                            },
+                            "description": {
+                              "type": "string"
+                            },
+                            "keywords": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "canonical": {
+                              "type": "string",
+                              "format": "uri"
+                            },
+                            "html": {
+                              "type": "string"
+                            },
+                            "markdown": {
+                              "type": "string"
+                            },
+                            "sourceRevision": {
+                              "type": "integer"
+                            }
+                          },
+                          "required": [
+                            "title",
+                            "slug",
+                            "type",
+                            "seoTitle",
+                            "description",
+                            "keywords",
+                            "canonical",
+                            "html",
+                            "markdown",
+                            "sourceRevision"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "_id",
+                        "state",
+                        "sourceRevision",
+                        "checksum",
+                        "version"
+                      ]
+                    },
+                    "verified": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "publication",
+                    "verified",
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Page has not been reported or the handoff changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Safe page fetch failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         }
       }

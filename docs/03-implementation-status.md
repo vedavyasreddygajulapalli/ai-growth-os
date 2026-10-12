@@ -130,3 +130,8 @@ M5/M6 now provide the manual V1 development flow: scoped content editing/history
 
 - M11 deployed at commit `1960f73c8348c57e0ebd34e7955bacdb8822aecf`; main CI passed and both Render services are live. API logs confirm the new migration/index initialization completed; no post-deploy errors were returned. Real Stripe checkout, signed provider event configuration, and billing acceptance remain unconfigured and are shown as unavailable.
 - M12 hardening is underway. See [M12 acceptance](15-production-hardening-acceptance.md); production readiness is not claimed until its real account, provider, backup/restore, alerting, worker, and responsive acceptance gates are closed.
+
+
+## Cross-platform publishing follow-up — development checkpoint
+
+The Content editor now includes a publisher-only manual handoff for verified websites. It creates an immutable HTML/Markdown kit from an approved revision, records the handoff in MongoDB, lets the publisher report the final URL, and verifies the public page with the crawler's same-host, DNS-pinned fetch safeguards. Only a title/canonical match after a successful response is labeled verified. This fills the no-CMS-API path for builder-hosted and custom-coded sites; it does not push files to the hosting account. Automated CI and live deployment acceptance are still required before calling this deployed.

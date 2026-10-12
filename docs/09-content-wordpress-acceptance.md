@@ -65,3 +65,8 @@ Both existing free Render services deployed code `8e4eb203ed0e080d8afd81c171d405
 - Startup log confirmed migrations/indexes completed. Served `foundation.js` SHA-256 matched the local tested bundle: `f32b7404f453fc19787eddf5b7a3db2d563db735fd8771e7d679b77063458f56`.
 
 This supersedes earlier "not deployed" checkpoint notes. It does not establish authenticated end-to-end production acceptance, live inbox delivery, real WordPress media/publish/resolve behavior, configured encryption/AI credentials, mobile visual acceptance, backup/restore, or load/security hardening. No credentials were added or replaced during this deployment. No paid infrastructure was created.
+
+
+## Cross-platform manual publishing handoff
+
+The publisher-only **Publish anywhere** action creates an immutable, version-bound HTML and Markdown package from the approved content. The user applies it in their site's CMS or codebase, records the public URL, and requests a safe same-host page check. State transitions distinguish `ready`, `reported`, and `verified`; `verified` requires a successful response and matching page title or canonical. The UI and API do not claim that export deploys the site or that a fetch means search indexing. It works as a useful fallback for Hostinger Website Builder, GoDaddy Websites + Marketing, and custom-coded sites; final copy/upload/deploy still happens in the hosting platform. WordPress direct publishing stays unchanged.

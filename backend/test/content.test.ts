@@ -18,6 +18,15 @@ test('WordPress credentials are encrypted and cannot move across tenants or webs
 });
 test('reconciliation markers distinguish approved revisions',()=>{assert.notEqual(publicationMarker('a',1),publicationMarker('a',2));});
 import {importWordPress} from '../src/content/import';
+import {manualBundle} from '../src/content/manual-publication.controller';
 test('WordPress import strips executable markup and preserves supported block order',()=>{
  const d=importWordPress({title:{raw:'Imported'},slug:'imported',content:{raw:'<h1>Heading</h1><p>Hello <strong>world</strong></p><script>attack()</script><ul><li>One</li><li>Two</li></ul>'}},'post');assert.deepEqual(d.blocks,[{type:'heading',level:2,text:'Heading'},{type:'paragraph',text:'Hello world'},{type:'list',text:'One\nTwo'}]);assert.ok(!renderBlocks(d.blocks).includes('attack'));
 });
+
+test('universal publishing kit produces escaped HTML, Markdown and a stable content checksum',()=>{
+ const item={title:'A <safe> title',slug:'safe-title',type:'page',seoTitle:'SEO & title',description:'A meta description',keywords:['growth'],revision:4,blocks:[{type:'heading',level:2,text:'Section'},{type:'paragraph',text:'Body <script> text'},{type:'list',text:'One\nTwo'}]};
+ const one=manualBundle(item,'example.com'),two=manualBundle(item,'example.com');
+ assert.match(one.bundle.html,/<title>SEO &amp; title<\/title>/);assert.ok(!one.bundle.html.includes('<script> text'));
+ assert.match(one.bundle.markdown,/- One\n- Two/);assert.equal(one.bundle.canonical,'https://example.com/safe-title');assert.equal(one.checksum,two.checksum);
+});
+

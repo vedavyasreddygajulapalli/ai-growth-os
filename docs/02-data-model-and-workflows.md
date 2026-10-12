@@ -5,6 +5,10 @@ All documents have `_id:ObjectId`, `createdAt:Date`, `updatedAt:Date`; mutable b
 
 Use a replica set/Atlas for multi-document transactions. Create collections/indexes in migration before traffic. Migrations use a lock and version ledger; append, never mutate an applied migration. Default reads primary for authorization. Bind every mutation and its audit/outbox to one session; no external I/O inside retryable transaction callbacks. Uniqueness is database enforced, not pre-check alone. Cursor uses stable `_id` in current foundation; richer modules use `(createdAt,_id)`. Foundation session TTL is cleanup only; expiry is enforced on every request.
 
+## Universal manual publishing handoffs
+
+`manual_publications` stores immutable HTML/Markdown export kits for approved content revisions. Records are scoped to organization, website, content and revision. Creating a kit does not change approval or write to an external site. A publisher records a URL only on the website's verified domain. The system checks it using the crawler's DNS-pinned public-fetch safeguards; only a successful response whose page title or canonical matches is marked `verified`. This supports CMSs without a content API and custom-coded sites. Direct API and Git-based adapters remain independent options.
+
 ## Collections
 The following is the target schema, not a claim that every collection is implemented. `!` required, `?` optional/null. All string and array lengths receive DTO limits. Foundation implementation initially creates only users, sessions, organizations, memberships, invitations, websites and audit_logs.
 

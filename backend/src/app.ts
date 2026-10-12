@@ -7,6 +7,7 @@ import { TemplateController } from './content/templates';
 import { ContentAiController } from "./content/ai.controller";
 import { CmsController } from "./content/cms.controller";
 import { ContentController } from "./content/controller";
+import { ManualPublicationController } from "./content/manual-publication.controller";
 import { KnowledgeController } from "./knowledge/controller";
 import { embeddedCrawlerReady, stopEmbeddedCrawler } from "./crawler/embedded";
 import { crawlSettings } from "./crawler/settings";
@@ -124,6 +125,7 @@ class HealthController {
     KnowledgeController,
     TemplateController,
     ContentController,
+    ManualPublicationController,
     ContentAiController,
     CmsController,
   ],

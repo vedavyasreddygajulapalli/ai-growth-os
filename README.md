@@ -58,3 +58,7 @@ The M5/M6 development checkpoint is now deployed at https://ai-growth-os-web-us4
 
 M7 development now includes crawl-backed SEO overview and issue assignment/rechecking from Website → Crawls → Report. Start a new full crawl before rechecking; only complete positive page evidence can resolve an issue. This checkpoint is not deployed yet; M7/M8 share the next deployment gate. External SEO providers remain disconnected.
 M7 issue reports now offer workflow filtering. SEO overview also opens structured-data drafts with independent review. Initial schema support is limited to Organization, WebPage and Article; approval does not publish JSON-LD or guarantee search features.
+
+### Publishing beyond WordPress
+
+Use **Publish anywhere** for an approved HTML/Markdown kit when a site has no supported CMS API. Apply it in a hosted site builder or custom code repository, report the public URL, then verify the page title/canonical from AI Growth OS. This tracks evidence but does not upload or deploy to the provider.

@@ -572,5 +572,12 @@
     "fields": "name,url,jsonLd,status,version,updatedBy,approvedBy,timestamps",
     "indexes": "orgId+websiteId+_id",
     "lifecycle": "Validated supported JSON-LD subset; edits clear approval; independent approver; no remote publication."
+  },
+  {
+    "name": "manual_publications",
+    "scope": "site",
+    "fields": "contentId:ref!,sourceVersion:int!,sourceRevision:int!,state:ready|reported|verified,bundle:immutable object!,checksum:string!,liveUrl:string?,verification:object?,verifiedAt:date?,version:int!",
+    "indexes": "orgId+websiteId+contentId+sourceRevision unique;orgId+websiteId+liveUrl partial unique",
+    "lifecycle": "Version-bound publishing handoff; reporting a live URL is distinct from verifying it; verified only after a same-host public fetch matches page title or canonical"
   }
 ]
