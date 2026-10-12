@@ -1,4 +1,5 @@
 import { test } from "node:test";
+import nodemailer from "nodemailer";
 import assert from "node:assert/strict";
 import { validateEnvironment } from "../src/environment";
 import { RedisRateLimitStore } from "../src/rate-limit";
@@ -52,4 +53,26 @@ test("two instances share Redis throttles and recover after expiry", { skip: !pr
     await new Promise(resolve => setTimeout(resolve, 150));
     assert.equal((await a.increment(key, 100, 1, 100, "test")).isBlocked, false);
   } finally { a.close(); b.close(); }
+});
+
+
+test("SMTP transport is closed after provider rejection without leaking its error", async () => {
+  const previous = { ...process.env }, original = nodemailer.createTransport;
+  let closed = false;
+  process.env.NODE_ENV = "test";
+  process.env.EMAIL_TRANSPORT = "smtp";
+  process.env.SMTP_HOST = "smtp.example.com";
+  process.env.SMTP_USER = "sender@example.com";
+  process.env.SMTP_PASS = "test-only";
+  process.env.EMAIL_FROM = "sender@example.com";
+  process.env.PUBLIC_APP_URL = "https://app.example";
+  setTestEmailTransport(undefined);
+  try {
+    (nodemailer as any).createTransport = () => ({ sendMail: async () => { throw Error("private smtp details"); }, close: () => { closed = true; } });
+    await assert.rejects(sendAccountEmail({ to: "recipient@example.com", subject: "Test", text: "Test", key: "test" }), (e: any) => e.getStatus() === 503 && !JSON.stringify(e).includes("private smtp details"));
+    assert.equal(closed, true);
+  } finally {
+    nodemailer.createTransport = original;
+    process.env = previous;
+  }
 });

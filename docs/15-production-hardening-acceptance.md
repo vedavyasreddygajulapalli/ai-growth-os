@@ -33,3 +33,14 @@ Production dependency audit on 2026-10-12: `npm audit --omit=dev --json` returne
 - Web lockfile SHA-256: `a0af0fb804998080eabc3448893bcb6f8e3a37a441926fc1b43881a6d2a92436`.
 
 The external/live gates above remain open; this checkpoint does not declare production readiness.
+
+## Review of SMTP and verification changes (2026-10-12)
+
+Reviewed user baseline `faaf657645ccb359e03573079cf8108780c42c05` and preserved SMTP delivery, Resend fallback selection, verification links, emailed codes, and the explicit development-only code display.
+
+- The regular verification screen now accepts emailed codes without enabling development mode, retains invalid input for correction, and displays cooldown guidance.
+- A MongoDB counter limits each issued code to five verification attempts across clients. Rejected attempts persist outside the completion transaction. Newly issued codes disable older codes while private verification links remain usable.
+- SMTP transports close on success or failure. Provider error details remain redacted.
+- Added UI regression, SMTP failure cleanup, and MongoDB-backed attempt-budget/link-recovery coverage.
+
+Local API/web production builds and 41 unit/UI tests passed; Redis is covered by CI rather than the local environment. Full replica-set integration remains a GitHub CI gate. These checks do not establish real SMTP inbox delivery, DNS ownership, remote provider acceptance, restore recovery, or production readiness.
