@@ -31,8 +31,10 @@ Local verification: API build, 38 unit/UI tests and web production build passed.
 
 Production dependency audit on 2026-10-12: `npm audit --omit=dev --json` returned zero known vulnerabilities for both lockfiles. This is point-in-time advisory evidence, not a guarantee against unknown vulnerabilities.
 
-- Backend lockfile SHA-256: `11288ad8f7572d589bf5ce7b535ac6de33989044363357d516de6b577c2936a3`.
+- Backend lockfile SHA-256: `4a097d0707db2ee99e9ae349c534ab2d6585230c6ea08b725b78b907fe51edf6`.
 - Web lockfile SHA-256: `a0af0fb804998080eabc3448893bcb6f8e3a37a441926fc1b43881a6d2a92436`.
+
+After the M12 deployment checkpoint on 12 October 2026, `npm audit --omit=dev --json` was rerun against the current main lockfiles. Both backend (166 production dependencies) and web (15 production dependencies) report zero known vulnerabilities. Backend SHA-256: `4a097d0707db2ee99e9ae349c534ab2d6585230c6ea08b725b78b907fe51edf6`; web SHA-256: `a0af0fb804998080eabc3448893bcb6f8e3a37a441926fc1b43881a6d2a92436`. This remains a point-in-time advisory scan.
 
 The external/live gates above remain open; this checkpoint does not declare production readiness.
 
