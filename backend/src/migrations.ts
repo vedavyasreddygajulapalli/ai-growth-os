@@ -2,6 +2,7 @@ import { SeoIssueWorkflow, SeoSchemaDraft, SeoProviderConnection } from "./seo/m
 import { CrmLead, CrmActivity, CrmCaptureForm } from "./crm/models";
 import { AnalyticsProviderConnection, ConversionDefinition, AnalyticsReport } from "./analytics/models";
 import { AgentPolicy, AgentProposal, InboxState } from "./agents/models";
+import { Subscription, UsageRecord, BillingWebhookEvent } from "./billing/models";
 import { contentModels } from "./content/models";
 import { KnowledgeRecord } from "./knowledge/models";
 import { crawlerModels } from "./crawler/models";
@@ -26,6 +27,9 @@ export async function runMigrations() {
   await AgentPolicy.createIndexes();
   await AgentProposal.createIndexes();
   await InboxState.createIndexes();
+  await Subscription.createIndexes();
+  await UsageRecord.createIndexes();
+  await BillingWebhookEvent.createIndexes();
   for (const model of contentModels) await model.createIndexes();
   for (const model of crawlerModels) await model.createIndexes();
 }
