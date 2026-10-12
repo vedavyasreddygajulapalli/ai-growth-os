@@ -1,17 +1,19 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query, Req, Res, UseGuards } from "@nestjs/common";
 import { Throttle } from "@nestjs/throttler";
 import { Response } from "express";
+import { randomInt } from "node:crypto";
 import { AuthToken, EmailCooldown, User, Session, SecurityEvent, publicRecord, securityLog, transaction } from "./database";
-import { changePasswordDto, emailDto, fail, paginate, parse, profileDto, recordId, resetDto, tokenDto } from "./contracts";
+import { changePasswordDto, emailDto, fail, paginate, parse, profileDto, recordId, resetDto, verificationDto } from "./contracts";
 import { AuthGuard, checkPassword, cookieName, cookieOptions, digest, hashPassword, randomToken } from "./security";
-import { assertEmailConfigured, sendAccountEmail } from "./email";
+import { assertEmailConfigured, emailConfigured, sendAccountEmail } from "./email";
 const accepted = { message: "If an eligible account exists, a reset link will be sent. Check your inbox or try again later." };
 function clearSession(res: Response) {
   const { maxAge, ...options } = cookieOptions();
   res.clearCookie(cookieName, options);
 }
+const developmentOtpEnabled = () =>
+  process.env.NODE_ENV === "development" && process.env.DEV_SHOW_VERIFICATION_OTP === "true";
 async function sendToken(req: any, user: any, kind: "verify" | "reset") {
-  // Per-account cooldown also limits distributed requests from multiple IPs.
   const slot = `${user._id}:${kind}`;
   const deadline = new Date(Date.now() + 60000);
   try {
@@ -23,23 +25,31 @@ async function sendToken(req: any, user: any, kind: "verify" | "reset") {
   }
   const token = randomToken();
   const tokenHash = digest(token);
+  const otp = kind === "verify" ? randomInt(0, 1000000).toString().padStart(6, "0") : undefined;
   const link = `${process.env.PUBLIC_APP_URL || "http://localhost:3000"}/#settings?${kind}=${token}`;
   try {
-    // Persist the token and request audit together before contacting the provider.
-    // A database failure must never invalidate a link after successful delivery.
-    // Keep the external send outside the transaction: MongoDB may retry callbacks.
     await transaction(async session => {
       await AuthToken.create([{ userId: user._id, kind, tokenHash, authVersion: user.authVersion || 0,
+        ...(otp ? { otpHash: digest(otp), otpExpiresAt: new Date(Date.now() + 10 * 60000) } : {}),
         expiresAt: new Date(Date.now() + (kind === "verify" ? 24 * 60 : 30) * 60000) }], { session });
       await securityLog(req, user._id, `${kind}.email_requested`, session);
     });
-    await sendAccountEmail({ to: user.email, subject: kind === "verify" ? "Verify your AI Growth OS email" : "Reset your AI Growth OS password",
-      text: `${kind === "verify" ? "Verify your email" : "Reset your password"}: ${link}\nThis link expires in ${kind === "verify" ? "24 hours" : "30 minutes"} and works only once. If you did not request it, ignore this message.`,
-      key: `${kind}-${tokenHash}` });
+    let emailDelivered = false;
+    if (!(kind === "verify" && developmentOtpEnabled() && !emailConfigured())) {
+      try {
+        await sendAccountEmail({ to: user.email, subject: kind === "verify" ? "Verify your AI Growth OS email" : "Reset your AI Growth OS password",
+          text: `${kind === "verify" ? "Verify your email" : "Reset your password"}: ${link}${otp ? `\nVerification code: ${otp}` : ""}\nThis link expires in ${kind === "verify" ? "24 hours" : "30 minutes"} and works only once. If you did not request it, ignore this message.`,
+          key: `${kind}-${tokenHash}` });
+        emailDelivered = true;
+      } catch (error) {
+        if (!(kind === "verify" && developmentOtpEnabled())) throw error;
+        console.error(JSON.stringify({ code: "DEVELOPMENT_EMAIL_FALLBACK", requestId: req.requestId }));
+      }
+    }
+    return { otp, emailDelivered };
   } catch (error) {
     await AuthToken.deleteOne({ tokenHash });
     await EmailCooldown.deleteOne({ _id: slot, expiresAt: deadline });
-    // Do not log recipients, credentials, tokens, or provider error bodies.
     console.error(JSON.stringify({ code: "EMAIL_DELIVERY_FAILED", requestId: req.requestId }));
     throw error;
   }
@@ -50,19 +60,32 @@ export class AccountController {
   @Post("email-verification") @HttpCode(202) @UseGuards(AuthGuard)
   async requestVerification(@Req() req: any) {
     if (req.user.emailVerifiedAt) return { message: "Email already verified." };
-    assertEmailConfigured();
-    await sendToken(req, req.user, "verify");
-    return { message: "Check your inbox for a verification link. You can request another after one minute." };
+    const showDevelopmentOtp = developmentOtpEnabled();
+    if (!showDevelopmentOtp) assertEmailConfigured();
+    const delivery = await sendToken(req, req.user, "verify");
+    return {
+      message: showDevelopmentOtp
+        ? delivery?.emailDelivered ? "Email sent. You can use its link/code or the local testing code below." : "SMTP delivery failed in local testing. Use the testing code below."
+        : "Check your inbox for a verification link or code. You can request another after one minute.",
+      ...(showDevelopmentOtp && delivery?.otp ? { developmentOtp: delivery.otp } : {}),
+      ...(showDevelopmentOtp ? { emailDelivered: !!delivery?.emailDelivered } : {}),
+    };
   }
   @Post("email-verification/complete") @HttpCode(200)
   async verify(@Req() req: any, @Body() body: unknown) {
-    const dto = parse(tokenDto, body);
+    const dto = parse(verificationDto, body);
     await transaction(async session => {
-      const t = await AuthToken.findOneAndDelete({ tokenHash: digest(dto.token), kind: "verify", expiresAt: { $gt: new Date() } }, { session });
-      if (!t) fail(409, "TOKEN_UNAVAILABLE", "This link is invalid, expired or already used. Request a new link.");
+      let t: any;
+      if ("token" in dto) {
+        t = await AuthToken.findOneAndDelete({ tokenHash: digest(dto.token), kind: "verify", expiresAt: { $gt: new Date() } }, { session });
+      } else {
+        const account = await User.findOne({ email: dto.email, status: "active" }).select("_id").session(session);
+        if (account) t = await AuthToken.findOneAndDelete({ userId: account._id, otpHash: digest(dto.otp), kind: "verify", otpExpiresAt: { $gt: new Date() } }, { session });
+      }
+      if (!t) fail(409, "TOKEN_UNAVAILABLE", "This verification link or code is invalid, expired or already used. Request a new one.");
       const user = await User.findOneAndUpdate({ _id: t.userId, status: "active", authVersion: t.authVersion },
         { $set: { emailVerifiedAt: new Date() }, $inc: { version: 1 } }, { new: true, session });
-      if (!user) fail(409, "TOKEN_UNAVAILABLE", "Account security changed. Request a new link.");
+      if (!user) fail(409, "TOKEN_UNAVAILABLE", "Account security changed. Request new verification.");
       await AuthToken.deleteMany({ userId: user._id, kind: "verify" }, { session });
       await securityLog(req, user._id, "email.verified", session);
     });

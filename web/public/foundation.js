@@ -824,9 +824,16 @@
           });
           break;
         case "send-verification":
-          showForm("Send verification email", `<p class="helper">Send a private link to ${esc(live.user.email)}.</p>`, "Send link", async () => {
+          showForm("Verify your email", `<p class="helper">Send a private link and six-digit verification code to ${esc(live.user.email)}.</p>`, "Send verification", async () => {
             const r = await api("/auth/email-verification", { method: "POST", body: {} });
-            closeModal(); notify(r.message);
+            if (r.developmentOtp) {
+              showForm("Enter verification code", `<div class="note"><b>Local testing code</b><p style="font-size:24px;letter-spacing:6px;margin:10px 0">${esc(r.developmentOtp)}</p><small>Shown only because the backend is in explicit development testing mode. Expires in 10 minutes.</small></div>${input("6-digit code", "otp", r.developmentOtp)}`, "Verify email", async data => {
+                const result = await api("/auth/email-verification/complete", { method: "POST", body: { email: live.user.email, otp: data.otp } });
+                closeModal(); await refresh(); notify(result.message);
+              });
+            } else {
+              closeModal(); notify(r.message);
+            }
           });
           break;
         case "account":

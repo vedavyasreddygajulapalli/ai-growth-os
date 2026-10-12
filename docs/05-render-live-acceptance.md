@@ -7,7 +7,7 @@ This is an acceptance environment, not a production-readiness declaration. Exist
 1. Import the repository with Render Blueprint: https://dashboard.render.com/blueprint/new?repo=https://github.com/vedavyasreddygajulapalli/ai-growth-os
 2. Keep both services on the explicit free plan. Review generated service URLs before configuring origins. MongoDB is provided separately by Atlas; this Blueprint does not create it.
 3. In the API's environment settings, enter the Atlas replica-set connection string as `MONGODB_URI`. Use a database user scoped to the application database and allow the API service's outbound addresses in Atlas. Never commit the URI.
-4. Set `APP_ORIGINS` and `PUBLIC_APP_URL` to the exact frontend HTTPS origin, without a trailing slash. Set `EMAIL_FROM` to the verified sender and `RESEND_API_KEY` to the provider credential. Enter secrets only in service settings.
+4. Set `APP_ORIGINS` and `PUBLIC_APP_URL` to the exact frontend HTTPS origin, without a trailing slash. Set `EMAIL_FROM` and select `EMAIL_TRANSPORT=smtp` with authenticated `SMTP_*` settings, or `EMAIL_TRANSPORT=resend` with `RESEND_API_KEY`. Enter secrets only in service settings.
 5. Set the frontend's server-only `API_INTERNAL_URL` to the API's assigned HTTPS origin, without `/api` or a trailing slash. Rebuild the frontend after changing it: Next rewrites are configured at build time. No browser database connection is used.
 6. Deploy API first, then frontend. Automatic deployments are deliberately disabled until live acceptance passes. The API start command runs the idempotent account migration/index initialization before accepting requests. A failed migration must block startup; do not bypass it.
 

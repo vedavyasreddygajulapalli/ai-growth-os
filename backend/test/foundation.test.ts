@@ -28,10 +28,19 @@ function deliveredToken(email: string, kind: string) {
   assert.ok(msg, "email delivered to test transport");
   return msg.text.match(new RegExp(`\\?${kind}=([a-f0-9]{64})`))![1];
 }
-async function verifyEmail(cookie: string, email: string) {
+async function verifyEmail(cookie: string, email: string, useOtp = false) {
   assert.equal((await call("/auth/email-verification", "POST", {}, cookie)).status, 202);
   const token = deliveredToken(email, "verify");
-  assert.equal((await call("/auth/email-verification/complete", "POST", { token })).status, 200);
+  const message = messages.filter(m => m.to === email && m.text.includes("Verification code:")).at(-1);
+  assert.ok(message, "verification email includes OTP");
+  const otp = message.text.match(/Verification code: (\d{6})/)![1];
+  const stored = await AuthToken.findOne({ tokenHash: digest(token) }).select("+tokenHash +otpHash");
+  assert.ok(stored);
+  assert.notEqual(stored!.otpHash, otp);
+  assert.equal(stored!.otpHash, digest(otp));
+  const body = useOtp ? { email, otp } : { token };
+  assert.equal((await call("/auth/email-verification/complete", "POST", body)).status, 200);
+  assert.equal(await AuthToken.countDocuments({ userId: stored!.userId, kind: "verify" }), 0);
   return token;
 }
 let owner = "",
@@ -197,7 +206,7 @@ test("invitation acceptance is email bound, one-time and role enforced", async (
     password: "Viewer Passphrase 123!",
   });
   viewer = r.cookie;
-  await verifyEmail(viewer, "viewer@example.com");
+  await verifyEmail(viewer, "viewer@example.com", true);
   r = await call("/auth/register", "POST", {
     name: "Other Tenant",
     email: "other@example.com",

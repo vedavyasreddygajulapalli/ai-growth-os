@@ -32,9 +32,9 @@ Password hash changes increment authVersion. Sessions with older versions are re
 
 ## Live email configuration
 
-The first transport implementation uses the Resend HTTPS API with a 10-second timeout and a token-derived idempotency key. Reference: https://resend.com/docs/api-reference/emails/send-email . No actual email has been sent by this development run.
+Email delivery supports authenticated SMTP (including Gmail STARTTLS on port 587 with an app password) or the Resend HTTPS API. SMTP uses bounded connection, greeting, and socket timeouts; Resend uses a 10-second timeout and token-derived idempotency key. No provider credential is committed.
 
-Configure server-only `RESEND_API_KEY`, `EMAIL_FROM` (verified sender), and `PUBLIC_APP_URL` (trusted HTTPS frontend URL, without query/hash). None belongs in GitHub or a public frontend environment variable. Verification/reset URLs use fragments so tokens are not sent as URL queries to the frontend server. UI removes the fragment token immediately and requires explicit submission.
+Configure server-only `EMAIL_TRANSPORT`, `EMAIL_FROM`, and `PUBLIC_APP_URL` (trusted HTTPS frontend URL, without query/hash). SMTP requires `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, and `SMTP_PASS`; Gmail requires an app password, not the normal account password. Resend requires `RESEND_API_KEY`. None belongs in GitHub or a public frontend environment variable. Verification/reset URLs use fragments so tokens are not sent as URL queries to the frontend server. UI removes the fragment token immediately and requires explicit submission.
 
 The test transport is available only with NODE_ENV=test. Integration tests capture test messages in process memory; all user/session/token/tenant data and transactions use a real MongoDB replica set. Tests do not prove live inbox delivery.
 

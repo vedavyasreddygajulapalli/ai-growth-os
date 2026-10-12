@@ -12,6 +12,11 @@ export function validateEnvironment(env: NodeJS.ProcessEnv = process.env) {
   if (env.RATE_LIMIT_STORE && !["memory", "redis"].includes(env.RATE_LIMIT_STORE)) throw Error("Invalid RATE_LIMIT_STORE");
   if (env.RATE_LIMIT_STORE === "redis" && !env.REDIS_URL) throw Error("REDIS_URL required for shared rate limiting");
   if (env.REDIS_URL && !/^rediss?:\/\//.test(env.REDIS_URL)) throw Error("Invalid REDIS_URL");
+  if (env.EMAIL_TRANSPORT && !["smtp", "resend"].includes(env.EMAIL_TRANSPORT)) throw Error("Invalid EMAIL_TRANSPORT");
+  if (env.SMTP_PORT) positiveInteger(env.SMTP_PORT, 587, 65535);
+  if (env.SMTP_SECURE && !["true", "false"].includes(env.SMTP_SECURE)) throw Error("Invalid SMTP_SECURE");
+  if (env.DEV_SHOW_VERIFICATION_OTP === "true" && env.NODE_ENV !== "development")
+    throw Error("DEV_SHOW_VERIFICATION_OTP is allowed only in development");
   if (env.NODE_ENV !== "production") return;
   if (!env.MONGODB_URI || !/^mongodb(?:\+srv)?:\/\//.test(env.MONGODB_URI)) throw Error("MONGODB_URI required");
   const origins = (env.APP_ORIGINS || "").split(",").map(s => s.trim());

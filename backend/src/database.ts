@@ -39,6 +39,8 @@ const authToken = schema({
   userId: { type: oid, required: true },
   kind: { type: String, enum: ["verify", "reset"], required: true },
   tokenHash: { type: String, required: true, unique: true, select: false },
+  otpHash: { type: String, select: false },
+  otpExpiresAt: Date,
   authVersion: { type: Number, required: true },
   expiresAt: { type: Date, required: true },
 });
@@ -78,6 +80,8 @@ const invitation = schema({
   email: { type: String, required: true },
   role: { type: String, enum: roles, required: true },
   tokenHash: { type: String, required: true, unique: true, select: false },
+  otpHash: { type: String, select: false },
+  otpExpiresAt: Date,
   expiresAt: { type: Date, required: true },
   status: { type: String, default: "pending" },
   createdBy: { type: oid, required: true },

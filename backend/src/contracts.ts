@@ -49,6 +49,10 @@ export const roleDto = z
 export const tokenDto = z
   .object({ token: z.string().regex(/^[a-f\d]{64}$/) })
   .strict();
+export const verificationDto = z.union([
+  tokenDto,
+  z.object({ email, otp: z.string().regex(/^\d{6}$/) }).strict(),
+]);
 export function normalizeDomain(value: string) {
   let host = value.trim().toLowerCase();
   if (host.includes("://")) {
