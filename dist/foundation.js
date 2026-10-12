@@ -544,7 +544,8 @@
         errorBox(live.error) +
         `<section class="card padded"><h3>Welcome, ${esc(live.user.name)}</h3><p class="helper">You do not belong to a workspace yet.</p><div class="actions">${button("Create workspace", "create-org", true)}${button("Accept invitation", "accept-invite")}</div></section>`
       );
-    if (state.page === "content") return contentPanel();\n    if (state.page === "leads") return crmContent();
+    if (state.page === "content") return contentPanel();
+    if (state.page === "leads") return crmContent();
     if (state.page === "seo") return seoContent();
     if (knowledgePage()) return knowledgeContent();
     if (state.page !== "settings")
@@ -654,7 +655,8 @@
           originalSettings();
   };
   render = function () {
-    originalRender();\n    if(live.active && state.page==="leads"){document.querySelector(".page").innerHTML=crmContent();}
+    originalRender();
+    if(live.active && state.page==="leads"){document.querySelector(".page").innerHTML=crmContent();}
     const top = document.querySelector(".top-right");
     if (top) {
       const existing = top.querySelector(".demo");
@@ -697,7 +699,8 @@
         workspacePicker();
         return;
       }
-      if(a.startsWith("crm-")){run(a);return;}\n      if (a === "menu" || a === "close") return originalAction(a);
+      if(a.startsWith("crm-")){run(a);return;}
+      if (a === "menu" || a === "close") return originalAction(a);
       if (a === "help") return run("build-plan");
       return;
     }
