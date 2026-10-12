@@ -1,5 +1,7 @@
 import { SeoController } from "./seo/controller";
 import { CrmController, PublicLeadCaptureController } from "./crm/controller";
+import { AnalyticsController } from "./analytics/controller";
+import { AgentsController } from "./agents/controller";
 import { TemplateController } from './content/templates';
 import { ContentAiController } from "./content/ai.controller";
 import { CmsController } from "./content/cms.controller";
@@ -114,6 +116,8 @@ class HealthController {
     SeoController,
     CrmController,
     PublicLeadCaptureController,
+    AnalyticsController,
+    AgentsController,
     KnowledgeController,
     TemplateController,
     ContentController,
@@ -167,7 +171,7 @@ export async function createApp() {
     origin: allowed,
     credentials: true,
     allowedHeaders: ["Content-Type", "X-Growth-Client"],
-    methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   });
   app.setGlobalPrefix("api/v1");
   app.useGlobalFilters(new ErrorFilter());

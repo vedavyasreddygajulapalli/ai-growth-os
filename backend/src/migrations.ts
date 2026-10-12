@@ -1,5 +1,7 @@
 import { SeoIssueWorkflow, SeoSchemaDraft, SeoProviderConnection } from "./seo/models";
 import { CrmLead, CrmActivity, CrmCaptureForm } from "./crm/models";
+import { AnalyticsProviderConnection, ConversionDefinition, AnalyticsReport } from "./analytics/models";
+import { AgentPolicy, AgentProposal, InboxState } from "./agents/models";
 import { contentModels } from "./content/models";
 import { KnowledgeRecord } from "./knowledge/models";
 import { crawlerModels } from "./crawler/models";
@@ -18,6 +20,12 @@ export async function runMigrations() {
   await CrmLead.createIndexes();
   await CrmActivity.createIndexes();
   await CrmCaptureForm.createIndexes();
+  await AnalyticsProviderConnection.createIndexes();
+  await ConversionDefinition.createIndexes();
+  await AnalyticsReport.createIndexes();
+  await AgentPolicy.createIndexes();
+  await AgentProposal.createIndexes();
+  await InboxState.createIndexes();
   for (const model of contentModels) await model.createIndexes();
   for (const model of crawlerModels) await model.createIndexes();
 }
