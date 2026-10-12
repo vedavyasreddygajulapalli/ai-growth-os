@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+Disallow: /private-lab/
+Sitemap: https://ai-growth-os-crawler-test.onrender.com/sitemap.xml

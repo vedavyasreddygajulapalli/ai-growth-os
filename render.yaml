@@ -42,3 +42,39 @@ services:
         value: production
       - key: API_INTERNAL_URL
         sync: false
+  # Public, isolated crawler acceptance website; no production/customer data.
+  - type: web
+    name: ai-growth-os-crawler-test
+    runtime: static
+    plan: free
+    branch: main
+    autoDeployTrigger: checksPass
+    buildCommand: echo "Static crawler fixture"
+    staticPublishPath: crawler-fixture
+    buildFilter:
+      paths:
+        - crawler-fixture/**
+        - render.yaml
+    routes:
+      - type: redirect
+        source: /legacy-services
+        destination: /services/
+      - type: redirect
+        source: /redirect-chain-start
+        destination: /redirect-chain-middle
+      - type: redirect
+        source: /redirect-chain-middle
+        destination: /services/
+      - type: redirect
+        source: /redirect-loop-a
+        destination: /redirect-loop-b
+      - type: redirect
+        source: /redirect-loop-b
+        destination: /redirect-loop-a
+    headers:
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
